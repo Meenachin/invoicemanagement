@@ -164,7 +164,6 @@ function Dashboard() {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [health, setHealth] = useState('checking')
 
   const load = async () => {
     setLoading(true)
@@ -183,26 +182,6 @@ function Dashboard() {
   useEffect(() => {
     load()
   }, [search])
-
-  useEffect(() => {
-    let mounted = true
-
-    api.health()
-      .then(() => {
-        if (mounted) {
-          setHealth('connected')
-        }
-      })
-      .catch(() => {
-        if (mounted) {
-          setHealth('offline')
-        }
-      })
-
-    return () => {
-      mounted = false
-    }
-  }, [])
 
   const total = useMemo(
     () => rows.reduce((s, r) => s + num(r.grand_total), 0),
@@ -232,6 +211,8 @@ function Dashboard() {
         </button>
       </section>
 
+      {/* Database Connected card removed.
+          Only useful invoice information is displayed. */}
       <section className="stats-grid">
         <Stat
           title="Saved invoices"
@@ -243,22 +224,6 @@ function Dashboard() {
           title="Visible invoice value"
           value={`₹ ${money(total)}`}
           tone="green"
-        />
-
-        <Stat
-          title="Database"
-          value={
-            health === 'connected'
-              ? 'Connected'
-              : health === 'checking'
-                ? 'Checking…'
-                : 'Unavailable'
-          }
-          tone={
-            health === 'connected'
-              ? 'blue'
-              : 'red'
-          }
         />
       </section>
 
@@ -324,10 +289,7 @@ function Dashboard() {
             <tbody>
               {!loading && rows.length === 0 && (
                 <tr>
-                  <td
-                    colSpan="7"
-                    className="empty"
-                  >
+                  <td colSpan="7" className="empty">
                     No invoices found. Create your first PVR invoice.
                   </td>
                 </tr>
@@ -389,10 +351,7 @@ function Dashboard() {
 
               {loading && (
                 <tr>
-                  <td
-                    colSpan="7"
-                    className="empty"
-                  >
+                  <td colSpan="7" className="empty">
                     Loading invoices…
                   </td>
                 </tr>
@@ -559,11 +518,7 @@ function InvoiceForm() {
       return
     }
 
-    if (
-      !String(
-        form.invoice_serial_number
-      ).trim()
-    ) {
+    if (!String(form.invoice_serial_number).trim()) {
       setError(
         'Invoice Serial Number is required.'
       )
@@ -621,9 +576,8 @@ function InvoiceForm() {
       const id = data.invoice.id
 
       /*
-       * IMPORTANT:
-       * React Router navigation happens without
-       * a browser refresh.
+       * React Router navigation.
+       * No browser refresh is required.
        */
       navigate(`/edit/${id}`, {
         replace: true,
@@ -675,8 +629,7 @@ function InvoiceForm() {
 
             <h1>
               {editing
-                ? invoiceNumber ||
-                  'Edit Invoice'
+                ? invoiceNumber || 'Edit Invoice'
                 : 'Create PVR Invoice'}
             </h1>
 
@@ -742,9 +695,7 @@ function InvoiceForm() {
 
             <Input
               label="Invoice Serial Number"
-              value={
-                form.invoice_serial_number
-              }
+              value={form.invoice_serial_number}
               onChange={v =>
                 update(
                   'invoice_serial_number',
@@ -951,9 +902,7 @@ function InvoiceForm() {
 
                     <Input
                       label="Trip Date"
-                      value={
-                        trip.trip_date
-                      }
+                      value={trip.trip_date}
                       onChange={v =>
                         updateTrip(
                           index,
@@ -966,9 +915,7 @@ function InvoiceForm() {
 
                     <Select
                       label="Vehicle Type"
-                      value={
-                        trip.vehicle_type
-                      }
+                      value={trip.vehicle_type}
                       onChange={v =>
                         updateTrip(
                           index,
@@ -981,9 +928,7 @@ function InvoiceForm() {
 
                     <Input
                       label="Vehicle Number"
-                      value={
-                        trip.vehicle_number
-                      }
+                      value={trip.vehicle_number}
                       onChange={v =>
                         updateTrip(
                           index,
@@ -998,9 +943,7 @@ function InvoiceForm() {
                   <div className="form-grid four">
                     <Input
                       label="Start Time"
-                      value={
-                        trip.start_time
-                      }
+                      value={trip.start_time}
                       onChange={v =>
                         updateTrip(
                           index,
@@ -1013,9 +956,7 @@ function InvoiceForm() {
 
                     <Input
                       label="End Time"
-                      value={
-                        trip.end_time
-                      }
+                      value={trip.end_time}
                       onChange={v =>
                         updateTrip(
                           index,
@@ -1028,9 +969,7 @@ function InvoiceForm() {
 
                     <Input
                       label="Start KM"
-                      value={
-                        trip.start_km
-                      }
+                      value={trip.start_km}
                       onChange={v =>
                         updateTrip(
                           index,
@@ -1045,9 +984,7 @@ function InvoiceForm() {
 
                     <Input
                       label="End KM"
-                      value={
-                        trip.end_km
-                      }
+                      value={trip.end_km}
                       onChange={v =>
                         updateTrip(
                           index,
@@ -1068,9 +1005,7 @@ function InvoiceForm() {
                       </span>
 
                       <strong>
-                        {c.total_km.toFixed(
-                          2
-                        )}
+                        {c.total_km.toFixed(2)}
                       </strong>
 
                       <small>
@@ -1084,9 +1019,7 @@ function InvoiceForm() {
                       </span>
 
                       <strong>
-                        {c.total_hours.toFixed(
-                          2
-                        )}
+                        {c.total_hours.toFixed(2)}
                       </strong>
 
                       <small>
@@ -1100,9 +1033,7 @@ function InvoiceForm() {
                       </span>
 
                       <strong>
-                        {c.extra_km.toFixed(
-                          2
-                        )}
+                        {c.extra_km.toFixed(2)}
                       </strong>
 
                       <small>
@@ -1116,9 +1047,7 @@ function InvoiceForm() {
                       </span>
 
                       <strong>
-                        {c.extra_hours.toFixed(
-                          2
-                        )}
+                        {c.extra_hours.toFixed(2)}
                       </strong>
 
                       <small>
@@ -1130,9 +1059,7 @@ function InvoiceForm() {
                   <div className="form-grid six">
                     <Input
                       label="Slab Hours"
-                      value={
-                        trip.slab_hours
-                      }
+                      value={trip.slab_hours}
                       onChange={v =>
                         updateTrip(
                           index,
@@ -1147,9 +1074,7 @@ function InvoiceForm() {
 
                     <Input
                       label="Slab KM"
-                      value={
-                        trip.slab_km
-                      }
+                      value={trip.slab_km}
                       onChange={v =>
                         updateTrip(
                           index,
@@ -1164,9 +1089,7 @@ function InvoiceForm() {
 
                     <Input
                       label="Slab Rate"
-                      value={
-                        trip.slab_rate
-                      }
+                      value={trip.slab_rate}
                       onChange={v =>
                         updateTrip(
                           index,
@@ -1181,9 +1104,7 @@ function InvoiceForm() {
 
                     <Input
                       label="Extra Hour Rate"
-                      value={
-                        trip.extra_hour_rate
-                      }
+                      value={trip.extra_hour_rate}
                       onChange={v =>
                         updateTrip(
                           index,
@@ -1198,9 +1119,7 @@ function InvoiceForm() {
 
                     <Input
                       label="Extra KM Rate"
-                      value={
-                        trip.extra_km_rate
-                      }
+                      value={trip.extra_km_rate}
                       onChange={v =>
                         updateTrip(
                           index,
@@ -1215,9 +1134,7 @@ function InvoiceForm() {
 
                     <Input
                       label="Driver Bata"
-                      value={
-                        trip.driver_bata
-                      }
+                      value={trip.driver_bata}
                       onChange={v =>
                         updateTrip(
                           index,
@@ -1234,9 +1151,7 @@ function InvoiceForm() {
                   <div className="form-grid four">
                     <Input
                       label="Parking"
-                      value={
-                        trip.parking
-                      }
+                      value={trip.parking}
                       onChange={v =>
                         updateTrip(
                           index,
@@ -1251,9 +1166,7 @@ function InvoiceForm() {
 
                     <Input
                       label="Toll"
-                      value={
-                        trip.toll
-                      }
+                      value={trip.toll}
                       onChange={v =>
                         updateTrip(
                           index,
@@ -1268,9 +1181,7 @@ function InvoiceForm() {
 
                     <Input
                       label="Other Charges"
-                      value={
-                        trip.other_charges
-                      }
+                      value={trip.other_charges}
                       onChange={v =>
                         updateTrip(
                           index,
@@ -1285,9 +1196,7 @@ function InvoiceForm() {
 
                     <Input
                       label="Trip Total"
-                      value={money(
-                        c.trip_total
-                      )}
+                      value={money(c.trip_total)}
                       onChange={() => {}}
                       readOnly
                     />
@@ -1310,20 +1219,14 @@ function InvoiceForm() {
                     <span>
                       Extra KM Amount{' '}
                       <b>
-                        ₹{' '}
-                        {money(
-                          c.extra_km_amount
-                        )}
+                        ₹ {money(c.extra_km_amount)}
                       </b>
                     </span>
 
                     <span>
                       Extra Hour Amount{' '}
                       <b>
-                        ₹{' '}
-                        {money(
-                          c.extra_hour_amount
-                        )}
+                        ₹ {money(c.extra_hour_amount)}
                       </b>
                     </span>
 
@@ -1342,10 +1245,7 @@ function InvoiceForm() {
                     <span>
                       Trip Total{' '}
                       <b>
-                        ₹{' '}
-                        {money(
-                          c.trip_total
-                        )}
+                        ₹ {money(c.trip_total)}
                       </b>
                     </span>
                   </div>
@@ -1419,6 +1319,7 @@ function InvoiceForm() {
             <div className="totals-box">
               <div>
                 <span>Subtotal</span>
+
                 <strong>
                   ₹ {money(calculated.subtotal)}
                 </strong>
@@ -1426,6 +1327,7 @@ function InvoiceForm() {
 
               <div>
                 <span>CGST</span>
+
                 <strong>
                   ₹ {money(calculated.cgst)}
                 </strong>
@@ -1433,6 +1335,7 @@ function InvoiceForm() {
 
               <div>
                 <span>SGST</span>
+
                 <strong>
                   ₹ {money(calculated.sgst)}
                 </strong>
@@ -1440,6 +1343,7 @@ function InvoiceForm() {
 
               <div>
                 <span>IGST</span>
+
                 <strong>
                   ₹ {money(calculated.igst)}
                 </strong>
@@ -1452,9 +1356,7 @@ function InvoiceForm() {
                   {calculated.round_off >= 0
                     ? '+'
                     : ''}
-                  {money(
-                    calculated.round_off
-                  )}
+                  {money(calculated.round_off)}
                 </strong>
               </div>
 
@@ -1462,9 +1364,7 @@ function InvoiceForm() {
                 <span>Grand Total</span>
 
                 <strong>
-                  ₹ {money(
-                    calculated.grand_total
-                  )}
+                  ₹ {money(calculated.grand_total)}
                 </strong>
               </div>
             </div>
@@ -1534,16 +1434,10 @@ function InvoiceForm() {
 
 export default function App() {
   /*
-   * IMPORTANT FIX
-   *
-   * Do NOT use the browser global:
-   *
-   * location.pathname
-   *
-   * React Router's useLocation() is reactive.
-   * When navigate('/new') or navigate('/edit/1')
-   * is called, this component re-renders immediately
-   * without requiring a browser refresh.
+   * IMPORTANT:
+   * useLocation() makes App reactive to React Router
+   * navigation. This means /new and /edit/:id render
+   * immediately without requiring a browser refresh.
    */
   const location = useLocation()
 
