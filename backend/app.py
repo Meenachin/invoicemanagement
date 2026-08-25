@@ -10,7 +10,12 @@ from sqlalchemy.orm import sessionmaker, joinedload
 from dotenv import load_dotenv
 
 from models import Base, Invoice, Trip
-from services import calculate_invoice, build_invoice_pdf, invoice_to_csv
+from services import (
+    calculate_invoice,
+    build_invoice_pdf,
+    invoice_to_csv,
+    invoice_to_excel,
+)
 
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR.parent / ".env")
