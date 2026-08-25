@@ -994,7 +994,7 @@ def build_invoice_pdf(invoice):
                 tiny_bold,
             ),
             _p(
-                f"{invoice.grand_total:,.2f}",
+                f"{invoice.subtotal:,.2f}",
                 total_style,
             ),
         ],
@@ -1038,6 +1038,7 @@ def build_invoice_pdf(invoice):
                 right,
             ),
         ],
+         [_p("Grand Total", total_style), _p(f"{invoice.subtotal:,.2f}", total_style)],
     ]
 
     left_width = doc.width - 63 * mm
