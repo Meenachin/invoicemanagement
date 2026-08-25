@@ -1345,3 +1345,359 @@ def invoice_to_csv(invoices):
             f"{inv.grand_total:.2f}",
         ])
     return s.getvalue().encode("utf-8-sig")
+
+
+def invoice_to_excel(invoices):
+    """
+    Export all invoices and their trip details to a production-ready Excel workbook.
+
+    Workbook:
+        1. Invoice Register
+        2. Trip Details
+
+    The export is read-only and does not modify the database.
+    """
+
+    workbook = Workbook()
+
+    # =========================================================
+    # STYLES
+    # =========================================================
+
+    header_fill = PatternFill(
+        fill_type="solid",
+        fgColor="1F4E78"
+    )
+
+    header_font = Font(
+        bold=True,
+        color="FFFFFF"
+    )
+
+    title_font = Font(
+        bold=True,
+        size=14
+    )
+
+    thin_side = Side(
+        style="thin",
+        color="D9E1F2"
+    )
+
+    border = Border(
+        left=thin_side,
+        right=thin_side,
+        top=thin_side,
+        bottom=thin_side
+    )
+
+    center = Alignment(
+        horizontal="center",
+        vertical="center",
+        wrap_text=True
+    )
+
+    left = Alignment(
+        horizontal="left",
+        vertical="top",
+        wrap_text=True
+    )
+
+    right = Alignment(
+        horizontal="right",
+        vertical="top"
+    )
+
+    # =========================================================
+    # SHEET 1 - INVOICE REGISTER
+    # =========================================================
+
+    invoice_sheet = workbook.active
+    invoice_sheet.title = "Invoice Register"
+
+    invoice_headers = [
+        "Database ID",
+        "Invoice Number",
+        "Invoice Series",
+        "Invoice Serial Number",
+        "Invoice Date",
+        "Customer Name",
+        "Customer Address",
+        "Customer GSTIN",
+        "Booked By",
+        "Used By",
+        "Reference / PO",
+        "CGST %",
+        "SGST %",
+        "IGST %",
+        "Subtotal",
+        "CGST",
+        "SGST",
+        "IGST",
+        "Round Off",
+        "Grand Total",
+        "Trip Count",
+        "Created At",
+        "Updated At",
+    ]
+
+    invoice_sheet.append(invoice_headers)
+
+    for cell in invoice_sheet[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = center
+        cell.border = border
+
+    for inv in invoices:
+        invoice_sheet.append([
+            inv.id,
+            inv.invoice_number or "",
+            inv.invoice_series or "",
+            inv.invoice_serial_number or "",
+            inv.invoice_date,
+            inv.customer_name or "",
+            inv.customer_address or "",
+            inv.customer_gstin or "",
+            inv.booked_by or "",
+            inv.used_by or "",
+            inv.reference_number or "",
+            inv.cgst_rate or 0,
+            inv.sgst_rate or 0,
+            inv.igst_rate or 0,
+            inv.subtotal or 0,
+            inv.cgst or 0,
+            inv.sgst or 0,
+            inv.igst or 0,
+            inv.round_off or 0,
+            inv.grand_total or 0,
+            len(inv.trips),
+            inv.created_at,
+            inv.updated_at,
+        ])
+
+    # Format invoice register
+    for row in invoice_sheet.iter_rows(
+        min_row=2,
+        max_row=invoice_sheet.max_row
+    ):
+        for cell in row:
+            cell.border = border
+            cell.alignment = left
+
+    # Date columns
+    for row in range(2, invoice_sheet.max_row + 1):
+        invoice_sheet.cell(row, 5).number_format = "DD-MM-YYYY"
+
+        invoice_sheet.cell(row, 22).number_format = "DD-MM-YYYY HH:MM:SS"
+        invoice_sheet.cell(row, 23).number_format = "DD-MM-YYYY HH:MM:SS"
+
+    # Currency columns
+    currency_columns = [
+        15, 16, 17, 18, 19, 20
+    ]
+
+    for row in range(2, invoice_sheet.max_row + 1):
+        for col in currency_columns:
+            invoice_sheet.cell(row, col).number_format = '#,##0.00'
+
+    # Freeze header
+    invoice_sheet.freeze_panes = "A2"
+
+    # Filter
+    if invoice_sheet.max_row >= 1:
+        invoice_sheet.auto_filter.ref = invoice_sheet.dimensions
+
+    # =========================================================
+    # SHEET 2 - TRIP DETAILS
+    # =========================================================
+
+    trip_sheet = workbook.create_sheet("Trip Details")
+
+    trip_headers = [
+        "Trip ID",
+        "Invoice ID",
+        "Invoice Number",
+        "DS No",
+        "Trip Date",
+        "Vehicle Type",
+        "Vehicle Number",
+        "Start Time",
+        "End Time",
+        "Start KM",
+        "End KM",
+        "Included Hours",
+        "Included KM",
+        "Slab Hours",
+        "Slab KM",
+        "Slab Rate",
+        "Extra Hour Rate",
+        "Extra KM Rate",
+        "Extra Hours",
+        "Extra KM",
+        "Extra Hour Amount",
+        "Extra KM Amount",
+        "Base Amount",
+        "Driver Bata",
+        "Parking",
+        "Toll",
+        "Other Charges",
+        "Trip Total",
+        "Notes",
+    ]
+
+    trip_sheet.append(trip_headers)
+
+    for cell in trip_sheet[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = center
+        cell.border = border
+
+    for inv in invoices:
+        for trip in inv.trips:
+            trip_sheet.append([
+                trip.id,
+                inv.id,
+                inv.invoice_number or "",
+                trip.ds_no or "",
+                trip.trip_date,
+                trip.vehicle_type or "",
+                trip.vehicle_number or "",
+                trip.start_time or "",
+                trip.end_time or "",
+                trip.start_km or 0,
+                trip.end_km or 0,
+                trip.total_hours or 0,
+                trip.total_km or 0,
+                trip.slab_hours or 0,
+                trip.slab_km or 0,
+                trip.slab_rate or 0,
+                trip.extra_hour_rate or 0,
+                trip.extra_km_rate or 0,
+                trip.extra_hours or 0,
+                trip.extra_km or 0,
+                trip.extra_hour_amount or 0,
+                trip.extra_km_amount or 0,
+                trip.base_amount or 0,
+                trip.driver_bata or 0,
+                trip.parking or 0,
+                trip.toll or 0,
+                trip.other_charges or 0,
+                trip.trip_total or 0,
+                trip.notes or "",
+            ])
+
+    for row in trip_sheet.iter_rows(
+        min_row=2,
+        max_row=trip_sheet.max_row
+    ):
+        for cell in row:
+            cell.border = border
+            cell.alignment = left
+
+    # Trip date
+    for row in range(2, trip_sheet.max_row + 1):
+        trip_sheet.cell(row, 5).number_format = "DD-MM-YYYY"
+
+    # Numeric / currency columns
+    currency_columns = [
+        16, 17, 18, 21, 22, 23, 24, 25, 26, 27, 28
+    ]
+
+    for row in range(2, trip_sheet.max_row + 1):
+        for col in currency_columns:
+            trip_sheet.cell(row, col).number_format = '#,##0.00'
+
+    trip_sheet.freeze_panes = "A2"
+
+    if trip_sheet.max_row >= 1:
+        trip_sheet.auto_filter.ref = trip_sheet.dimensions
+
+    # =========================================================
+    # COLUMN WIDTHS
+    # =========================================================
+
+    invoice_widths = {
+        1: 12,
+        2: 24,
+        3: 18,
+        4: 20,
+        5: 14,
+        6: 28,
+        7: 35,
+        8: 22,
+        9: 24,
+        10: 24,
+        11: 24,
+        12: 10,
+        13: 10,
+        14: 10,
+        15: 15,
+        16: 15,
+        17: 15,
+        18: 15,
+        19: 15,
+        20: 16,
+        21: 12,
+        22: 22,
+        23: 22,
+    }
+
+    for col, width in invoice_widths.items():
+        invoice_sheet.column_dimensions[
+            get_column_letter(col)
+        ].width = width
+
+    trip_widths = {
+        1: 10,
+        2: 12,
+        3: 24,
+        4: 14,
+        5: 14,
+        6: 20,
+        7: 20,
+        8: 12,
+        9: 12,
+        10: 12,
+        11: 12,
+        12: 15,
+        13: 15,
+        14: 14,
+        15: 14,
+        16: 14,
+        17: 16,
+        18: 15,
+        19: 14,
+        20: 14,
+        21: 18,
+        22: 18,
+        23: 15,
+        24: 15,
+        25: 15,
+        26: 15,
+        27: 18,
+        28: 15,
+        29: 35,
+    }
+
+    for col, width in trip_widths.items():
+        trip_sheet.column_dimensions[
+            get_column_letter(col)
+        ].width = width
+
+    # Header row height
+    invoice_sheet.row_dimensions[1].height = 30
+    trip_sheet.row_dimensions[1].height = 35
+
+    # =========================================================
+    # OUTPUT
+    # =========================================================
+
+    output = BytesIO()
+
+    workbook.save(output)
+
+    output.seek(0)
+
+    return output.getvalue()
