@@ -237,24 +237,32 @@ function Dashboard() {
             </p>
           </div>
 
-          <div className="heading-actions">
-            <button
-              type="button"
-              className="button ghost"
-              onClick={load}
-              disabled={loading}
-            >
-              {loading ? 'Loading…' : '↻ Refresh'}
-            </button>
+         <div className="heading-actions">
+  <button
+    type="button"
+    className="button ghost"
+    onClick={load}
+    disabled={loading}
+  >
+    {loading ? 'Loading…' : '↻ Refresh'}
+  </button>
 
-            <a
-              className="button ghost"
-              href={api.csvUrl()}
-              download
-            >
-              ⇩ CSV
-            </a>
-          </div>
+  <a
+    className="button ghost"
+    href={api.csvUrl()}
+    download
+  >
+    ⇩ CSV
+  </a>
+
+  <a
+    className="button ghost"
+    href={api.csvUrl().replace('/export/csv', '/export/xlsx')}
+    download
+  >
+    ⇩ Excel
+  </a>
+</div>
         </div>
 
         <div className="search-row">
