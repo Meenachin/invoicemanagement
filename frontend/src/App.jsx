@@ -9,7 +9,51 @@ import {
   todayISO
 } from './calculations'
 
-const VEHICLES = ['Innova Crysta', 'Honda Amaze']
+const VEHICLES = {
+  'Innova Crysta': [
+    'TG09T0036',
+    'TG09T5499',
+    'TS09UE4419',
+  ],
+
+  'CYAZ': [
+    'TG09U0036',
+    'TG13T3006',
+  ],
+
+  'Grand Vitara': [
+    'TG09H6705',
+  ],
+
+  'Scoda Slavia': [
+    'TG09T1009',
+  ],
+
+  'Honda City': [
+    'TG09T1003',
+    'TG09T1004',
+    'TG09T0625',
+    'TG09T0747',
+    'TG09T0627',
+    'TG09T1629',
+    'TG09T0748',
+    'TS09UD8159',
+    'TS09UD2888',
+    'TG08T8049',
+    'TS08UE7437',
+    'TS08UF4845',
+    'TS09UC2561',
+  ],
+
+  'Shift Dzire': [
+    'TG09T0619',
+    'TG09T0626',
+    'TS09UE1656',
+  ],
+}
+
+const VEHICLE_TYPES = Object.keys(VEHICLES)
+
 const DEFAULT_SERIES = 'PVR/2026-27/'
 
 function newTrip() {
@@ -18,28 +62,28 @@ function newTrip() {
     ds_no: '',
     trip_date: todayISO(),
     vehicle_type: 'Innova Crysta',
-    vehicle_number: '',
+vehicle_number: VEHICLES['Innova Crysta'][0],
     start_time: '',
     end_time: '',
     start_km: 0,
     end_km: 0,
     total_hours: 0,
     total_km: 0,
-    slab_hours: 10,
-    slab_km: 80,
-    slab_rate: 3700,
-    extra_hour_rate: 180,
-    extra_km_rate: 23,
+    slab_hours: 0,
+    slab_km: 0,
+    slab_rate: 00,
+    extra_hour_rate: 0,
+    extra_km_rate: ,
     extra_hours: 0,
     extra_km: 0,
     extra_hour_amount: 0,
     extra_km_amount: 0,
-    base_amount: 3700,
+    base_amount:,
     driver_bata: 0,
     parking: 0,
     toll: 0,
     other_charges: 0,
-    trip_total: 3700,
+    trip_total:0,
     notes: ''
   }
 }
@@ -921,31 +965,29 @@ function InvoiceForm() {
                       type="date"
                     />
 
-                    <Select
-                      label="Vehicle Type"
-                      value={trip.vehicle_type}
-                      onChange={v =>
-                        updateTrip(
-                          index,
-                          'vehicle_type',
-                          v
-                        )
-                      }
-                      options={VEHICLES}
-                    />
+                  <Select
+  label="Vehicle Type"
+  value={trip.vehicle_type}
+  onChange={v => {
+    updateTrip(index, 'vehicle_type', v)
 
-                    <Input
-                      label="Vehicle Number"
-                      value={trip.vehicle_number}
-                      onChange={v =>
-                        updateTrip(
-                          index,
-                          'vehicle_number',
-                          v
-                        )
-                      }
-                      placeholder="TG 08 XX 0000"
-                    />
+    const numbers = VEHICLES[v] || []
+
+    updateTrip(
+      index,
+      'vehicle_number',
+      numbers.length ? numbers[0] : ''
+    )
+  }}
+  options={VEHICLE_TYPES}
+/>
+
+<Select
+  label="Vehicle Number"
+  value={trip.vehicle_number}
+  onChange={v => updateTrip(index, 'vehicle_number', v)}
+  options={VEHICLES[trip.vehicle_type] || []}
+/>
                   </div>
 
                   <div className="form-grid four">
