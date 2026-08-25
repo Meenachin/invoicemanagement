@@ -166,7 +166,7 @@ def _p(text, style):
     return Paragraph(str(text if text is not None else ""), style)
 
 
-def build_invoice_pdf(invoice):
+# def build_invoice_pdf(invoice):
     buffer = BytesIO()
     page = landscape(A4)
     doc = SimpleDocTemplate(
@@ -209,8 +209,8 @@ def build_invoice_pdf(invoice):
     right_meta = [
         ["Invoice Date", invoice.invoice_date.strftime("%d-%m-%Y") if invoice.invoice_date else ""],
         ["Invoice No", invoice.invoice_number],
-        ["Series", invoice.invoice_series],
-        ["Serial No", invoice.invoice_serial_number],
+        # ["Series", invoice.invoice_series],
+        # ["Serial No", invoice.invoice_serial_number],meenakshi
         ["GSTIN", "36AYPPR7981L1Z8"],
     ]
     info_data = [
@@ -269,8 +269,9 @@ def build_invoice_pdf(invoice):
         [_p(f"SGST @ {invoice.sgst_rate:g}%", tiny), _p(f"{invoice.sgst:,.2f}", right)],
         [_p(f"IGST @ {invoice.igst_rate:g}%", tiny), _p(f"{invoice.igst:,.2f}", right)],
         [_p("Round Off", tiny), _p(f"{invoice.round_off:+,.2f}", right)],
-        [_p("Grand Total", total_style), _p(f"{invoice.grand_total:,.2f}", total_style)],
+        [_p("Grand Total", total_style), _p(f"{invoice.subtotal:,.2f}", total_style)],
     ]
+    # meenakshi
     left_width = doc.width - 63 * mm
     bottom = Table([
         [Table(totals_left, colWidths=[65*mm, left_width - 65*mm], style=[("BOX",(0,0),(-1,-1),0.4,colors.grey),("INNERGRID",(0,0),(-1,-1),0.2,colors.lightgrey),("VALIGN",(0,0),(-1,-1),"TOP"),("SPAN",(0,1),(1,1)),("LEFTPADDING",(0,0),(-1,-1),2),("RIGHTPADDING",(0,0),(-1,-1),2),("TOPPADDING",(0,0),(-1,-1),2),("BOTTOMPADDING",(0,0),(-1,-1),2)]),
@@ -285,7 +286,1037 @@ def build_invoice_pdf(invoice):
     doc.build(story)
     buffer.seek(0)
     return buffer.getvalue()
+def build_invoice_pdf(invoice):
+    """
+    Generate the final PVR Tours & Travels invoice PDF.
 
+    PDF-only formatting changes:
+    - Series and Serial No are hidden from the final PDF.
+    - Invoice Number remains visible.
+    - Subtotal displays the final Grand Total.
+    - Separate Grand Total row is removed.
+    - Font sizes are increased for better readability.
+    - All 22 trip columns remain available.
+    - Signature is placed on the right below "For PVR TOURS & TRAVELS".
+    - Duplicate PVR TOURS & TRAVELS footer text is removed.
+    - Landscape A4 is used so the complete invoice fits horizontally.
+    """
+
+    buffer = BytesIO()
+
+    # ---------------------------------------------------------
+    # A4 LANDSCAPE
+    # ---------------------------------------------------------
+    page = landscape(A4)
+
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=page,
+        rightMargin=5 * mm,
+        leftMargin=5 * mm,
+        topMargin=5 * mm,
+        bottomMargin=5 * mm,
+        title=f"PVR Invoice {invoice.invoice_number}",
+        author="PVR Tours & Travels",
+    )
+
+    # ---------------------------------------------------------
+    # STYLES
+    # Increased font sizes for better print readability.
+    # ---------------------------------------------------------
+    styles = getSampleStyleSheet()
+
+    company = ParagraphStyle(
+        "company",
+        parent=styles["Heading1"],
+        fontName="Helvetica-Bold",
+        fontSize=19,
+        leading=20,
+        alignment=TA_CENTER,
+        spaceAfter=1,
+    )
+
+    company_address = ParagraphStyle(
+        "company_address",
+        parent=styles["Normal"],
+        fontName="Helvetica",
+        fontSize=8,
+        leading=9,
+        alignment=TA_CENTER,
+    )
+
+    small_center = ParagraphStyle(
+        "small_center",
+        parent=styles["Normal"],
+        fontName="Helvetica",
+        fontSize=7.5,
+        leading=8.5,
+        alignment=TA_CENTER,
+    )
+
+    small = ParagraphStyle(
+        "small",
+        parent=styles["Normal"],
+        fontName="Helvetica",
+        fontSize=7,
+        leading=8,
+    )
+
+    small_bold = ParagraphStyle(
+        "small_bold",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=7,
+        leading=8,
+    )
+
+    tiny = ParagraphStyle(
+        "tiny",
+        parent=styles["Normal"],
+        fontName="Helvetica",
+        fontSize=6.4,
+        leading=7.2,
+    )
+
+    tiny_bold = ParagraphStyle(
+        "tiny_bold",
+        parent=tiny,
+        fontName="Helvetica-Bold",
+        fontSize=6.5,
+        leading=7.3,
+    )
+
+    section = ParagraphStyle(
+        "section",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=9,
+        leading=10,
+    )
+
+    right = ParagraphStyle(
+        "right",
+        parent=tiny,
+        alignment=TA_RIGHT,
+    )
+
+    total_style = ParagraphStyle(
+        "total",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=8,
+        leading=9,
+        alignment=TA_RIGHT,
+    )
+
+    signature_style = ParagraphStyle(
+        "signature",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=8,
+        leading=9,
+        alignment=TA_RIGHT,
+    )
+
+    # ---------------------------------------------------------
+    # STORY
+    # ---------------------------------------------------------
+    story = []
+
+    # ---------------------------------------------------------
+    # COMPANY HEADER
+    # ---------------------------------------------------------
+    story.append(
+        _p(
+            "P.V.R. TOURS AND TRAVELS",
+            company,
+        )
+    )
+
+    story.append(
+        _p(
+            "H. No. 4-1-756, Tuljaguda, Troop Bazar, Hyderabad, "
+            "Telangana State - 500 001.  "
+            "Ph: 9030588882 / 9963578399",
+            company_address,
+        )
+    )
+
+    story.append(
+        Spacer(
+            1,
+            2 * mm,
+        )
+    )
+
+    # ---------------------------------------------------------
+    # TAXABLE INVOICE
+    # ---------------------------------------------------------
+    story.append(
+        Table(
+            [
+                [
+                    _p(
+                        "TAXABLE INVOICE",
+                        section,
+                    )
+                ]
+            ],
+            colWidths=[doc.width],
+            style=[
+                (
+                    "BOX",
+                    (0, 0),
+                    (-1, -1),
+                    0.7,
+                    colors.black,
+                ),
+                (
+                    "ALIGN",
+                    (0, 0),
+                    (-1, -1),
+                    "LEFT",
+                ),
+                (
+                    "TOPPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    2.5,
+                ),
+                (
+                    "BOTTOMPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    2.5,
+                ),
+                (
+                    "LEFTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    3,
+                ),
+            ],
+        )
+    )
+
+    # ---------------------------------------------------------
+    # CUSTOMER INFORMATION
+    # ---------------------------------------------------------
+    left = [
+        ["Billed To", invoice.customer_name or ""],
+        ["Address", invoice.customer_address or ""],
+        ["GSTIN", invoice.customer_gstin or ""],
+        ["Booked By", invoice.booked_by or ""],
+        ["Used By", invoice.used_by or ""],
+        ["Reference / PO", invoice.reference_number or ""],
+    ]
+
+    # IMPORTANT:
+    # Series and Serial No intentionally removed from final PDF.
+    right_meta = [
+        [
+            "Invoice Date",
+            invoice.invoice_date.strftime("%d-%m-%Y")
+            if invoice.invoice_date
+            else "",
+        ],
+        [
+            "Invoice No",
+            invoice.invoice_number or "",
+        ],
+        [
+            "GSTIN",
+            "36AYPPR7981L1Z8",
+        ],
+    ]
+
+    info_data = [
+        [
+            Table(
+                [
+                    [
+                        _p(k, small_bold),
+                        _p(v, small),
+                    ]
+                    for k, v in left
+                ],
+                colWidths=[
+                    27 * mm,
+                    115 * mm,
+                ],
+                style=[
+                    (
+                        "VALIGN",
+                        (0, 0),
+                        (-1, -1),
+                        "TOP",
+                    ),
+                    (
+                        "BOX",
+                        (0, 0),
+                        (-1, -1),
+                        0.35,
+                        colors.grey,
+                    ),
+                    (
+                        "INNERGRID",
+                        (0, 0),
+                        (-1, -1),
+                        0.2,
+                        colors.lightgrey,
+                    ),
+                    (
+                        "LEFTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        2,
+                    ),
+                    (
+                        "RIGHTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        2,
+                    ),
+                    (
+                        "TOPPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        1.5,
+                    ),
+                    (
+                        "BOTTOMPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        1.5,
+                    ),
+                ],
+            ),
+            Table(
+                [
+                    [
+                        _p(k, small_bold),
+                        _p(v, small),
+                    ]
+                    for k, v in right_meta
+                ],
+                colWidths=[
+                    30 * mm,
+                    58 * mm,
+                ],
+                style=[
+                    (
+                        "VALIGN",
+                        (0, 0),
+                        (-1, -1),
+                        "TOP",
+                    ),
+                    (
+                        "BOX",
+                        (0, 0),
+                        (-1, -1),
+                        0.35,
+                        colors.grey,
+                    ),
+                    (
+                        "INNERGRID",
+                        (0, 0),
+                        (-1, -1),
+                        0.2,
+                        colors.lightgrey,
+                    ),
+                    (
+                        "LEFTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        2,
+                    ),
+                    (
+                        "RIGHTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        2,
+                    ),
+                    (
+                        "TOPPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        1.5,
+                    ),
+                    (
+                        "BOTTOMPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        1.5,
+                    ),
+                ],
+            ),
+        ]
+    ]
+
+    story.append(
+        Table(
+            info_data,
+            colWidths=[
+                doc.width * 0.72,
+                doc.width * 0.28,
+            ],
+            style=[
+                (
+                    "VALIGN",
+                    (0, 0),
+                    (-1, -1),
+                    "TOP",
+                ),
+                (
+                    "LEFTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    0,
+                ),
+                (
+                    "RIGHTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    0,
+                ),
+            ],
+        )
+    )
+
+    story.append(
+        Spacer(
+            1,
+            2 * mm,
+        )
+    )
+
+    # ---------------------------------------------------------
+    # TRIP TABLE
+    # ALL ORIGINAL REQUIRED FIELDS ARE RETAINED.
+    # ---------------------------------------------------------
+    headers = [
+        "DS No",
+        "Date",
+        "Car Type",
+        "Car No",
+        "Slab Hrs",
+        "Slab Kms",
+        "Slab Rate",
+        "Ex. Hrs Rate",
+        "Ex. Kms Rate",
+        "Start Time",
+        "End Time",
+        "Start KMS",
+        "End KMS",
+        "Driver Bata",
+        "Parking & Toll",
+        "Total Hrs",
+        "Ex. Hrs",
+        "Ex. Hrs Amount",
+        "Total Kms",
+        "Ex. Kms",
+        "Ex. Kms Amount",
+        "Total",
+    ]
+
+    # Original relative widths.
+    # The scale automatically makes the table fit the full
+    # printable A4 landscape width without horizontal overflow.
+    widths_mm = [
+        24,
+        25,
+        34,
+        32,
+        20,
+        23,
+        28,
+        28,
+        28,
+        23,
+        23,
+        28,
+        28,
+        27,
+        34,
+        23,
+        22,
+        30,
+        25,
+        22,
+        30,
+        30,
+    ]
+
+    scale = doc.width / (
+        sum(widths_mm) * mm
+    )
+
+    widths = [
+        w * mm * scale
+        for w in widths_mm
+    ]
+
+    table_data = [
+        [
+            _p(
+                h,
+                tiny_bold,
+            )
+            for h in headers
+        ]
+    ]
+
+    # ---------------------------------------------------------
+    # TRIP ROWS
+    # ---------------------------------------------------------
+    for t in invoice.trips:
+
+        d = (
+            t.trip_date.strftime("%d-%m-%Y")
+            if t.trip_date
+            else ""
+        )
+
+        parking_toll = (
+            (t.parking or 0)
+            + (t.toll or 0)
+            + (t.other_charges or 0)
+        )
+
+        row = [
+            t.ds_no or "",
+            d,
+            t.vehicle_type or "",
+            t.vehicle_number or "",
+
+            f"{(t.slab_hours or 0):g}",
+            f"{(t.slab_km or 0):g}",
+            f"{(t.slab_rate or 0):,.2f}",
+
+            f"{(t.extra_hour_rate or 0):,.2f}",
+            f"{(t.extra_km_rate or 0):,.2f}",
+
+            t.start_time or "",
+            t.end_time or "",
+
+            f"{(t.start_km or 0):g}",
+            f"{(t.end_km or 0):g}",
+
+            f"{(t.driver_bata or 0):,.2f}",
+            f"{parking_toll:,.2f}",
+
+            f"{(t.total_hours or 0):g}",
+            f"{(t.extra_hours or 0):g}",
+
+            f"{(t.extra_hour_amount or 0):,.2f}",
+
+            f"{(t.total_km or 0):g}",
+            f"{(t.extra_km or 0):g}",
+
+            f"{(t.extra_km_amount or 0):,.2f}",
+
+            f"{(t.trip_total or 0):,.2f}",
+        ]
+
+        table_data.append(
+            [
+                _p(v, tiny)
+                for v in row
+            ]
+        )
+
+    trip_table = Table(
+        table_data,
+        colWidths=widths,
+        repeatRows=1,
+        hAlign="LEFT",
+    )
+
+    trip_table.setStyle(
+        TableStyle(
+            [
+                (
+                    "BOX",
+                    (0, 0),
+                    (-1, -1),
+                    0.5,
+                    colors.black,
+                ),
+                (
+                    "INNERGRID",
+                    (0, 0),
+                    (-1, -1),
+                    0.25,
+                    colors.grey,
+                ),
+                (
+                    "BACKGROUND",
+                    (0, 0),
+                    (-1, 0),
+                    colors.HexColor("#eaf2ff"),
+                ),
+                (
+                    "VALIGN",
+                    (0, 0),
+                    (-1, -1),
+                    "MIDDLE",
+                ),
+                (
+                    "ALIGN",
+                    (0, 0),
+                    (-1, -1),
+                    "CENTER",
+                ),
+                (
+                    "LEFTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    1.2,
+                ),
+                (
+                    "RIGHTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    1.2,
+                ),
+                (
+                    "TOPPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    2.5,
+                ),
+                (
+                    "BOTTOMPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    2.5,
+                ),
+            ]
+        )
+    )
+
+    story.append(trip_table)
+
+    # ---------------------------------------------------------
+    # NOTES
+    # ---------------------------------------------------------
+    if any(
+        (t.notes or "").strip()
+        for t in invoice.trips
+    ):
+        notes = "; ".join(
+            [
+                f"{t.ds_no}: {t.notes}"
+                for t in invoice.trips
+                if (t.notes or "").strip()
+            ]
+        )
+
+        story.append(
+            Spacer(
+                1,
+                1 * mm,
+            )
+        )
+
+        story.append(
+            _p(
+                f"Notes: {notes}",
+                tiny,
+            )
+        )
+
+    story.append(
+        Spacer(
+            1,
+            3 * mm,
+        )
+    )
+
+    # ---------------------------------------------------------
+    # PAYMENT / GST / TOTALS
+    # ---------------------------------------------------------
+    totals_left = [
+        [
+            _p(
+                "HSN No: 996412",
+                tiny_bold,
+            ),
+            _p(
+                "GST NO: 36AYPPR7981L1Z8",
+                tiny_bold,
+            ),
+        ],
+        [
+            _p(
+                "Please make payment by Bank Transfer to the below account:",
+                tiny_bold,
+            ),
+            _p(
+                "",
+                tiny,
+            ),
+        ],
+        [
+            _p(
+                "Account Name: PVR Tours & Travels<br/>"
+                "SBI Account No: 39169597084<br/>"
+                "IFSC: SBIN0000487",
+                tiny,
+            ),
+            _p(
+                "As per Notification No. 22/2019 Central Tax "
+                "(Rate) dated 30th September 2019, this supply "
+                "is covered under REVERSE CHARGE MECHANISM. "
+                "Hence, CGST / SGST payable by the recipient / "
+                "receiver @ 5% on the value mentioned in the invoice.",
+                tiny,
+            ),
+        ],
+    ]
+
+    # ---------------------------------------------------------
+    # IMPORTANT:
+    #
+    # The actual invoice.grand_total calculation remains
+    # unchanged in the database.
+    #
+    # ONLY the PDF DISPLAY is changed:
+    #
+    # Subtotal = Grand Total
+    #
+    # Separate Grand Total row is removed.
+    # ---------------------------------------------------------
+    totals_right = [
+        [
+            _p(
+                "Subtotal",
+                tiny_bold,
+            ),
+            _p(
+                f"{invoice.grand_total:,.2f}",
+                total_style,
+            ),
+        ],
+        [
+            _p(
+                f"CGST @ {invoice.cgst_rate:g}%",
+                tiny,
+            ),
+            _p(
+                f"{invoice.cgst:,.2f}",
+                right,
+            ),
+        ],
+        [
+            _p(
+                f"SGST @ {invoice.sgst_rate:g}%",
+                tiny,
+            ),
+            _p(
+                f"{invoice.sgst:,.2f}",
+                right,
+            ),
+        ],
+        [
+            _p(
+                f"IGST @ {invoice.igst_rate:g}%",
+                tiny,
+            ),
+            _p(
+                f"{invoice.igst:,.2f}",
+                right,
+            ),
+        ],
+        [
+            _p(
+                "Round Off",
+                tiny,
+            ),
+            _p(
+                f"{invoice.round_off:+,.2f}",
+                right,
+            ),
+        ],
+    ]
+
+    left_width = doc.width - 63 * mm
+
+    bottom = Table(
+        [
+            [
+                Table(
+                    totals_left,
+                    colWidths=[
+                        65 * mm,
+                        left_width - 65 * mm,
+                    ],
+                    style=[
+                        (
+                            "BOX",
+                            (0, 0),
+                            (-1, -1),
+                            0.4,
+                            colors.grey,
+                        ),
+                        (
+                            "INNERGRID",
+                            (0, 0),
+                            (-1, -1),
+                            0.2,
+                            colors.lightgrey,
+                        ),
+                        (
+                            "VALIGN",
+                            (0, 0),
+                            (-1, -1),
+                            "TOP",
+                        ),
+                        (
+                            "SPAN",
+                            (0, 1),
+                            (1, 1),
+                        ),
+                        (
+                            "LEFTPADDING",
+                            (0, 0),
+                            (-1, -1),
+                            2,
+                        ),
+                        (
+                            "RIGHTPADDING",
+                            (0, 0),
+                            (-1, -1),
+                            2,
+                        ),
+                        (
+                            "TOPPADDING",
+                            (0, 0),
+                            (-1, -1),
+                            2,
+                        ),
+                        (
+                            "BOTTOMPADDING",
+                            (0, 0),
+                            (-1, -1),
+                            2,
+                        ),
+                    ],
+                ),
+                Table(
+                    totals_right,
+                    colWidths=[
+                        35 * mm,
+                        28 * mm,
+                    ],
+                    style=[
+                        (
+                            "BOX",
+                            (0, 0),
+                            (-1, -1),
+                            0.4,
+                            colors.grey,
+                        ),
+                        (
+                            "INNERGRID",
+                            (0, 0),
+                            (-1, -1),
+                            0.2,
+                            colors.lightgrey,
+                        ),
+                        (
+                            "VALIGN",
+                            (0, 0),
+                            (-1, -1),
+                            "TOP",
+                        ),
+                        (
+                            "LEFTPADDING",
+                            (0, 0),
+                            (-1, -1),
+                            2,
+                        ),
+                        (
+                            "RIGHTPADDING",
+                            (0, 0),
+                            (-1, -1),
+                            2,
+                        ),
+                        (
+                            "TOPPADDING",
+                            (0, 0),
+                            (-1, -1),
+                            2,
+                        ),
+                        (
+                            "BOTTOMPADDING",
+                            (0, 0),
+                            (-1, -1),
+                            2,
+                        ),
+                    ],
+                ),
+            ]
+        ],
+        colWidths=[
+            left_width,
+            63 * mm,
+        ],
+    )
+
+    story.append(bottom)
+
+    story.append(
+        Spacer(
+            1,
+            2 * mm,
+        )
+    )
+
+    # ---------------------------------------------------------
+    # AMOUNT IN WORDS + FOR PVR TOURS & TRAVELS
+    # ---------------------------------------------------------
+    story.append(
+        Table(
+            [
+                [
+                    _p(
+                        amount_to_words_indian(
+                            invoice.grand_total
+                        ),
+                        small_bold,
+                    ),
+                    _p(
+                        "For PVR TOURS & TRAVELS",
+                        small_bold,
+                    ),
+                ]
+            ],
+            colWidths=[
+                doc.width * 0.70,
+                doc.width * 0.30,
+            ],
+            style=[
+                (
+                    "BOX",
+                    (0, 0),
+                    (-1, -1),
+                    0.4,
+                    colors.black,
+                ),
+                (
+                    "VALIGN",
+                    (0, 0),
+                    (-1, -1),
+                    "MIDDLE",
+                ),
+                (
+                    "ALIGN",
+                    (0, 0),
+                    (0, 0),
+                    "LEFT",
+                ),
+                (
+                    "ALIGN",
+                    (1, 0),
+                    (1, 0),
+                    "RIGHT",
+                ),
+                (
+                    "TOPPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    3,
+                ),
+                (
+                    "BOTTOMPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    3,
+                ),
+                (
+                    "LEFTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    3,
+                ),
+                (
+                    "RIGHTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    3,
+                ),
+            ],
+        )
+    )
+
+    # ---------------------------------------------------------
+    # FINAL SIGNATURE
+    #
+    # Authorised Signatory is now on the RIGHT.
+    #
+    # The duplicate "PVR TOURS & TRAVELS" line below it
+    # has been removed.
+    # ---------------------------------------------------------
+    story.append(
+        Spacer(
+            1,
+            8 * mm,
+        )
+    )
+
+    signature_table = Table(
+        [
+            [
+                "",
+                _p(
+                    "Authorised Signatory",
+                    signature_style,
+                ),
+            ]
+        ],
+        colWidths=[
+            doc.width * 0.65,
+            doc.width * 0.35,
+        ],
+        style=[
+            (
+                "ALIGN",
+                (1, 0),
+                (1, 0),
+                "RIGHT",
+            ),
+            (
+                "VALIGN",
+                (0, 0),
+                (-1, -1),
+                "BOTTOM",
+            ),
+            (
+                "LEFTPADDING",
+                (0, 0),
+                (-1, -1),
+                2,
+            ),
+            (
+                "RIGHTPADDING",
+                (0, 0),
+                (-1, -1),
+                2,
+            ),
+        ],
+    )
+
+    story.append(signature_table)
+
+    # ---------------------------------------------------------
+    # BUILD PDF
+    # ---------------------------------------------------------
+    doc.build(story)
+
+    buffer.seek(0)
+
+    return buffer.getvalue()
 
 def invoice_to_csv(invoices):
     import io
