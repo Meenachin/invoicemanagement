@@ -362,3 +362,48 @@ def export_csv():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=os.getenv("FLASK_DEBUG", "0") == "1")
+
+
+@app.get("/api/invoices/export/xlsx")
+def export_excel():
+    session = SessionLocal()
+
+    try:
+        invoices = (
+            session.execute(
+                select(Invoice)
+                .options(joinedload(Invoice.trips))
+                .order_by(
+                    Invoice.invoice_date.desc(),
+                    Invoice.id.desc()
+                )
+            )
+            .unique()
+            .scalars()
+            .all()
+        )
+
+        excel_bytes = invoice_to_excel(invoices)
+
+        return send_file(
+            __import__("io").BytesIO(excel_bytes),
+            mimetype=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
+            as_attachment=True,
+            download_name="PVR_Invoice_Register.xlsx",
+        )
+
+    except Exception as exc:
+        traceback.print_exc()
+
+        return error_response(
+            "Unable to export invoices to Excel",
+            500,
+            "EXCEL_EXPORT_ERROR",
+            str(exc),
+        )
+
+    finally:
+        session.close()
