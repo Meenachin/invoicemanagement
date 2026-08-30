@@ -58,7 +58,27 @@ const VEHICLE_TYPES = [
   'Other'
 ]
 const DEFAULT_SERIES = 'PVR/2026-27/'
+const CUSTOMER_NAMES = [
+  'SBI LHO BANK STREET KOTI HYDERABAD'
+]
 
+const CUSTOMER_ADDRESSES = [
+  'Hyderabad'
+]
+
+const CUSTOMER_GSTINS = [
+  '36AAACS8577K1ZQ'
+]
+
+const BOOKED_BY = [
+  'Mr.Y Santosh Kumar Liaison Officer',
+  'Mr.Rama Kantha Sarma Liaison Officer',
+   'Mr. Rama Krishna Liaison Officer'
+]
+
+const REFERENCE_NUMBERS = [
+  'SBI'
+]
 function newTrip() {
   return {
     id: null,
@@ -96,12 +116,14 @@ function blankInvoice() {
     invoice_series: DEFAULT_SERIES,
     invoice_serial_number: '',
     invoice_date: todayISO(),
-    customer_name: '',
-    customer_address: '',
-    customer_gstin: '',
-    booked_by: '',
+
+    customer_name: CUSTOMER_NAMES[0],
+    customer_address: CUSTOMER_ADDRESSES[0],
+    customer_gstin: CUSTOMER_GSTINS[0],
+    booked_by: BOOKED_BY[0],
     used_by: '',
-    reference_number: '',
+    reference_number: REFERENCE_NUMBERS[0],
+
     cgst_rate: 2.5,
     sgst_rate: 2.5,
     igst_rate: 0,
@@ -161,6 +183,58 @@ function Select({ label, value, onChange, options }) {
     </label>
   )
 }
+
+
+function EditableSelect({
+  label,
+  value,
+  onChange,
+  options = [],
+  placeholder = '',
+  className = ''
+}) {
+  const isOther =
+    value === 'Other' ||
+    (value && !options.includes(value))
+
+  const selectValue = isOther ? 'Other' : value
+
+  return (
+    <label className={`field ${className}`}>
+      <span>{label}</span>
+
+      <select
+        value={selectValue || ''}
+        onChange={e => {
+          const selected = e.target.value
+
+          if (selected === 'Other') {
+            onChange('')
+          } else {
+            onChange(selected)
+          }
+        }}
+      >
+        {options.map(option => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+
+        <option value="Other">Other</option>
+      </select>
+
+      {isOther && (
+        <input
+          type="text"
+          value={value === 'Other' ? '' : value || ''}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder}
+        />
+      )}
+    </label>
+  )
+        }
 
 function Stat({ title, value, tone }) {
   return (
@@ -783,65 +857,57 @@ function InvoiceForm() {
           </div>
 
           <div className="form-grid three">
-            <Input
-              label="Customer Name"
-              value={form.customer_name}
-              onChange={v =>
-                update(
-                  'customer_name',
-                  v
-                )
-              }
-              required
-            />
+            <EditableSelect
+  label="Customer Name"
+  value={form.customer_name}
+  onChange={v =>
+    update('customer_name', v)
+  }
+  options={CUSTOMER_NAMES}
+  placeholder="Enter customer name"
+/>
 
-            <Input
-              label="Customer GST Number"
-              value={form.customer_gstin}
-              onChange={v =>
-                update(
-                  'customer_gstin',
-                  v
-                )
-              }
-              placeholder="Optional"
-            />
+            <EditableSelect
+  label="Customer GST Number"
+  value={form.customer_gstin}
+  onChange={v =>
+    update('customer_gstin', v)
+  }
+  options={CUSTOMER_GSTINS}
+  placeholder="Enter GSTIN"
+/>
 
-            <Input
-              label="Reference / PO Number"
-              value={form.reference_number}
-              onChange={v =>
-                update(
-                  'reference_number',
-                  v
-                )
-              }
-            />
-          </div>
+            <EditableSelect
+  label="Reference / PO Number"
+  value={form.reference_number}
+  onChange={v =>
+    update('reference_number', v)
+  }
+  options={REFERENCE_NUMBERS}
+  placeholder="Enter reference / PO number"
+/>
 
           <div className="form-grid three">
-            <Input
-              label="Customer Address"
-              value={form.customer_address}
-              onChange={v =>
-                update(
-                  'customer_address',
-                  v
-                )
-              }
-              className="span-2"
-            />
+            <EditableSelect
+  label="Customer Address"
+  value={form.customer_address}
+  onChange={v =>
+    update('customer_address', v)
+  }
+  options={CUSTOMER_ADDRESSES}
+  placeholder="Enter customer address"
+  className="span-2"
+/>
 
-            <Input
-              label="Booked By"
-              value={form.booked_by}
-              onChange={v =>
-                update(
-                  'booked_by',
-                  v
-                )
-              }
-            />
+            <EditableSelect
+  label="Booked By"
+  value={form.booked_by}
+  onChange={v =>
+    update('booked_by', v)
+  }
+  options={BOOKED_BY}
+  placeholder="Enter booked by"
+/>
 
             <Input
               label="Used By"
