@@ -857,35 +857,67 @@ function InvoiceForm() {
           </div>
 
           <div className="form-grid three">
-            <EditableSelect
-  label="Customer Name"
-  value={form.customer_name}
-  onChange={v =>
-    update('customer_name', v)
-  }
-  options={CUSTOMER_NAMES}
-  placeholder="Enter customer name"
-/>
+  <EditableSelect
+    label="Customer Name"
+    value={form.customer_name}
+    onChange={v =>
+      update('customer_name', v)
+    }
+    options={CUSTOMER_NAMES}
+    placeholder="Enter customer name"
+  />
 
-            <EditableSelect
-  label="Customer GST Number"
-  value={form.customer_gstin}
-  onChange={v =>
-    update('customer_gstin', v)
-  }
-  options={CUSTOMER_GSTINS}
-  placeholder="Enter GSTIN"
-/>
+  <EditableSelect
+    label="Customer GST Number"
+    value={form.customer_gstin}
+    onChange={v =>
+      update('customer_gstin', v)
+    }
+    options={CUSTOMER_GSTINS}
+    placeholder="Enter GSTIN"
+  />
 
-            <EditableSelect
-  label="Reference / PO Number"
-  value={form.reference_number}
-  onChange={v =>
-    update('reference_number', v)
-  }
-  options={REFERENCE_NUMBERS}
-  placeholder="Enter reference / PO number"
-/>
+  <EditableSelect
+    label="Reference / PO Number"
+    value={form.reference_number}
+    onChange={v =>
+      update('reference_number', v)
+    }
+    options={REFERENCE_NUMBERS}
+    placeholder="Enter reference / PO number"
+  />
+</div>
+
+<div className="form-grid three">
+  <EditableSelect
+    label="Customer Address"
+    value={form.customer_address}
+    onChange={v =>
+      update('customer_address', v)
+    }
+    options={CUSTOMER_ADDRESSES}
+    placeholder="Enter customer address"
+    className="span-2"
+  />
+
+  <EditableSelect
+    label="Booked By"
+    value={form.booked_by}
+    onChange={v =>
+      update('booked_by', v)
+    }
+    options={BOOKED_BY}
+    placeholder="Enter booked by"
+  />
+
+  <Input
+    label="Used By"
+    value={form.used_by}
+    onChange={v =>
+      update('used_by', v)
+    }
+  />
+</div>
 
           <div className="form-grid three">
             <EditableSelect
