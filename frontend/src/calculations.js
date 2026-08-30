@@ -5,12 +5,37 @@ export const num = (value) => {
 
 export function hoursBetween(start, end) {
   if (!start || !end) return 0
-  const [sh, sm] = start.split(':').map(Number)
-  const [eh, em] = end.split(':').map(Number)
-  if (![sh, sm, eh, em].every(Number.isFinite)) return 0
-  let startMinutes = sh * 60 + sm
-  let endMinutes = eh * 60 + em
-  if (endMinutes < startMinutes) endMinutes += 24 * 60
+
+  function parseTime(value) {
+    const match = String(value)
+      .trim()
+      .toUpperCase()
+      .match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/)
+
+    if (!match) return null
+
+    const hours = Number(match[1])
+    const minutes = Number(match[2])
+
+    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+      return null
+    }
+
+    return hours * 60 + minutes
+  }
+
+  let startMinutes = parseTime(start)
+  let endMinutes = parseTime(end)
+
+  if (startMinutes === null || endMinutes === null) {
+    return 0
+  }
+
+  // If trip crosses midnight
+  if (endMinutes < startMinutes) {
+    endMinutes += 24 * 60
+  }
+
   return (endMinutes - startMinutes) / 60
 }
 
