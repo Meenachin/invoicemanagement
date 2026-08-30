@@ -195,52 +195,49 @@ function EditableSelect({
 }) {
   const [otherMode, setOtherMode] = useState(false)
 
-  const isOther =
-    otherMode ||
-    (value && !options.includes(value))
+  const handleChange = e => {
+    const selected = e.target.value
+
+    if (selected === 'Other') {
+      setOtherMode(true)
+      onChange('')
+    } else {
+      setOtherMode(false)
+      onChange(selected)
+    }
+  }
 
   return (
     <label className={`field ${className}`}>
       <span>{label}</span>
 
-      <select
-        value={isOther ? 'Other' : value || ''}
-        onChange={e => {
-          const selected = e.target.value
-
-          if (selected === 'Other') {
-            setOtherMode(true)
-            onChange('')
-          } else {
-            setOtherMode(false)
-            onChange(selected)
-          }
-        }}
-      >
-        {options.map(option => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-
-        <option value="Other">
-          Other
-        </option>
-      </select>
-
-      {isOther && (
+      {otherMode ? (
         <input
           type="text"
           value={value || ''}
-          onChange={e =>
-            onChange(e.target.value)
-          }
+          onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
+          autoFocus
         />
+      ) : (
+        <select
+          value={value || ''}
+          onChange={handleChange}
+        >
+          {options.map(option => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+
+          <option value="Other">
+            Other
+          </option>
+        </select>
       )}
     </label>
   )
-              }
+}
 
 function Stat({ title, value, tone }) {
   return (
