@@ -9,14 +9,15 @@ export function hoursBetween(start, end) {
   const parseTime = (value) => {
     const text = String(value).trim().toUpperCase()
 
-    // Supports:
-    // 13:00
-    // 22:30
-    // 1:23 AM
-    // 1:23 PM
-    // 13:23 AM / PM also won't crash
-
-    const match = text.match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/)
+    // Accept:
+    // 14:00
+    // 14:00 PM
+    // 2:00 PM
+    // 12:00 PM
+    // 12:00 AM
+    const match = text.match(
+      /^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/
+    )
 
     if (!match) return null
 
@@ -24,23 +25,31 @@ export function hoursBetween(start, end) {
     const minute = Number(match[2])
     const period = match[3]
 
-    if (minute < 0 || minute > 59) return null
-
-    // 12-hour format with AM/PM
-    if (period) {
-      if (hour < 1 || hour > 12) return null
-
-      if (period === 'AM') {
-        if (hour === 12) hour = 0
-      } else if (period === 'PM') {
-        if (hour !== 12) hour += 12
-      }
-    } else {
-      // 24-hour format
-      if (hour < 0 || hour > 23) return null
+    if (minute < 0 || minute > 59) {
+      return null
     }
 
-    return hour * 60 + minute
+    // 24-hour input
+    if (hour >= 0 && hour <= 23) {
+      // If user enters 13-23, keep it as 24-hour time.
+      // AM/PM is ignored because 13-23 already defines the time.
+      if (hour >= 13) {
+        return hour * 60 + minute
+      }
+
+      // For 1-12 with AM/PM
+      if (period === 'AM') {
+        if (hour === 12) hour = 0
+      }
+
+      if (period === 'PM') {
+        if (hour !== 12) hour += 12
+      }
+
+      return hour * 60 + minute
+    }
+
+    return null
   }
 
   const startMinutes = parseTime(start)
@@ -52,7 +61,7 @@ export function hoursBetween(start, end) {
 
   let difference = endMinutes - startMinutes
 
-  // Trip crossing midnight
+  // If trip crosses midnight
   if (difference < 0) {
     difference += 24 * 60
   }
