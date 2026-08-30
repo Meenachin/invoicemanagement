@@ -32,13 +32,36 @@ def number(value):
 def parse_time(value):
     if not value:
         return None
+
     value = str(value).strip()
-    for fmt in ("%H:%M", "%H:%M:%S"):
+
+    # User can enter:
+    # 13:00 PM
+    # 1:00 PM
+    # 01:00 pm
+    # 13:00
+    # 1:00
+    formats = (
+        "%H:%M %p",
+        "%H:%M:%S %p",
+        "%I:%M %p",
+        "%I:%M:%S %p",
+        "%H:%M",
+        "%H:%M:%S",
+        "%I:%M",
+        "%I:%M:%S",
+    )
+
+    for fmt in formats:
         try:
-            return datetime.strptime(value, fmt)
+            return datetime.strptime(value.upper(), fmt)
         except ValueError:
             pass
-    raise ValueError(f"Invalid time: {value}")
+
+    raise ValueError(
+        f"Invalid time format: {value}. "
+        "Please enter time like 13:00 PM or 1:00 PM."
+    )
 
 
 def calculate_trip(raw):
