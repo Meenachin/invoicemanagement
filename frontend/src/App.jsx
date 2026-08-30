@@ -52,8 +52,11 @@ const VEHICLES = {
   ],
 }
 
-const VEHICLE_TYPES = Object.keys(VEHICLES)
-
+//const VEHICLE_TYPES = Object.keys(VEHICLES)
+const VEHICLE_TYPES = [
+  ...Object.keys(VEHICLES),
+  'Other'
+]
 const DEFAULT_SERIES = 'PVR/2026-27/'
 
 function newTrip() {
@@ -965,7 +968,7 @@ function InvoiceForm() {
                       type="date"
                     />
 
-                  <Select
+                 <Select
   label="Vehicle Type"
   value={trip.vehicle_type}
   onChange={v => {
@@ -982,12 +985,25 @@ function InvoiceForm() {
   options={VEHICLE_TYPES}
 />
 
-<Select
-  label="Vehicle Number"
-  value={trip.vehicle_number}
-  onChange={v => updateTrip(index, 'vehicle_number', v)}
-  options={VEHICLES[trip.vehicle_type] || []}
-/>
+{trip.vehicle_type === 'Other' ? (
+  <Input
+    label="Vehicle Number"
+    value={trip.vehicle_number}
+    onChange={v =>
+      updateTrip(index, 'vehicle_number', v)
+    }
+    placeholder="Enter vehicle number"
+  />
+) : (
+  <Select
+    label="Vehicle Number"
+    value={trip.vehicle_number}
+    onChange={v =>
+      updateTrip(index, 'vehicle_number', v)
+    }
+    options={VEHICLES[trip.vehicle_type] || []}
+  />
+)}
                   </div>
 
                   <div className="form-grid four">
