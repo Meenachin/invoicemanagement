@@ -968,41 +968,59 @@ function InvoiceForm() {
                       type="date"
                     />
 
-                 <Select
-  label="Vehicle Type"
-  value={trip.vehicle_type}
-  onChange={v => {
-    updateTrip(index, 'vehicle_type', v)
+                 {trip.vehicle_type === 'Other' ? (
+  <>
+    <Input
+      label="Vehicle Type"
+      value={trip.vehicle_name || ''}
+      onChange={v =>
+        updateTrip(index, 'vehicle_name', v)
+      }
+      placeholder="Enter vehicle type"
+    />
 
-    const numbers = VEHICLES[v] || []
-
-    updateTrip(
-      index,
-      'vehicle_number',
-      numbers.length ? numbers[0] : ''
-    )
-  }}
-  options={VEHICLE_TYPES}
-/>
-
-{trip.vehicle_type === 'Other' ? (
-  <Input
-    label="Vehicle Number"
-    value={trip.vehicle_number}
-    onChange={v =>
-      updateTrip(index, 'vehicle_number', v)
-    }
-    placeholder="Enter vehicle number"
-  />
+    <Input
+      label="Vehicle Number"
+      value={trip.vehicle_number || ''}
+      onChange={v =>
+        updateTrip(index, 'vehicle_number', v)
+      }
+      placeholder="Enter vehicle number"
+    />
+  </>
 ) : (
-  <Select
-    label="Vehicle Number"
-    value={trip.vehicle_number}
-    onChange={v =>
-      updateTrip(index, 'vehicle_number', v)
-    }
-    options={VEHICLES[trip.vehicle_type] || []}
-  />
+  <>
+    <Select
+      label="Vehicle Type"
+      value={trip.vehicle_type}
+      onChange={v => {
+        const numbers = VEHICLES[v] || []
+
+        updateTrip(index, 'vehicle_type', v)
+        updateTrip(
+          index,
+          'vehicle_number',
+          numbers.length ? numbers[0] : ''
+        )
+      }}
+      options={VEHICLE_TYPES}
+    />
+
+    <Select
+      label="Vehicle Number"
+      value={trip.vehicle_number}
+      onChange={v =>
+        updateTrip(
+          index,
+          'vehicle_number',
+          v
+        )
+      }
+      options={
+        VEHICLES[trip.vehicle_type] || []
+      }
+    />
+  </>
 )}
                   </div>
 
