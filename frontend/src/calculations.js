@@ -6,37 +6,58 @@ export const num = (value) => {
 export function hoursBetween(start, end) {
   if (!start || !end) return 0
 
-  function parseTime(value) {
-    const match = String(value)
-      .trim()
-      .toUpperCase()
-      .match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/)
+  const parseTime = (value) => {
+    const text = String(value).trim().toUpperCase()
+
+    // Supports:
+    // 13:00
+    // 22:30
+    // 1:23 AM
+    // 1:23 PM
+    // 13:23 AM / PM also won't crash
+
+    const match = text.match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/)
 
     if (!match) return null
 
-    const hours = Number(match[1])
-    const minutes = Number(match[2])
+    let hour = Number(match[1])
+    const minute = Number(match[2])
+    const period = match[3]
 
-    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-      return null
+    if (minute < 0 || minute > 59) return null
+
+    // 12-hour format with AM/PM
+    if (period) {
+      if (hour < 1 || hour > 12) return null
+
+      if (period === 'AM') {
+        if (hour === 12) hour = 0
+      } else if (period === 'PM') {
+        if (hour !== 12) hour += 12
+      }
+    } else {
+      // 24-hour format
+      if (hour < 0 || hour > 23) return null
     }
 
-    return hours * 60 + minutes
+    return hour * 60 + minute
   }
 
-  let startMinutes = parseTime(start)
-  let endMinutes = parseTime(end)
+  const startMinutes = parseTime(start)
+  const endMinutes = parseTime(end)
 
   if (startMinutes === null || endMinutes === null) {
     return 0
   }
 
-  // If trip crosses midnight
-  if (endMinutes < startMinutes) {
-    endMinutes += 24 * 60
+  let difference = endMinutes - startMinutes
+
+  // Trip crossing midnight
+  if (difference < 0) {
+    difference += 24 * 60
   }
 
-  return (endMinutes - startMinutes) / 60
+  return difference / 60
 }
 
 export function calculateTrip(trip) {
