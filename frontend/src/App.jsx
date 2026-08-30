@@ -193,24 +193,26 @@ function EditableSelect({
   placeholder = '',
   className = ''
 }) {
-  const isOther =
-    value === 'Other' ||
-    (value && !options.includes(value))
+  const [otherMode, setOtherMode] = useState(false)
 
-  const selectValue = isOther ? 'Other' : value
+  const isOther =
+    otherMode ||
+    (value && !options.includes(value))
 
   return (
     <label className={`field ${className}`}>
       <span>{label}</span>
 
       <select
-        value={selectValue || ''}
+        value={isOther ? 'Other' : value || ''}
         onChange={e => {
           const selected = e.target.value
 
           if (selected === 'Other') {
+            setOtherMode(true)
             onChange('')
           } else {
+            setOtherMode(false)
             onChange(selected)
           }
         }}
@@ -221,20 +223,24 @@ function EditableSelect({
           </option>
         ))}
 
-        <option value="Other">Other</option>
+        <option value="Other">
+          Other
+        </option>
       </select>
 
       {isOther && (
         <input
           type="text"
-          value={value === 'Other' ? '' : value || ''}
-          onChange={e => onChange(e.target.value)}
+          value={value || ''}
+          onChange={e =>
+            onChange(e.target.value)
+          }
           placeholder={placeholder}
         />
       )}
     </label>
   )
-        }
+              }
 
 function Stat({ title, value, tone }) {
   return (
@@ -919,39 +925,7 @@ function InvoiceForm() {
   />
 </div>
 
-          <div className="form-grid three">
-            <EditableSelect
-  label="Customer Address"
-  value={form.customer_address}
-  onChange={v =>
-    update('customer_address', v)
-  }
-  options={CUSTOMER_ADDRESSES}
-  placeholder="Enter customer address"
-  className="span-2"
-/>
-
-            <EditableSelect
-  label="Booked By"
-  value={form.booked_by}
-  onChange={v =>
-    update('booked_by', v)
-  }
-  options={BOOKED_BY}
-  placeholder="Enter booked by"
-/>
-
-            <Input
-              label="Used By"
-              value={form.used_by}
-              onChange={v =>
-                update(
-                  'used_by',
-                  v
-                )
-              }
-            />
-          </div>
+          
         </section>
 
         <section className="panel trip-panel">
