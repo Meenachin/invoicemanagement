@@ -1026,30 +1026,24 @@ function InvoiceForm() {
 
                   <div className="form-grid four">
                     <Input
-                      label="Start Time"
-                      value={trip.start_time}
-                      onChange={v =>
-                        updateTrip(
-                          index,
-                          'start_time',
-                          v
-                        )
-                      }
-                      type="time"
-                    />
+  label="Start Time"
+  value={trip.start_time}
+  onChange={v =>
+    updateTrip(index, 'start_time', v)
+  }
+  type="text"
+  placeholder="13:00"
+/>
 
-                    <Input
-                      label="End Time"
-                      value={trip.end_time}
-                      onChange={v =>
-                        updateTrip(
-                          index,
-                          'end_time',
-                          v
-                        )
-                      }
-                      type="time"
-                    />
+<Input
+  label="End Time"
+  value={trip.end_time}
+  onChange={v =>
+    updateTrip(index, 'end_time', v)
+  }
+  type="text"
+  placeholder="22:30"
+/>
 
                     <Input
                       label="Start KM"
