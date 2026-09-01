@@ -1037,59 +1037,55 @@ function InvoiceForm() {
                       type="date"
                     />
 
-                 {trip.vehicle_type === 'Other' ? (
-  <>
-    <Input
-      label="Vehicle Type"
-      value={trip.vehicle_name || ''}
-      onChange={v =>
-        updateTrip(index, 'vehicle_name', v)
-      }
-      placeholder="Enter vehicle type"
-    />
+               <EditableSelect
+  label="Vehicle Type"
+  value={trip.vehicle_type}
+  onChange={v => {
+    updateTrip(index, 'vehicle_type', v)
 
-    <Input
-      label="Vehicle Number"
-      value={trip.vehicle_number || ''}
-      onChange={v =>
-        updateTrip(index, 'vehicle_number', v)
-      }
-      placeholder="Enter vehicle number"
-    />
-  </>
+    // Only automatically select a vehicle number
+    // for predefined vehicle types.
+    const numbers = VEHICLES[v] || []
+
+    updateTrip(
+      index,
+      'vehicle_number',
+      numbers.length ? numbers[0] : ''
+    )
+  }}
+  options={Object.keys(VEHICLES)}
+  placeholder="Enter vehicle type"
+/>
+
+{trip.vehicle_type &&
+!Object.keys(VEHICLES).includes(trip.vehicle_type) ? (
+  <Input
+    label="Vehicle Number"
+    value={trip.vehicle_number || ''}
+    onChange={v =>
+      updateTrip(
+        index,
+        'vehicle_number',
+        v
+      )
+    }
+    placeholder="Enter vehicle number"
+  />
 ) : (
-  <>
-    <Select
-      label="Vehicle Type"
-      value={trip.vehicle_type}
-      onChange={v => {
-        const numbers = VEHICLES[v] || []
-
-        updateTrip(index, 'vehicle_type', v)
-        updateTrip(
-          index,
-          'vehicle_number',
-          numbers.length ? numbers[0] : ''
-        )
-      }}
-      options={VEHICLE_TYPES}
-    />
-
-    <Select
-      label="Vehicle Number"
-      value={trip.vehicle_number}
-      onChange={v =>
-        updateTrip(
-          index,
-          'vehicle_number',
-          v
-        )
-      }
-      options={
-        VEHICLES[trip.vehicle_type] || []
-      }
-    />
-  </>
+  <Select
+    label="Vehicle Number"
+    value={trip.vehicle_number}
+    onChange={v =>
+      updateTrip(
+        index,
+        'vehicle_number',
+        v
+      )
+    }
+    options={
+      VEHICLES[trip.vehicle_type] || []
+    }
+  />
 )}
                   </div>
 
