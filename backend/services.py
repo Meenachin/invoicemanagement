@@ -76,7 +76,8 @@ def calculate_trip(raw):
     if start_time and end_time:
         delta = end_time - start_time
         if delta.total_seconds() < 0:
-            delta = delta.replace(days=1)
+            # delta = delta.replace(days=1)
+             delta += timedelta(days=1)
         total_hours = delta.total_seconds() / 3600
 
     total_km = end_km - start_km
