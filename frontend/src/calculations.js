@@ -4,7 +4,7 @@ export const num = (value) => {
 }
 
 export function hoursBetween(startDate, startTime, endDate, endTime) {
-  if (!startDate || !startTime || !endDate || !endTime) return 0
+  if (!startDate || !startTime || !endTime) return 0
 
   const parseTime = (value) => {
     const text = String(value).trim().toUpperCase()
@@ -43,8 +43,25 @@ export function hoursBetween(startDate, startTime, endDate, endTime) {
     return 0
   }
 
+  let finalEndDate = endDate || startDate
+
+  // Old invoices may have an empty End Date.
+  // If End Time is earlier than Start Time,
+  // treat it as an overnight trip for calculation only.
+  if (!endDate && endMinutes < startMinutes) {
+    const [year, month, day] = startDate.split('-').map(Number)
+
+    const nextDay = new Date(
+      Date.UTC(year, month - 1, day)
+    )
+
+    nextDay.setUTCDate(nextDay.getUTCDate() + 1)
+
+    finalEndDate = nextDay.toISOString().slice(0, 10)
+  }
+
   const start = new Date(`${startDate}T00:00:00`)
-  const end = new Date(`${endDate}T00:00:00`)
+  const end = new Date(`${finalEndDate}T00:00:00`)
 
   start.setMinutes(startMinutes)
   end.setMinutes(endMinutes)
@@ -67,7 +84,7 @@ export function calculateTrip(trip) {
   const totalHours = hoursBetween(
   trip.trip_date,
   trip.start_time,
-  trip.end_date || trip.trip_date,
+  trip.end_date,
   trip.end_time
 )
   const slabKm = Math.max(0, num(trip.slab_km))
