@@ -69,10 +69,8 @@ export function hoursBetween(startDate, startTime, endDate, endTime) {
   const difference = end - start
 
   if (difference < 0) {
-    throw new Error(
-      'End date/time cannot be before Start date/time'
-    )
-  }
+  return 0
+}
 
   return difference / (1000 * 60 * 60)
 }
