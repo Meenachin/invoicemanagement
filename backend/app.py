@@ -77,10 +77,10 @@ def serialize_trip(t):
     return {
         "id": t.id,
         "ds_no": t.ds_no or "",
-       "trip_date": t.trip_date.isoformat() if t.trip_date else "",
-"end_date": t.end_date.isoformat() if t.end_date else "",
-"vehicle_type": t.vehicle_type or "",
-"vehicle_number": t.vehicle_number or "",
+        "trip_date": t.trip_date.isoformat() if t.trip_date else "",
+        "end_date": t.end_date.isoformat() if t.end_date else "",
+        "vehicle_type": t.vehicle_type or "",
+        "vehicle_number": t.vehicle_number or "",
         "start_time": t.start_time or "",
         "end_time": t.end_time or "",
         "start_km": t.start_km or 0,
@@ -333,59 +333,7 @@ def get_invoice(invoice_id):
         session.close()
 
 
-@app.post("/api/invoices")
-def create_invoice():
-    session = SessionLocal()
-    try:
-        data = request.get_json(silent=True) or {}
-        invoice_number, _ = validate_payload(data)
-        existing = session.execute(select(Invoice.id).where(Invoice.invoice_number == invoice_number)).scalar_one_or_none()
-        if existing is not None:
-            return error_response("Invoice number already exists", 409, "DUPLICATE_INVOICE_NUMBER")
 
-        calculated_trips, totals = calculate_invoice(data, data["trips"])
-        inv = Invoice()
-        apply_invoice(inv, data, totals)
-        session.add(inv)
-        session.flush()
-
-        for tdata in calculated_trips:
-            trip = Trip(invoice_id=inv.id, **tdata)
-
-            if trip.trip_date:
-                trip.trip_date = parse_date(trip.trip_date, "Trip Date")
-
-            if trip.end_date:
-                trip.end_date = parse_date(trip.end_date, "End Date")
-            else:
-                trip.end_date = trip.trip_date
-
-            session.add(trip)
-
-        session.commit()
-        session.refresh(inv)
-        return jsonify({"success": True, "message": "Invoice created successfully", "invoice": serialize_invoice(inv)}), 201
-    except ValueError as exc:
-        session.rollback()
-        return error_response(str(exc), 400, "VALIDATION_ERROR")
-    except IntegrityError as exc:
-        session.rollback()
-        constraint = getattr(getattr(exc, "orig", None), "diag", None)
-        constraint_name = getattr(constraint, "constraint_name", None)
-        if constraint_name == "ix_invoices_invoice_number" or constraint_name == "invoices_invoice_number_key":
-            return error_response("Invoice number already exists", 409, "DUPLICATE_INVOICE_NUMBER")
-        if constraint_name and "not_null" in constraint_name.lower():
-            return error_response(f"Database NOT NULL constraint failed: {constraint_name}", 400, "NOT_NULL_VIOLATION")
-        return error_response("Database constraint error while creating the invoice", 400, "DATABASE_CONSTRAINT_ERROR", str(getattr(exc, "orig", exc)))
-    except (DataError, StatementError) as exc:
-        session.rollback()
-        return error_response("Invalid data type or value sent to PostgreSQL", 400, "DATABASE_DATA_ERROR", str(getattr(exc, "orig", exc)))
-    except Exception as exc:
-        session.rollback()
-        traceback.print_exc()
-        return error_response("Unexpected server error while creating invoice", 500, "SERVER_ERROR", str(exc))
-    finally:
-        session.close()
 
 
 @app.put("/api/invoices/<int:invoice_id>")
