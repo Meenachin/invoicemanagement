@@ -186,7 +186,6 @@ def health():
 @app.post("/api/invoices")
 def create_invoice():
     session = SessionLocal()
-
     try:
         data = request.get_json(silent=True) or {}
 
