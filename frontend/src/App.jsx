@@ -84,6 +84,7 @@ function newTrip() {
     id: null,
     ds_no: '',
     trip_date: todayISO(),
+    end_date: todayISO(),
     vehicle_type: 'Innova Crysta',
 vehicle_number: VEHICLES['Innova Crysta'][0],
     start_time: '',
