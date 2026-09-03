@@ -15,7 +15,6 @@ const VEHICLES = {
     'TG09T5499',
     'TS09UE4419',
   ],
-
   'CYAZ': [
     'TG09U0036',
     'TG13T3006',
