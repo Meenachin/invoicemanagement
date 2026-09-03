@@ -182,7 +182,63 @@ def health():
     except Exception as exc:
         return error_response("Database connection failed", 503, "DATABASE_UNAVAILABLE", str(exc))
 
+@app.get("/api/invoices")
+def list_invoices():
+    session = SessionLocal()
+    try:
+        search = (request.args.get("search") or "").strip()
 
+        query = (
+            select(Invoice)
+            .options(joinedload(Invoice.trips))
+            .order_by(
+                Invoice.invoice_date.desc(),
+                Invoice.id.desc()
+            )
+        )
+
+        if search:
+            term = f"%{search}%"
+            query = query.where(
+                or_(
+                    Invoice.invoice_number.ilike(term),
+                    Invoice.customer_name.ilike(term),
+                    Invoice.reference_number.ilike(term)
+                )
+            )
+
+        invoices = (
+            session.execute(query)
+            .unique()
+            .scalars()
+            .all()
+        )
+
+        rows = []
+
+        for inv in invoices:
+            rows.append({
+                "id": inv.id,
+                "invoice_number": inv.invoice_number,
+                "invoice_date": (
+                    inv.invoice_date.isoformat()
+                    if inv.invoice_date
+                    else ""
+                ),
+                "customer_name": inv.customer_name,
+                "reference_number": inv.reference_number or "",
+                "trip_count": len(inv.trips),
+                "subtotal": inv.subtotal or 0,
+                "grand_total": inv.grand_total or 0,
+            })
+
+        return jsonify({
+            "success": True,
+            "invoices": rows
+        })
+
+    finally:
+        session.close()
 @app.post("/api/invoices")
 def create_invoice():
     session = SessionLocal()
