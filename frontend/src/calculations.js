@@ -3,18 +3,12 @@ export const num = (value) => {
   return Number.isFinite(n) ? n : 0
 }
 
-export function hoursBetween(start, end) {
-  if (!start || !end) return 0
+export function hoursBetween(startDate, startTime, endDate, endTime) {
+  if (!startDate || !startTime || !endDate || !endTime) return 0
 
   const parseTime = (value) => {
     const text = String(value).trim().toUpperCase()
 
-    // Accept:
-    // 14:00
-    // 14:00 PM
-    // 2:00 PM
-    // 12:00 PM
-    // 12:00 AM
     const match = text.match(
       /^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/
     )
@@ -29,51 +23,53 @@ export function hoursBetween(start, end) {
       return null
     }
 
-    // 24-hour input
-    if (hour >= 0 && hour <= 23) {
-      // If user enters 13-23, keep it as 24-hour time.
-      // AM/PM is ignored because 13-23 already defines the time.
-      if (hour >= 13) {
-        return hour * 60 + minute
-      }
-
-      // For 1-12 with AM/PM
-      if (period === 'AM') {
-        if (hour === 12) hour = 0
-      }
-
-      if (period === 'PM') {
-        if (hour !== 12) hour += 12
-      }
-
-      return hour * 60 + minute
+    if (period === 'AM') {
+      if (hour === 12) hour = 0
+    } else if (period === 'PM') {
+      if (hour !== 12) hour += 12
     }
 
-    return null
+    if (hour < 0 || hour > 23) {
+      return null
+    }
+
+    return hour * 60 + minute
   }
 
-  const startMinutes = parseTime(start)
-  const endMinutes = parseTime(end)
+  const startMinutes = parseTime(startTime)
+  const endMinutes = parseTime(endTime)
 
   if (startMinutes === null || endMinutes === null) {
     return 0
   }
 
-  let difference = endMinutes - startMinutes
+  const start = new Date(`${startDate}T00:00:00`)
+  const end = new Date(`${endDate}T00:00:00`)
 
-  // If trip crosses midnight
+  start.setMinutes(startMinutes)
+  end.setMinutes(endMinutes)
+
+  const difference = end - start
+
   if (difference < 0) {
-    difference += 24 * 60
+    throw new Error(
+      'End date/time cannot be before Start date/time'
+    )
   }
 
-  return difference / 60
+  return difference / (1000 * 60 * 60)
 }
 
 export function calculateTrip(trip) {
   const startKm = num(trip.start_km)
   const endKm = num(trip.end_km)
-  const totalKm = Math.max(0, endKm - startKm)
-  const totalHours = hoursBetween(trip.start_time, trip.end_time)
+  const totalKm = Math.max(0, endKm - startKm)onst
+  const totalHours = hoursBetween(
+  trip.trip_date,
+  trip.start_time,
+  trip.end_date || trip.trip_date,
+  trip.end_time
+)
   const slabKm = Math.max(0, num(trip.slab_km))
   const slabHours = Math.max(0, num(trip.slab_hours))
   const slabRate = Math.max(0, num(trip.slab_rate))
