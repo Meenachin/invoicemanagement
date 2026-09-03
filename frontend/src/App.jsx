@@ -85,7 +85,7 @@ function newTrip() {
     trip_date: todayISO(),
     end_date: todayISO(),
     vehicle_type: 'Innova Crysta',
-vehicle_number: VEHICLES['Innova Crysta'][0],
+    vehicle_number: VEHICLES['Innova Crysta'][0],
     start_time: '',
     end_time: '',
     start_km: 0,
@@ -1025,7 +1025,7 @@ function InvoiceForm() {
                     />
 
                     <Input
-                      label="Trip Date"
+                      label="Start Date"
                       value={trip.trip_date}
                       onChange={v =>
                         updateTrip(
@@ -1037,78 +1037,99 @@ function InvoiceForm() {
                       type="date"
                     />
 
-               <EditableSelect
-  label="Vehicle Type"
-  value={trip.vehicle_type}
-  onChange={v => {
-    updateTrip(index, 'vehicle_type', v)
+                    <Input
+                      label="End Date"
+                      value={trip.end_date || trip.trip_date}
+                      onChange={v =>
+                        updateTrip(
+                          index,
+                          'end_date',
+                          v
+                        )
+                      }
+                      type="date"
+                    />
 
-    // Only automatically select a vehicle number
-    // for predefined vehicle types.
-    const numbers = VEHICLES[v] || []
+                    <EditableSelect
+                      label="Vehicle Type"
+                      value={trip.vehicle_type}
+                      onChange={v => {
+                        updateTrip(index, 'vehicle_type', v)
 
-    updateTrip(
-      index,
-      'vehicle_number',
-      numbers.length ? numbers[0] : ''
-    )
-  }}
-  options={Object.keys(VEHICLES)}
-  placeholder="Enter vehicle type"
-/>
+                        // Only automatically select a vehicle number
+                        // for predefined vehicle types.
+                        const numbers = VEHICLES[v] || []
 
-{trip.vehicle_type &&
-!Object.keys(VEHICLES).includes(trip.vehicle_type) ? (
-  <Input
-    label="Vehicle Number"
-    value={trip.vehicle_number || ''}
-    onChange={v =>
-      updateTrip(
-        index,
-        'vehicle_number',
-        v
-      )
-    }
-    placeholder="Enter vehicle number"
-  />
-) : (
-  <Select
-    label="Vehicle Number"
-    value={trip.vehicle_number}
-    onChange={v =>
-      updateTrip(
-        index,
-        'vehicle_number',
-        v
-      )
-    }
-    options={
-      VEHICLES[trip.vehicle_type] || []
-    }
-  />
-)}
+                        updateTrip(
+                          index,
+                          'vehicle_number',
+                          numbers.length ? numbers[0] : ''
+                        )
+                      }}
+                      options={Object.keys(VEHICLES)}
+                      placeholder="Enter vehicle type"
+                    />
+
+                    {trip.vehicle_type &&
+                    !Object.keys(VEHICLES).includes(trip.vehicle_type) ? (
+                      <Input
+                        label="Vehicle Number"
+                        value={trip.vehicle_number || ''}
+                        onChange={v =>
+                          updateTrip(
+                            index,
+                            'vehicle_number',
+                            v
+                          )
+                        }
+                        placeholder="Enter vehicle number"
+                      />
+                    ) : (
+                      <Select
+                        label="Vehicle Number"
+                        value={trip.vehicle_number}
+                        onChange={v =>
+                          updateTrip(
+                            index,
+                            'vehicle_number',
+                            v
+                          )
+                        }
+                        options={
+                          VEHICLES[trip.vehicle_type] || []
+                        }
+                      />
+                    )}
                   </div>
 
                   <div className="form-grid four">
                     <Input
-  label="Start Time"
-  value={trip.start_time}
-  onChange={v =>
-    updateTrip(index, 'start_time', v)
-  }
-  type="text"
-  placeholder="13:00"
-/>
+                      label="Start Time"
+                      value={trip.start_time}
+                      onChange={v =>
+                        updateTrip(
+                          index,
+                          'start_time',
+                          v
+                        )
+                      }
+                      type="text"
+                      placeholder="13:00"
+                    />
 
-<Input
-  label="End Time"
-  value={trip.end_time}
-  onChange={v =>
-    updateTrip(index, 'end_time', v)
-  }
-  type="text"
-  placeholder="22:30"
-/>
+                    <Input
+                      label="End Time"
+                      value={trip.end_time}
+                      onChange={v =>
+                        updateTrip(
+                          index,
+                          'end_time',
+                          v
+                        )
+                      }
+                      type="text"
+                      placeholder="22:30"
+                    />
 
                     <Input
                       label="Start KM"
@@ -1166,7 +1187,7 @@ function InvoiceForm() {
                       </strong>
 
                       <small>
-                        End Time − Start Time
+                        End Date/Time − Start Date/Time
                       </small>
                     </div>
 
