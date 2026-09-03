@@ -237,7 +237,7 @@ def create_invoice():
         apply_invoice(inv, data, totals)
         session.add(inv)
         session.flush()
-      for tdata in calculated_trips:
+for tdata in calculated_trips:
     trip = Trip(invoice_id=inv.id, **tdata)
 
     if trip.trip_date:
