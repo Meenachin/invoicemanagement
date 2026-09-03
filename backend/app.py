@@ -237,11 +237,18 @@ def create_invoice():
         apply_invoice(inv, data, totals)
         session.add(inv)
         session.flush()
-        for tdata in calculated_trips:
-            trip = Trip(invoice_id=inv.id, **tdata)
-            if trip.trip_date:
-                trip.trip_date = parse_date(trip.trip_date, "Trip Date")
-            session.add(trip)
+      for tdata in calculated_trips:
+    trip = Trip(invoice_id=inv.id, **tdata)
+
+    if trip.trip_date:
+        trip.trip_date = parse_date(trip.trip_date, "Trip Date")
+
+    if trip.end_date:
+        trip.end_date = parse_date(trip.end_date, "End Date")
+    else:
+        trip.end_date = trip.trip_date
+
+    session.add(trip)
         session.commit()
         session.refresh(inv)
         return jsonify({"success": True, "message": "Invoice created successfully", "invoice": serialize_invoice(inv)}), 201
@@ -287,7 +294,7 @@ def update_invoice(invoice_id):
         # Full replacement of child rows inside the same transaction is deterministic and prevents stale trips.
         inv.trips.clear()
         session.flush()
-        for tdata in calculated_trips:
+for tdata in calculated_trips:
     trip_date = parse_date(tdata["trip_date"], "Trip Date") if tdata.get("trip_date") else None
     end_date = parse_date(tdata["end_date"], "End Date") if tdata.get("end_date") else trip_date
 
