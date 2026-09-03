@@ -67,61 +67,88 @@ def parse_time(value):
 def calculate_trip(raw):
     start_km = number(raw.get("start_km"))
     end_km = number(raw.get("end_km"))
+
     if end_km < start_km:
         raise ValueError("End KM cannot be less than Start KM")
 
     start_time = parse_time(raw.get("start_time"))
-end_time = parse_time(raw.get("end_time"))
+    end_time = parse_time(raw.get("end_time"))
 
-total_hours = 0.0
+    total_hours = 0.0
 
-if start_time and end_time:
-    start_date = raw.get("trip_date")
-    end_date = raw.get("end_date") or start_date
+    if start_time and end_time:
+        start_date = raw.get("trip_date")
+        end_date = raw.get("end_date") or start_date
 
-    if start_date:
-        start_datetime = datetime.combine(start_date, start_time.time())
-        end_datetime = datetime.combine(end_date, end_time.time())
+        if isinstance(start_date, str):
+            start_date = date.fromisoformat(start_date)
 
-        delta = end_datetime - start_datetime
+        if isinstance(end_date, str):
+            end_date = date.fromisoformat(end_date)
 
-        if delta.total_seconds() < 0:
-            raise ValueError(
-                "End date/time cannot be before Start date/time"
+        if start_date:
+            start_datetime = datetime.combine(
+                start_date,
+                start_time.time()
             )
 
-        total_hours = delta.total_seconds() / 3600
+            end_datetime = datetime.combine(
+                end_date,
+                end_time.time()
+            )
 
-    total_km = end_km - start_km
-    slab_hours = max(0.0, number(raw.get("slab_hours")))
-    slab_km = max(0.0, number(raw.get("slab_km")))
-    slab_rate = max(0.0, number(raw.get("slab_rate")))
-    extra_hour_rate = max(0.0, number(raw.get("extra_hour_rate")))
-    extra_km_rate = max(0.0, number(raw.get("extra_km_rate")))
-    driver_bata = max(0.0, number(raw.get("driver_bata")))
-    parking = max(0.0, number(raw.get("parking")))
-    toll = max(0.0, number(raw.get("toll")))
-    other_charges = max(0.0, number(raw.get("other_charges")))
+            delta = end_datetime - start_datetime
 
-    extra_hours = max(0.0, total_hours - slab_hours) if slab_hours > 0 else 0.0
-    extra_km = max(0.0, total_km - slab_km) if slab_km > 0 else 0.0
+            if delta.total_seconds() < 0:
+                raise ValueError(
+                    "End date/time cannot be before Start date/time"
+                )
+
+            total_hours = delta.total_seconds() / 3600
+
+    total_km = max(0.0, end_km - start_km)
+
+    slab_hours = number(raw.get("slab_hours"))
+    slab_km = number(raw.get("slab_km"))
+    slab_rate = number(raw.get("slab_rate"))
+
+    extra_hour_rate = number(raw.get("extra_hour_rate"))
+    extra_km_rate = number(raw.get("extra_km_rate"))
+
+    extra_hours = max(0.0, total_hours - slab_hours)
+    extra_km = max(0.0, total_km - slab_km)
+
     extra_hour_amount = extra_hours * extra_hour_rate
     extra_km_amount = extra_km * extra_km_rate
+
     base_amount = slab_rate
-    trip_total = base_amount + extra_hour_amount + extra_km_amount + driver_bata + parking + toll + other_charges
+
+    driver_bata = number(raw.get("driver_bata"))
+    parking = number(raw.get("parking"))
+    toll = number(raw.get("toll"))
+    other_charges = number(raw.get("other_charges"))
+
+    trip_total = (
+        base_amount
+        + extra_hour_amount
+        + extra_km_amount
+        + driver_bata
+        + parking
+        + toll
+        + other_charges
+    )
 
     return {
-        "ds_no": str(raw.get("ds_no") or "").strip(),
-       "trip_date": raw.get("trip_date"),
-       "end_date": raw.get("end_date") or raw.get("trip_date"),
-       "vehicle_type": str(raw.get("vehicle_type") or "").strip(),
-        "vehicle_number": str(raw.get("vehicle_number") or "").strip(),
-        "start_time": raw.get("start_time") or "",
-        "end_time": raw.get("end_time") or "",
+        "ds_no": raw.get("ds_no"),
+        "trip_date": raw.get("trip_date"),
+        "end_date": raw.get("end_date") or raw.get("trip_date"),
+        "vehicle_type": raw.get("vehicle_type"),
+        "vehicle_number": raw.get("vehicle_number"),
+        "start_time": raw.get("start_time"),
+        "end_time": raw.get("end_time"),
         "start_km": money(start_km),
         "end_km": money(end_km),
         "total_hours": money(total_hours),
-        "total_km": money(total_km),
         "slab_hours": money(slab_hours),
         "slab_km": money(slab_km),
         "slab_rate": money(slab_rate),
@@ -137,7 +164,7 @@ if start_time and end_time:
         "toll": money(toll),
         "other_charges": money(other_charges),
         "trip_total": money(trip_total),
-        "notes": str(raw.get("notes") or "").strip(),
+        "notes": raw.get("notes"),
     }
 
 
