@@ -113,8 +113,8 @@ if start_time and end_time:
     return {
         "ds_no": str(raw.get("ds_no") or "").strip(),
        "trip_date": raw.get("trip_date"),
-"end_date": raw.get("end_date") or raw.get("trip_date"),
-"vehicle_type": str(raw.get("vehicle_type") or "").strip(),
+       "end_date": raw.get("end_date") or raw.get("trip_date"),
+       "vehicle_type": str(raw.get("vehicle_type") or "").strip(),
         "vehicle_number": str(raw.get("vehicle_number") or "").strip(),
         "start_time": raw.get("start_time") or "",
         "end_time": raw.get("end_time") or "",
@@ -1224,7 +1224,7 @@ def build_invoice_pdf(invoice):
                 [
                     _p(
                         amount_to_words_indian(
-                            invoice.grand_total
+                            invoice.subtotal
                         ),
                         small_bold,
                     ),
