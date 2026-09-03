@@ -77,9 +77,10 @@ def serialize_trip(t):
     return {
         "id": t.id,
         "ds_no": t.ds_no or "",
-        "trip_date": t.trip_date.isoformat() if t.trip_date else "",
-        "vehicle_type": t.vehicle_type or "",
-        "vehicle_number": t.vehicle_number or "",
+       "trip_date": t.trip_date.isoformat() if t.trip_date else "",
+"end_date": t.end_date.isoformat() if t.end_date else "",
+"vehicle_type": t.vehicle_type or "",
+"vehicle_number": t.vehicle_number or "",
         "start_time": t.start_time or "",
         "end_time": t.end_time or "",
         "start_km": t.start_km or 0,
@@ -287,9 +288,13 @@ def update_invoice(invoice_id):
         inv.trips.clear()
         session.flush()
         for tdata in calculated_trips:
-            trip_date = parse_date(tdata["trip_date"], "Trip Date") if tdata.get("trip_date") else None
-            tdata["trip_date"] = trip_date
-            inv.trips.append(Trip(**tdata))
+    trip_date = parse_date(tdata["trip_date"], "Trip Date") if tdata.get("trip_date") else None
+    end_date = parse_date(tdata["end_date"], "End Date") if tdata.get("end_date") else trip_date
+
+    tdata["trip_date"] = trip_date
+    tdata["end_date"] = end_date
+
+    inv.trips.append(Trip(**tdata))
 
         session.commit()
         refreshed = session.execute(select(Invoice).options(joinedload(Invoice.trips)).where(Invoice.id == invoice_id)).unique().scalar_one()
