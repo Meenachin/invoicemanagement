@@ -71,13 +71,25 @@ def calculate_trip(raw):
         raise ValueError("End KM cannot be less than Start KM")
 
     start_time = parse_time(raw.get("start_time"))
-    end_time = parse_time(raw.get("end_time"))
-    total_hours = 0.0
-    if start_time and end_time:
-        delta = end_time - start_time
+end_time = parse_time(raw.get("end_time"))
+
+total_hours = 0.0
+
+if start_time and end_time:
+    start_date = raw.get("trip_date")
+    end_date = raw.get("end_date") or start_date
+
+    if start_date:
+        start_datetime = datetime.combine(start_date, start_time.time())
+        end_datetime = datetime.combine(end_date, end_time.time())
+
+        delta = end_datetime - start_datetime
+
         if delta.total_seconds() < 0:
-            # delta = delta.replace(days=1)
-             delta += timedelta(days=1)
+            raise ValueError(
+                "End date/time cannot be before Start date/time"
+            )
+
         total_hours = delta.total_seconds() / 3600
 
     total_km = end_km - start_km
@@ -100,8 +112,9 @@ def calculate_trip(raw):
 
     return {
         "ds_no": str(raw.get("ds_no") or "").strip(),
-        "trip_date": raw.get("trip_date"),
-        "vehicle_type": str(raw.get("vehicle_type") or "").strip(),
+       "trip_date": raw.get("trip_date"),
+"end_date": raw.get("end_date") or raw.get("trip_date"),
+"vehicle_type": str(raw.get("vehicle_type") or "").strip(),
         "vehicle_number": str(raw.get("vehicle_number") or "").strip(),
         "start_time": raw.get("start_time") or "",
         "end_time": raw.get("end_time") or "",
