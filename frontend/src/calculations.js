@@ -78,10 +78,7 @@ export function hoursBetween(startDate, startTime, endDate, endTime) {
 export function calculateTrip(trip) {
   const startKm = num(trip.start_km)
   const endKm = num(trip.end_km)
-  const totalKm =
-  startKm > 0 && endKm >= startKm
-    ? endKm - startKm
-    : 0
+  const totalKm = Math.max(0, endKm - startKm)
   const totalHours = hoursBetween(
   trip.trip_date,
   trip.start_time,
