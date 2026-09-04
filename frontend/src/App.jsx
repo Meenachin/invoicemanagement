@@ -1168,9 +1168,9 @@ function InvoiceForm() {
                         Included KM
                       </span>
 
-                      <strong>
-                        {c.total_km.toFixed(2)}
-                      </strong>
+                     <strong>
+                      {(Number(trip.end_km || 0) - Number(trip.start_km || 0) >= 0 ? Number(trip.end_km || 0) - Number(trip.start_km || 0): 0).toFixed(2)}
+                     </strong>
 
                       <small>
                         End KM − Start KM
