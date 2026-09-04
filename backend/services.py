@@ -148,6 +148,7 @@ def calculate_trip(raw):
         "end_time": raw.get("end_time"),
         "start_km": money(start_km),
         "end_km": money(end_km),
+        "total_km": money(total_km),
         "total_hours": money(total_hours),
         "slab_hours": money(slab_hours),
         "slab_km": money(slab_km),
