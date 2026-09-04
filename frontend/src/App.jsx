@@ -91,7 +91,7 @@ function newTrip() {
     start_km: 0,
     end_km: 0,
     total_hours: 0,
-    total_km: 0,
+    total_km: '',
     slab_hours: 0,
     slab_km: 80,
     slab_rate: 3700,
