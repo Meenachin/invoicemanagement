@@ -172,24 +172,46 @@ def calculate_trip(raw):
 def calculate_invoice(invoice_data, trip_data):
     trips = [calculate_trip(t) for t in trip_data]
 
-    # Total including everything
-    total_invoice_amount = sum(
-        t["trip_total"] for t in trips
-    )
-
-    # Non-taxable charges
-    parking_toll_total = sum(
-        t["parking"]
-        + t["toll"]
-        + t["other_charges"]
+    # =========================================================
+    # SUBTOTAL
+    # =========================================================
+    # trip_total already includes:
+    # Base + Extra Hours + Extra KM + Driver Bata
+    # + Parking + Toll + Other Charges
+    #
+    # So DO NOT add Parking/Toll again.
+    subtotal = sum(
+        Decimal(str(t["trip_total"]))
         for t in trips
     )
 
-    # Taxable amount
-    subtotal = (
-        total_invoice_amount
-        + parking_toll_total
+    # =========================================================
+    # PARKING + TOLL + OTHER CHARGES
+    # =========================================================
+    # These are already included in subtotal.
+    # They are excluded only from GST calculation.
+    parking_toll_total = sum(
+        Decimal(str(
+            t["parking"]
+            + t["toll"]
+            + t["other_charges"]
+        ))
+        for t in trips
     )
+
+    # =========================================================
+    # TAXABLE AMOUNT FOR GST
+    # =========================================================
+    taxable_amount = (
+        subtotal - parking_toll_total
+    )
+
+    if taxable_amount < Decimal("0"):
+        taxable_amount = Decimal("0")
+
+    # =========================================================
+    # GST RATES
+    # =========================================================
 
     cgst_rate = max(
         0.0,
@@ -206,38 +228,73 @@ def calculate_invoice(invoice_data, trip_data):
         number(invoice_data.get("igst_rate"))
     )
 
-    # GST ONLY on taxable amount
-    cgst = subtotal * cgst_rate / 100
-    sgst = subtotal * sgst_rate / 100
-    igst = subtotal * igst_rate / 100
+    # =========================================================
+    # GST CALCULATION
+    # =========================================================
+    # GST is calculated ONLY on taxable_amount.
+    # Parking + Toll + Other Charges are excluded.
+    # =========================================================
 
-    # Add non-taxable Parking/Toll back to final amount
-    exact_total = (
-        subtotal
-        + cgst
-        + sgst
-        + igst
-        + parking_toll_total
+    cgst = (
+        taxable_amount
+        * Decimal(str(cgst_rate))
+        / Decimal("100")
     )
 
-    rounded_total = float(
-        Decimal(str(exact_total)).quantize(
-            Decimal("1"),
-            rounding=ROUND_HALF_UP
-        )
+    sgst = (
+        taxable_amount
+        * Decimal(str(sgst_rate))
+        / Decimal("100")
     )
 
-    round_off = rounded_total - exact_total
+    igst = (
+        taxable_amount
+        * Decimal(str(igst_rate))
+        / Decimal("100")
+    )
+
+    # =========================================================
+    # GRAND TOTAL
+    # =========================================================
+    # IMPORTANT:
+    # Grand Total MUST equal Subtotal.
+    #
+    # GST is calculated/displayed separately.
+    # GST is NOT added to Grand Total.
+    # =========================================================
+
+    grand_total = subtotal
+
+    # Round off based on subtotal
+    rounded_total = grand_total.quantize(
+        Decimal("1"),
+        rounding=ROUND_HALF_UP
+    )
+
+    round_off = rounded_total - grand_total
+
+    # =========================================================
+    # RETURN
+    # =========================================================
 
     return trips, {
         "cgst_rate": cgst_rate,
         "sgst_rate": sgst_rate,
         "igst_rate": igst_rate,
+
+        # Includes Parking + Toll + Other Charges
         "subtotal": money(subtotal),
+
+        # GST calculation base only
+        "taxable_amount": money(taxable_amount),
+
         "cgst": money(cgst),
         "sgst": money(sgst),
         "igst": money(igst),
+
         "round_off": money(round_off),
+
+        # EXACTLY SAME AS SUBTOTAL
         "grand_total": money(rounded_total),
     }
 
