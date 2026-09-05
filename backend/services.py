@@ -171,16 +171,64 @@ def calculate_trip(raw):
 
 def calculate_invoice(invoice_data, trip_data):
     trips = [calculate_trip(t) for t in trip_data]
-    subtotal = sum(t["trip_total"] for t in trips)
-    cgst_rate = max(0.0, number(invoice_data.get("cgst_rate")))
-    sgst_rate = max(0.0, number(invoice_data.get("sgst_rate")))
-    igst_rate = max(0.0, number(invoice_data.get("igst_rate")))
+
+    # Total including everything
+    total_invoice_amount = sum(
+        t["trip_total"] for t in trips
+    )
+
+    # Non-taxable charges
+    parking_toll_total = sum(
+        t["parking"]
+        + t["toll"]
+        + t["other_charges"]
+        for t in trips
+    )
+
+    # Taxable amount
+    subtotal = (
+        total_invoice_amount
+        - parking_toll_total
+    )
+
+    cgst_rate = max(
+        0.0,
+        number(invoice_data.get("cgst_rate"))
+    )
+
+    sgst_rate = max(
+        0.0,
+        number(invoice_data.get("sgst_rate"))
+    )
+
+    igst_rate = max(
+        0.0,
+        number(invoice_data.get("igst_rate"))
+    )
+
+    # GST ONLY on taxable amount
     cgst = subtotal * cgst_rate / 100
     sgst = subtotal * sgst_rate / 100
     igst = subtotal * igst_rate / 100
-    exact_total = subtotal + cgst + sgst + igst
-    rounded_total = float(Decimal(str(exact_total)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+    # Add non-taxable Parking/Toll back to final amount
+    exact_total = (
+        subtotal
+        + cgst
+        + sgst
+        + igst
+        + parking_toll_total
+    )
+
+    rounded_total = float(
+        Decimal(str(exact_total)).quantize(
+            Decimal("1"),
+            rounding=ROUND_HALF_UP
+        )
+    )
+
     round_off = rounded_total - exact_total
+
     return trips, {
         "cgst_rate": cgst_rate,
         "sgst_rate": sgst_rate,
@@ -192,7 +240,6 @@ def calculate_invoice(invoice_data, trip_data):
         "round_off": money(round_off),
         "grand_total": money(rounded_total),
     }
-
 
 def amount_to_words_indian(amount):
     n = int(round(float(amount)))
