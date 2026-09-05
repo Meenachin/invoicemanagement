@@ -188,7 +188,7 @@ def calculate_invoice(invoice_data, trip_data):
     # Taxable amount
     subtotal = (
         total_invoice_amount
-        - parking_toll_total
+        + parking_toll_total
     )
 
     cgst_rate = max(
