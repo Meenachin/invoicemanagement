@@ -1492,55 +1492,14 @@ def build_invoice_pdf(invoice):
 
     return buffer.getvalue()
 
-def invoice_to_csv(invoices):
-    import io
-    s = io.StringIO()
-    writer = csv.writer(s)
-    writer.writerow([
-        "Invoice Number", "Invoice Date", "Customer", "Reference", "Trips", "Subtotal", "CGST", "SGST", "IGST", "Round Off", "Grand Total"
-    ])
-    for inv in invoices:
-        writer.writerow([
-            inv.invoice_number,
-            inv.invoice_date.isoformat() if inv.invoice_date else "",
-            inv.customer_name,
-            inv.reference_number or "",
-            len(inv.trips),
-            f"{inv.subtotal:.2f}",
-            f"{inv.cgst:.2f}",
-            f"{inv.sgst:.2f}",
-            f"{inv.igst:.2f}",
-            f"{inv.round_off:.2f}",
-            f"{inv.grand_total:.2f}",
-        ])
-    return s.getvalue().encode("utf-8-sig")
-  def invoice_to_excel(invoices):
-    """
-    Export all invoices and their trip details to an Excel workbook.
-
-    Invoice Register:
-        - Subtotal = full invoice amount including Parking, Toll and Other Charges
-        - Parking + Toll + Other Charges shown separately
-        - Taxable Amount = Subtotal - Parking - Toll - Other Charges
-        - GST columns
-        - Round Off
-        - Grand Total
-
-    Trip Details:
-        - Individual trip values
-        - Parking
-        - Toll
-        - Other Charges
-        - Trip Total
-
-    The export is read-only and does not modify the database.
-    """
-
+def invoice_to_excel(invoices):
     workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Invoices"
 
-    # =========================================================
+    # ============================================================
     # STYLES
-    # =========================================================
+    # ============================================================
 
     header_fill = PatternFill(
         fill_type="solid",
@@ -1550,11 +1509,6 @@ def invoice_to_csv(invoices):
     header_font = Font(
         bold=True,
         color="FFFFFF"
-    )
-
-    title_font = Font(
-        bold=True,
-        size=14
     )
 
     thin_side = Side(
@@ -1569,224 +1523,329 @@ def invoice_to_csv(invoices):
         bottom=thin_side
     )
 
-    center = Alignment(
-        horizontal="center",
-        vertical="center",
-        wrap_text=True
-    )
+    # ============================================================
+    # HEADERS
+    # ============================================================
 
-    left = Alignment(
-        horizontal="left",
-        vertical="top",
-        wrap_text=True
-    )
-
-    right = Alignment(
-        horizontal="right",
-        vertical="top"
-    )
-
-    # =========================================================
-    # SHEET 1 - INVOICE REGISTER
-    # =========================================================
-
-    invoice_sheet = workbook.active
-    invoice_sheet.title = "Invoice Register"
-
-    invoice_headers = [
-        "Database ID",
+    headers = [
         "Invoice Number",
-        "Invoice Series",
-        "Invoice Serial Number",
         "Invoice Date",
         "Customer Name",
-        "Customer Address",
-        "Customer GSTIN",
-        "Booked By",
-        "Used By",
-        "Reference / PO",
-        "CGST %",
-        "SGST %",
-        "IGST %",
+        "Vehicle Number",
+        "Trip Count",
 
-        # -----------------------------------------------------
-        # AMOUNT COLUMNS
-        # -----------------------------------------------------
+        "Base Amount",
+        "Extra Hours",
+        "Extra KM",
+        "Driver Bata",
 
-        "Subtotal",
+        "Parking",
+        "Toll",
+        "Other Charges",
 
-        "Parking + Toll + Other Charges",
-
+        "Parking + Toll + Other",
         "Taxable Amount",
 
+        "CGST %",
         "CGST",
+        "SGST %",
         "SGST",
+        "IGST %",
         "IGST",
-        "Round Off",
-        "Grand Total",
 
-        "Trip Count",
-        "Created At",
-        "Updated At",
+        "Round Off",
+        "Grand Total"
     ]
 
-    invoice_sheet.append(invoice_headers)
+    for col_num, header in enumerate(headers, start=1):
+        cell = sheet.cell(
+            row=1,
+            column=col_num,
+            value=header
+        )
 
-    # Header formatting
-    for cell in invoice_sheet[1]:
         cell.fill = header_fill
         cell.font = header_font
-        cell.alignment = center
         cell.border = border
+        cell.alignment = Alignment(
+            horizontal="center",
+            vertical="center"
+        )
 
-    # =========================================================
-    # INVOICE DATA
-    # =========================================================
+    # ============================================================
+    # DATA
+    # ============================================================
+
+    row_num = 2
 
     for inv in invoices:
 
-        # -----------------------------------------------------
-        # FULL SUBTOTAL
-        #
-        # This is the complete invoice amount, including:
-        # Base + Extra Hours + Extra KM + Driver Bata
-        # + Parking + Toll + Other Charges
-        # -----------------------------------------------------
+        # --------------------------------------------------------
+        # Basic invoice information
+        # --------------------------------------------------------
 
-        subtotal = Decimal(
-            str(inv.subtotal or 0)
+        invoice_number = inv.get("invoice_number", "")
+        invoice_date = inv.get("invoice_date", "")
+        customer_name = inv.get("customer_name", "")
+        vehicle_number = inv.get("vehicle_number", "")
+
+        trips = inv.get("trips", [])
+
+        # --------------------------------------------------------
+        # Trip amounts
+        # --------------------------------------------------------
+
+        base_amount = Decimal("0")
+        extra_hours = Decimal("0")
+        extra_km = Decimal("0")
+        driver_bata = Decimal("0")
+
+        parking = Decimal("0")
+        toll = Decimal("0")
+        other_charges = Decimal("0")
+
+        for trip in trips:
+
+            base_amount += Decimal(
+                str(trip.get("base_amount", 0) or 0)
+            )
+
+            extra_hours += Decimal(
+                str(trip.get("extra_hours_charge", 0) or 0)
+            )
+
+            extra_km += Decimal(
+                str(trip.get("extra_km_charge", 0) or 0)
+            )
+
+            driver_bata += Decimal(
+                str(trip.get("driver_bata", 0) or 0)
+            )
+
+            parking += Decimal(
+                str(trip.get("parking", 0) or 0)
+            )
+
+            toll += Decimal(
+                str(trip.get("toll", 0) or 0)
+            )
+
+            other_charges += Decimal(
+                str(trip.get("other_charges", 0) or 0)
+            )
+
+        # --------------------------------------------------------
+        # Parking + Toll + Other Charges
+        # --------------------------------------------------------
+
+        non_taxable_total = (
+            parking
+            + toll
+            + other_charges
         )
 
-        # -----------------------------------------------------
-        # PARKING + TOLL + OTHER CHARGES
-        #
-        # These are displayed together in ONE separate column.
-        # -----------------------------------------------------
-
-        parking_toll_other = Decimal("0")
-
-        for trip in inv.trips:
-
-            parking = Decimal(
-                str(trip.parking or 0)
-            )
-
-            toll = Decimal(
-                str(trip.toll or 0)
-            )
-
-            other_charges = Decimal(
-                str(trip.other_charges or 0)
-            )
-
-            parking_toll_other += (
-                parking
-                + toll
-                + other_charges
-            )
-
-        # -----------------------------------------------------
-        # TAXABLE AMOUNT
-        #
-        # Remove Parking + Toll + Other Charges ONLY for
-        # GST/taxable calculation/display.
+        # --------------------------------------------------------
+        # FULL SUBTOTAL
         #
         # IMPORTANT:
-        # Subtotal itself is NOT changed.
-        # -----------------------------------------------------
+        # Subtotal includes EVERYTHING.
+        # Parking + Toll + Other are included.
+        # --------------------------------------------------------
+
+        subtotal = (
+            base_amount
+            + extra_hours
+            + extra_km
+            + driver_bata
+            + parking
+            + toll
+            + other_charges
+        )
+
+        # --------------------------------------------------------
+        # TAXABLE AMOUNT
+        #
+        # GST is calculated after excluding:
+        # Parking + Toll + Other Charges
+        # --------------------------------------------------------
 
         taxable_amount = (
             subtotal
-            - parking_toll_other
+            - non_taxable_total
         )
 
-        # Prevent a negative taxable amount
-        if taxable_amount < 0:
-            taxable_amount = Decimal("0")
+        # --------------------------------------------------------
+        # GST RATES
+        # --------------------------------------------------------
 
-        invoice_sheet.append([
-            inv.id,
-            inv.invoice_number or "",
-            inv.invoice_series or "",
-            inv.invoice_serial_number or "",
-            inv.invoice_date,
-            inv.customer_name or "",
-            inv.customer_address or "",
-            inv.customer_gstin or "",
-            inv.booked_by or "",
-            inv.used_by or "",
-            inv.reference_number or "",
+        cgst_rate = Decimal(
+            str(inv.get("cgst_rate", 0) or 0)
+        )
 
-            inv.cgst_rate or 0,
-            inv.sgst_rate or 0,
-            inv.igst_rate or 0,
+        sgst_rate = Decimal(
+            str(inv.get("sgst_rate", 0) or 0)
+        )
 
-            # Full subtotal
-            subtotal,
+        igst_rate = Decimal(
+            str(inv.get("igst_rate", 0) or 0)
+        )
 
-            # Parking + Toll + Other
-            parking_toll_other,
+        # --------------------------------------------------------
+        # GST
+        #
+        # GST ONLY ON TAXABLE AMOUNT
+        # --------------------------------------------------------
 
-            # Taxable amount
-            taxable_amount,
+        cgst = (
+            taxable_amount
+            * cgst_rate
+            / Decimal("100")
+        )
 
-            # GST
-            inv.cgst or 0,
-            inv.sgst or 0,
-            inv.igst or 0,
+        sgst = (
+            taxable_amount
+            * sgst_rate
+            / Decimal("100")
+        )
 
-            # Round off
-            inv.round_off or 0,
+        igst = (
+            taxable_amount
+            * igst_rate
+            / Decimal("100")
+        )
 
-            # Grand total
-            inv.grand_total or 0,
+        # --------------------------------------------------------
+        # GRAND TOTAL
+        #
+        # IMPORTANT:
+        #
+        # Your requirement is:
+        #
+        # SUBTOTAL = GRAND TOTAL
+        #
+        # Therefore we DO NOT add GST again here.
+        # --------------------------------------------------------
 
-            len(inv.trips),
+        grand_total = subtotal
 
-            inv.created_at,
-            inv.updated_at,
-        ])
+        # --------------------------------------------------------
+        # ROUND OFF
+        # --------------------------------------------------------
 
-    # =========================================================
-    # FORMAT INVOICE REGISTER
-    # =========================================================
+        rounded_total = grand_total.quantize(
+            Decimal("1"),
+            rounding=ROUND_HALF_UP
+        )
 
-    for row in invoice_sheet.iter_rows(
-        min_row=2,
-        max_row=invoice_sheet.max_row
-    ):
-        for cell in row:
+        round_off = (
+            rounded_total
+            - grand_total
+        )
+
+        # --------------------------------------------------------
+        # EXCEL ROW
+        # --------------------------------------------------------
+
+        values = [
+            invoice_number,
+            invoice_date,
+            customer_name,
+            vehicle_number,
+            len(trips),
+
+            float(base_amount),
+            float(extra_hours),
+            float(extra_km),
+            float(driver_bata),
+
+            float(parking),
+            float(toll),
+            float(other_charges),
+
+            float(non_taxable_total),
+            float(taxable_amount),
+
+            float(cgst_rate),
+            float(cgst),
+            float(sgst_rate),
+            float(sgst),
+            float(igst_rate),
+            float(igst),
+
+            float(round_off),
+            float(grand_total)
+        ]
+
+        for col_num, value in enumerate(values, start=1):
+
+            cell = sheet.cell(
+                row=row_num,
+                column=col_num,
+                value=value
+            )
+
             cell.border = border
-            cell.alignment = left
 
-    # ---------------------------------------------------------
-    # DATE COLUMNS
-    # ---------------------------------------------------------
+            if isinstance(value, (int, float)):
+                cell.number_format = '#,##0.00'
 
-    for row in range(
-        2,
-        invoice_sheet.max_row + 1
-    ):
-        invoice_sheet.cell(
-            row,
-            5
-        ).number_format = "DD-MM-YYYY"
+        row_num += 1
 
-        invoice_sheet.cell(
-            row,
-            24
-        ).number_format = "DD-MM-YYYY HH:MM:SS"
+    # ============================================================
+    # COLUMN WIDTHS
+    # ============================================================
 
-        invoice_sheet.cell(
-            row,
-            25
-        ).number_format = "DD-MM-YYYY HH:MM:SS"
+    column_widths = {
+        "A": 18,
+        "B": 15,
+        "C": 25,
+        "D": 18,
+        "E": 12,
 
-    # ---------------------------------------------------------
-    # CURRENCY COLUMNS
-    #
-    # 15 = Subtotal
-    # 16 = Parking + Toll + Other
+        "F": 15,
+        "G": 15,
+        "H": 15,
+        "I": 15,
+
+        "J": 12,
+        "K": 12,
+        "L": 15,
+
+        "M": 25,
+        "N": 18,
+
+        "O": 12,
+        "P": 15,
+        "Q": 12,
+        "R": 15,
+        "S": 12,
+        "T": 15,
+
+        "U": 12,
+        "V": 18
+    }
+
+    for column, width in column_widths.items():
+        sheet.column_dimensions[column].width = width
+
+    # ============================================================
+    # FREEZE HEADER
+    # ============================================================
+
+    sheet.freeze_panes = "A2"
+
+    # ============================================================
+    # RETURN EXCEL FILE
+    # ============================================================
+
+    output = BytesIO()
+
+    workbook.save(output)
+
+    output.seek(0)
+
+    return output.getvalue()
+                r
     # 17 = Taxable Amount
     # 18 = CGST
     # 19 = SGST
@@ -2006,64 +2065,18 @@ def invoice_to_csv(invoices):
         25: 22,
     }
 
-    for col, width in invoice_widths.items():
+    for column, width in column_widths.items():
+        sheet.column_dimensions[column].width = width
 
-        invoice_sheet.column_dimensions[
-            get_column_letter(col)
-        ].width = width
+    # ============================================================
+    # FREEZE HEADER
+    # ============================================================
 
-    # =========================================================
-    # COLUMN WIDTHS - TRIP DETAILS
-    # =========================================================
+    sheet.freeze_panes = "A2"
 
-    trip_widths = {
-        1: 10,
-        2: 12,
-        3: 24,
-        4: 14,
-        5: 14,
-        6: 20,
-        7: 20,
-        8: 12,
-        9: 12,
-        10: 12,
-        11: 12,
-        12: 15,
-        13: 15,
-        14: 14,
-        15: 14,
-        16: 14,
-        17: 16,
-        18: 15,
-        19: 14,
-        20: 14,
-        21: 18,
-        22: 18,
-        23: 15,
-        24: 15,
-        25: 15,
-        26: 15,
-        27: 18,
-        28: 15,
-        29: 35,
-    }
-
-    for col, width in trip_widths.items():
-
-        trip_sheet.column_dimensions[
-            get_column_letter(col)
-        ].width = width
-
-    # =========================================================
-    # HEADER ROW HEIGHT
-    # =========================================================
-
-    invoice_sheet.row_dimensions[1].height = 40
-    trip_sheet.row_dimensions[1].height = 35
-
-    # =========================================================
-    # OUTPUT
-    # =========================================================
+    # ============================================================
+    # RETURN EXCEL FILE
+    # ============================================================
 
     output = BytesIO()
 
