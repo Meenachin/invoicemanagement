@@ -1722,19 +1722,15 @@ def _get_trips(invoice):
 # ============================================================
 # INVOICE TO EXCEL
 # ============================================================
-
-            parking
-            + tolldef invoice_to_csv(invoices):
+def invoice_to_csv(invoices):
     """
     Export invoice data to CSV.
 
     One row = one invoice.
     """
 
-    output = BytesIO()
+    output = StringIO()
 
-    # UTF-8 BOM so Excel opens the CSV correctly
-    output.write("\ufeff".encode("utf-8"))
 
     writer = csv.writer(
         output,
