@@ -1520,7 +1520,7 @@ def invoice_to_csv(invoices):
     def invoice_to_excel(invoices):
     
 
-    workbook = Workbook()
+        workbook = Workbook()
 
     # =========================================================
     # STYLES
