@@ -1722,7 +1722,9 @@ def _get_trips(invoice):
 # ============================================================
 # INVOICE TO EXCEL
 # ============================================================
-def invoice_to_csv(invoices):
+
+            parking
+            + tolldef invoice_to_csv(invoices):
     """
     Export invoice data to CSV.
 
@@ -1825,6 +1827,149 @@ def invoice_to_csv(invoices):
                 vehicle_numbers.append(vehicle_number)
 
         parking_toll_other = (
+            + other_charges
+        )
+
+        subtotal = (
+            base_amount
+            + extra_hours_amount
+            + extra_km_amount
+            + driver_bata
+            + parking
+            + toll
+            + other_charges
+        )
+
+        taxable_amount = subtotal - parking_toll_other
+
+        if taxable_amount < Decimal("0"):
+            taxable_amount = Decimal("0")
+
+        cgst_rate = Decimal(
+            str(getattr(inv, "cgst_rate", 0) or 0)
+        )
+
+        sgst_rate = Decimal(
+            str(getattr(inv, "sgst_rate", 0) or 0)
+        )
+
+        igst_rate = Decimal(
+            str(getattr(inv, "igst_rate", 0) or 0)
+        )
+
+        cgst = (
+            taxable_amount
+            * cgst_rate
+
+def invoice_to_csv(invoices):
+    """
+    Export invoice data to CSV.
+
+    One row = one invoice.
+    """
+
+    from io import StringIO
+
+    output = StringIO()
+
+    writer = csv.writer(
+        output,
+        lineterminator="\n"
+    )
+
+    headers = [
+        "Invoice Number",
+        "Invoice Date",
+        "Customer Name",
+        "Customer Address",
+        "Customer GSTIN",
+        "Booked By",
+        "Used By",
+        "Reference / PO",
+        "Vehicle Number",
+        "Trip Count",
+
+        "Base Amount",
+        "Extra Hours Amount",
+        "Extra KM Amount",
+        "Driver Bata",
+        "Parking",
+        "Toll",
+        "Other Charges",
+        "Parking + Toll + Other",
+
+        "Taxable Amount",
+
+        "CGST %",
+        "CGST",
+        "SGST %",
+        "SGST",
+        "IGST %",
+        "IGST",
+
+        "Round Off",
+        "Grand Total",
+    ]
+
+    writer.writerow(headers)
+
+    for inv in invoices:
+
+        trips = getattr(inv, "trips", []) or []
+
+        base_amount = Decimal("0")
+        extra_hours_amount = Decimal("0")
+        extra_km_amount = Decimal("0")
+        driver_bata = Decimal("0")
+        parking = Decimal("0")
+        toll = Decimal("0")
+        other_charges = Decimal("0")
+
+        vehicle_numbers = []
+
+        for trip in trips:
+
+            base_amount += Decimal(
+                str(getattr(trip, "base_amount", 0) or 0)
+            )
+
+            extra_hours_amount += Decimal(
+                str(getattr(trip, "extra_hour_amount", 0) or 0)
+            )
+
+            extra_km_amount += Decimal(
+                str(getattr(trip, "extra_km_amount", 0) or 0)
+            )
+
+            driver_bata += Decimal(
+                str(getattr(trip, "driver_bata", 0) or 0)
+            )
+
+            parking += Decimal(
+                str(getattr(trip, "parking", 0) or 0)
+            )
+
+            toll += Decimal(
+                str(getattr(trip, "toll", 0) or 0)
+            )
+
+            other_charges += Decimal(
+                str(getattr(trip, "other_charges", 0) or 0)
+            )
+
+            vehicle_number = getattr(
+                trip,
+                "vehicle_number",
+                ""
+            ) or ""
+
+            if (
+                vehicle_number
+                and vehicle_number not in vehicle_numbers
+            ):
+                vehicle_numbers.append(vehicle_number)
+
+        parking_toll_other = (
             parking
             + toll
             + other_charges
@@ -1840,7 +1985,10 @@ def invoice_to_csv(invoices):
             + other_charges
         )
 
-        taxable_amount = subtotal - parking_toll_other
+        taxable_amount = (
+            subtotal
+            - parking_toll_other
+        )
 
         if taxable_amount < Decimal("0"):
             taxable_amount = Decimal("0")
@@ -1884,24 +2032,66 @@ def invoice_to_csv(invoices):
 
         round_off = rounded_total - grand_total
 
-        invoice_date = getattr(inv, "invoice_date", None)
+        invoice_date = getattr(
+            inv,
+            "invoice_date",
+            None
+        )
 
         if invoice_date:
-            invoice_date = invoice_date.strftime("%d-%m-%Y")
+            invoice_date = invoice_date.strftime(
+                "%d-%m-%Y"
+            )
         else:
             invoice_date = ""
 
         writer.writerow([
-            getattr(inv, "invoice_number", "") or "",
+            getattr(
+                inv,
+                "invoice_number",
+                ""
+            ) or "",
+
             invoice_date,
-            getattr(inv, "customer_name", "") or "",
-            getattr(inv, "customer_address", "") or "",
-            getattr(inv, "customer_gstin", "") or "",
-            getattr(inv, "booked_by", "") or "",
-            getattr(inv, "used_by", "") or "",
-            getattr(inv, "reference_number", "") or "",
+
+            getattr(
+                inv,
+                "customer_name",
+                ""
+            ) or "",
+
+            getattr(
+                inv,
+                "customer_address",
+                ""
+            ) or "",
+
+            getattr(
+                inv,
+                "customer_gstin",
+                ""
+            ) or "",
+
+            getattr(
+                inv,
+                "booked_by",
+                ""
+            ) or "",
+
+            getattr(
+                inv,
+                "used_by",
+                ""
+            ) or "",
+
+            getattr(
+                inv,
+                "reference_number",
+                ""
+            ) or "",
 
             ", ".join(vehicle_numbers),
+
             len(trips),
 
             f"{base_amount:.2f}",
@@ -1917,8 +2107,10 @@ def invoice_to_csv(invoices):
 
             f"{cgst_rate:.2f}",
             f"{cgst:.2f}",
+
             f"{sgst_rate:.2f}",
             f"{sgst:.2f}",
+
             f"{igst_rate:.2f}",
             f"{igst:.2f}",
 
@@ -1928,9 +2120,9 @@ def invoice_to_csv(invoices):
 
     output.seek(0)
 
-    return output.getvalue()
-
-
+    # Return bytes so Flask send_file() can download the CSV
+    # UTF-8 BOM ensures Excel opens the CSV correctly.
+    return ("\ufeff" + output.getvalue()).encode("utf-8")
 def invoice_to_excel(invoices):
     """
     Generate Excel workbook containing:
