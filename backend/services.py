@@ -1518,16 +1518,7 @@ def invoice_to_csv(invoices):
 
 
     def invoice_to_excel(invoices):
-    """
-    Export all invoices and trip details to Excel.
-
-    Invoice Register:
-        Shows invoice-level totals.
-
-    Trip Details:
-        Parking + Toll + Other Charges are shown separately.
-        Taxable Trip Amount = Trip Total - Parking - Toll - Other Charges
-    """
+    
 
     workbook = Workbook()
 
