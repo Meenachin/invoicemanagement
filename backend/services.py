@@ -1516,15 +1516,17 @@ def invoice_to_csv(invoices):
     return s.getvalue().encode("utf-8-sig")
 
 
-def invoice_to_excel(invoices):
+
+    def invoice_to_excel(invoices):
     """
-    Export all invoices and their trip details to a production-ready Excel workbook.
+    Export all invoices and trip details to Excel.
 
-    Workbook:
-        1. Invoice Register
-        2. Trip Details
+    Invoice Register:
+        Shows invoice-level totals.
 
-    The export is read-only and does not modify the database.
+    Trip Details:
+        Parking + Toll + Other Charges are shown separately.
+        Taxable Trip Amount = Trip Total - Parking - Toll - Other Charges
     """
 
     workbook = Workbook()
@@ -1541,11 +1543,6 @@ def invoice_to_excel(invoices):
     header_font = Font(
         bold=True,
         color="FFFFFF"
-    )
-
-    title_font = Font(
-        bold=True,
-        size=14
     )
 
     thin_side = Side(
@@ -1570,11 +1567,6 @@ def invoice_to_excel(invoices):
         horizontal="left",
         vertical="top",
         wrap_text=True
-    )
-
-    right = Alignment(
-        horizontal="right",
-        vertical="top"
     )
 
     # =========================================================
@@ -1645,7 +1637,6 @@ def invoice_to_excel(invoices):
             inv.updated_at,
         ])
 
-    # Format invoice register
     for row in invoice_sheet.iter_rows(
         min_row=2,
         max_row=invoice_sheet.max_row
@@ -1654,28 +1645,19 @@ def invoice_to_excel(invoices):
             cell.border = border
             cell.alignment = left
 
-    # Date columns
+    # Date formatting
     for row in range(2, invoice_sheet.max_row + 1):
         invoice_sheet.cell(row, 5).number_format = "DD-MM-YYYY"
-
         invoice_sheet.cell(row, 22).number_format = "DD-MM-YYYY HH:MM:SS"
         invoice_sheet.cell(row, 23).number_format = "DD-MM-YYYY HH:MM:SS"
 
-    # Currency columns
-    currency_columns = [
-        15, 16, 17, 18, 19, 20
-    ]
-
+    # Currency formatting
     for row in range(2, invoice_sheet.max_row + 1):
-        for col in currency_columns:
+        for col in [15, 16, 17, 18, 19, 20]:
             invoice_sheet.cell(row, col).number_format = '#,##0.00'
 
-    # Freeze header
     invoice_sheet.freeze_panes = "A2"
-
-    # Filter
-    if invoice_sheet.max_row >= 1:
-        invoice_sheet.auto_filter.ref = invoice_sheet.dimensions
+    invoice_sheet.auto_filter.ref = invoice_sheet.dimensions
 
     # =========================================================
     # SHEET 2 - TRIP DETAILS
@@ -1683,6 +1665,9 @@ def invoice_to_excel(invoices):
 
     trip_sheet = workbook.create_sheet("Trip Details")
 
+    # IMPORTANT:
+    # New columns are added only at the end.
+    # Therefore existing column positions are not disturbed.
     trip_headers = [
         "Trip ID",
         "Invoice ID",
@@ -1711,6 +1696,8 @@ def invoice_to_excel(invoices):
         "Parking",
         "Toll",
         "Other Charges",
+        "Parking + Toll + Other Charges",
+        "Taxable Trip Amount",
         "Trip Total",
         "Notes",
     ]
@@ -1723,8 +1710,49 @@ def invoice_to_excel(invoices):
         cell.alignment = center
         cell.border = border
 
+    # =========================================================
+    # TRIP DATA
+    # =========================================================
+
     for inv in invoices:
+
         for trip in inv.trips:
+
+            # -------------------------------------------------
+            # Calculate Parking + Toll + Other Charges
+            # -------------------------------------------------
+
+            parking = trip.parking or 0
+            toll = trip.toll or 0
+            other_charges = trip.other_charges or 0
+
+            parking_toll_other = (
+                parking
+                + toll
+                + other_charges
+            )
+
+            # -------------------------------------------------
+            # Trip Total
+            #
+            # This is the full amount including:
+            # Base + Extra Hours + Extra KM
+            # + Driver Bata + Parking + Toll + Other Charges
+            # -------------------------------------------------
+
+            trip_total = trip.trip_total or 0
+
+            # -------------------------------------------------
+            # Taxable Trip Amount
+            #
+            # Remove Parking/Toll/Other Charges from Trip Total.
+            # -------------------------------------------------
+
+            taxable_trip_amount = (
+                trip_total
+                - parking_toll_other
+            )
+
             trip_sheet.append([
                 trip.id,
                 inv.id,
@@ -1735,27 +1763,49 @@ def invoice_to_excel(invoices):
                 trip.vehicle_number or "",
                 trip.start_time or "",
                 trip.end_time or "",
+
                 trip.start_km or 0,
                 trip.end_km or 0,
+
                 trip.total_hours or 0,
                 trip.total_km or 0,
+
                 trip.slab_hours or 0,
                 trip.slab_km or 0,
+
                 trip.slab_rate or 0,
                 trip.extra_hour_rate or 0,
                 trip.extra_km_rate or 0,
+
                 trip.extra_hours or 0,
                 trip.extra_km or 0,
+
                 trip.extra_hour_amount or 0,
                 trip.extra_km_amount or 0,
+
                 trip.base_amount or 0,
                 trip.driver_bata or 0,
-                trip.parking or 0,
-                trip.toll or 0,
-                trip.other_charges or 0,
-                trip.trip_total or 0,
+
+                # Individual charges
+                parking,
+                toll,
+                other_charges,
+
+                # Combined non-taxable charges
+                parking_toll_other,
+
+                # Taxable amount
+                taxable_trip_amount,
+
+                # Full trip total
+                trip_total,
+
                 trip.notes or "",
             ])
+
+    # =========================================================
+    # FORMAT TRIP SHEET
+    # =========================================================
 
     for row in trip_sheet.iter_rows(
         min_row=2,
@@ -1769,14 +1819,46 @@ def invoice_to_excel(invoices):
     for row in range(2, trip_sheet.max_row + 1):
         trip_sheet.cell(row, 5).number_format = "DD-MM-YYYY"
 
-    # Numeric / currency columns
+    # =========================================================
+    # CURRENCY COLUMNS
+    # =========================================================
+
+    # 16  = Slab Rate
+    # 17  = Extra Hour Rate
+    # 18  = Extra KM Rate
+    # 21  = Extra Hour Amount
+    # 22  = Extra KM Amount
+    # 23  = Base Amount
+    # 24  = Driver Bata
+    # 25  = Parking
+    # 26  = Toll
+    # 27  = Other Charges
+    # 28  = Parking + Toll + Other Charges
+    # 29  = Taxable Trip Amount
+    # 30  = Trip Total
+
     currency_columns = [
-        16, 17, 18, 21, 22, 23, 24, 25, 26, 27, 28
+        16,
+        17,
+        18,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
     ]
 
     for row in range(2, trip_sheet.max_row + 1):
         for col in currency_columns:
-            trip_sheet.cell(row, col).number_format = '#,##0.00'
+            trip_sheet.cell(
+                row,
+                col
+            ).number_format = '#,##0.00'
 
     trip_sheet.freeze_panes = "A2"
 
@@ -1784,7 +1866,7 @@ def invoice_to_excel(invoices):
         trip_sheet.auto_filter.ref = trip_sheet.dimensions
 
     # =========================================================
-    # COLUMN WIDTHS
+    # COLUMN WIDTHS - INVOICE REGISTER
     # =========================================================
 
     invoice_widths = {
@@ -1818,6 +1900,10 @@ def invoice_to_excel(invoices):
             get_column_letter(col)
         ].width = width
 
+    # =========================================================
+    # COLUMN WIDTHS - TRIP DETAILS
+    # =========================================================
+
     trip_widths = {
         1: 10,
         2: 12,
@@ -1846,8 +1932,15 @@ def invoice_to_excel(invoices):
         25: 15,
         26: 15,
         27: 18,
-        28: 15,
-        29: 35,
+
+        # NEW COLUMNS
+        28: 28,
+        29: 22,
+
+        # Existing Trip Total moved to column 30
+        30: 15,
+
+        31: 35,
     }
 
     for col, width in trip_widths.items():
@@ -1855,9 +1948,12 @@ def invoice_to_excel(invoices):
             get_column_letter(col)
         ].width = width
 
-    # Header row height
+    # =========================================================
+    # HEADER ROW HEIGHT
+    # =========================================================
+
     invoice_sheet.row_dimensions[1].height = 30
-    trip_sheet.row_dimensions[1].height = 35
+    trip_sheet.row_dimensions[1].height = 40
 
     # =========================================================
     # OUTPUT
