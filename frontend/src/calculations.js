@@ -2,7 +2,19 @@ export const num = (value) => {
   const n = Number(value)
   return Number.isFinite(n) ? n : 0
 }
+export function hoursToHHMM(hours) {
+  const value = Number(hours) || 0
 
+  const wholeHours = Math.trunc(value)
+  const minutes = Math.round((value - wholeHours) * 100)
+
+  const totalMinutes = (wholeHours * 60) + minutes
+
+  const totalHours = Math.floor(totalMinutes / 60)
+  const remainingMinutes = totalMinutes % 60
+
+  return `${totalHours}:${String(remainingMinutes).padStart(2, '0')}`
+}
 export function hoursBetween(startDate, startTime, endDate, endTime) {
   if (!startDate || !startTime || !endTime) return 0
 
