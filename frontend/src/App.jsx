@@ -4,6 +4,7 @@ import { api } from './api'
 import {
   calculateInvoice,
   calculateTrip,
+  hoursToHHMM,
   money,
   num,
   todayISO
@@ -1183,7 +1184,7 @@ function InvoiceForm() {
                       </span>
 
                       <strong>
-                        {c.total_hours.toFixed(2)}
+                        {hoursToHHMM(c.total_hours)}
                       </strong>
 
                       <small>
@@ -1211,7 +1212,7 @@ function InvoiceForm() {
                       </span>
 
                       <strong>
-                        {c.extra_hours.toFixed(2)}
+                       {hoursToHHMM(c.extra_hours)}
                       </strong>
 
                       <small>
