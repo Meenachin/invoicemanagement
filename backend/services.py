@@ -38,7 +38,19 @@ def money(value):
             rounding=ROUND_HALF_UP
         )
     )
+    
+def hours_to_hhmm(hours):
+    value = float(hours or 0)
 
+    whole_hours = int(value)
+    minutes = int(round((value - whole_hours) * 100))
+
+    total_minutes = (whole_hours * 60) + minutes
+
+    total_hours = total_minutes // 60
+    remaining_minutes = total_minutes % 60
+
+    return f"{total_hours}:{remaining_minutes:02d}"
 
 def number(value):
     try:
@@ -1158,8 +1170,8 @@ def build_invoice_pdf(invoice):
             f"{(t.driver_bata or 0):,.2f}",
             f"{parking_toll:,.2f}",
 
-            f"{(t.total_hours or 0):g}",
-            f"{(t.extra_hours or 0):g}",
+            hours_to_hhmm(t.total_hours),
+            hours_to_hhmm(t.extra_hours),
 
             f"{(t.extra_hour_amount or 0):,.2f}",
 
