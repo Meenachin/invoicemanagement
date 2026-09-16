@@ -57,10 +57,21 @@ export function hoursBetween(startDate, startTime, endDate, endTime) {
 
   let finalEndDate = endDate || startDate
 
-  // Old invoices may have an empty End Date.
-  // If End Time is earlier than Start Time,
-  // treat it as an overnight trip for calculation only.
-  if (!endDate && endMinutes < startMinutes) {
+  /*
+   * Old invoices may have the same End Date as Start Date
+   * even when the trip continued past midnight.
+   *
+   * Example:
+   * Start: 10-09-2026 05:00
+   * End:   10-09-2026 00:00
+   *
+   * For calculation only, treat End Time as the next day.
+   * The actual End Date stored/displayed in the invoice is NOT changed.
+   */
+  if (
+    finalEndDate === startDate &&
+    endMinutes < startMinutes
+  ) {
     const [year, month, day] = startDate.split('-').map(Number)
 
     const nextDay = new Date(
@@ -81,12 +92,11 @@ export function hoursBetween(startDate, startTime, endDate, endTime) {
   const difference = end - start
 
   if (difference < 0) {
-  return 0
-}
+    return 0
+  }
 
   return difference / (1000 * 60 * 60)
 }
-
 export function calculateTrip(trip) {
   const startKm = num(trip.start_km)
   const endKm = num(trip.end_km)
