@@ -156,7 +156,6 @@ def calculate_trip(raw):
             )
 
         if start_date:
-
             start_datetime = datetime.combine(
                 start_date,
                 start_time.time()
@@ -173,16 +172,23 @@ def calculate_trip(raw):
             )
 
             if delta.total_seconds() < 0:
-                raise ValueError(
-                    "End date/time cannot be before "
-                    "Start date/time"
-                )
+                if end_date == start_date:
+                    end_datetime = end_datetime + timedelta(days=1)
+
+                    delta = (
+                        end_datetime
+                        - start_datetime
+                    )
+                else:
+                    raise ValueError(
+                        "End date/time cannot be before "
+                        "Start date/time"
+                    )
 
             total_hours = (
                 delta.total_seconds()
                 / 3600
             )
-
     total_km = max(
         0.0,
         end_km - start_km
