@@ -1377,6 +1377,13 @@ def build_invoice_pdf(invoice):
     totals_right = [
         [
             _p(
+                f"{invoice.subtotal:,.2f}",
+                total_style
+            ),
+            "",
+        ],
+        [
+            _p(
                 "Subtotal (Taxable Amount)",
                 tiny_bold
             ),
