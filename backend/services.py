@@ -1355,15 +1355,33 @@ def build_invoice_pdf(invoice):
             ),
         ],
     ]
+    non_taxable_amount = sum(
+        Decimal(str(
+            (t.parking or 0)
+            + (t.toll or 0)
+            + (t.other_charges or 0)
+        ))
+        for t in invoice.trips
+    )
 
-    totals_right = [
+    taxable_amount = (
+        invoice.subtotal
+        - non_taxable_amount
+    )
+
+    gst_total = (
+        invoice.cgst
+        + invoice.sgst
+        + invoice.igst
+    )
+        totals_right = [
         [
             _p(
-                "Subtotal",
+                "Subtotal (Taxable Amount)",
                 tiny_bold
             ),
             _p(
-                f"{invoice.subtotal:,.2f}",
+                f"{taxable_amount:,.2f}",
                 total_style
             ),
         ],
@@ -1399,6 +1417,26 @@ def build_invoice_pdf(invoice):
         ],
         [
             _p(
+                "GST Total",
+                tiny_bold
+            ),
+            _p(
+                f"{gst_total:,.2f}",
+                right
+            ),
+        ],
+        [
+            _p(
+                "Non Taxable Amount",
+                tiny_bold
+            ),
+            _p(
+                f"{non_taxable_amount:,.2f}",
+                right
+            ),
+        ],
+        [
+            _p(
                 "Round Off",
                 tiny
             ),
@@ -1418,7 +1456,6 @@ def build_invoice_pdf(invoice):
             ),
         ],
     ]
-
     left_width = (
         doc.width
         - 63 * mm
