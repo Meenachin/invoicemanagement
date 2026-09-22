@@ -1434,7 +1434,7 @@ def build_invoice_pdf(invoice):
         ],
         [
             _p(
-                "Non Taxable Amount",
+                "Non Taxable Amount( Parking & Toll)",
                 tiny_bold
             ),
             _p(
