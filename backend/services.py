@@ -1374,7 +1374,7 @@ def build_invoice_pdf(invoice):
         + invoice.sgst
         + invoice.igst
     )
-        totals_right = [
+    totals_right = [
         [
             _p(
                 "Subtotal (Taxable Amount)",
