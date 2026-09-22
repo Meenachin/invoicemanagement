@@ -1376,7 +1376,10 @@ def build_invoice_pdf(invoice):
     )
     totals_right = [
        [
-            "",
+            _p(
+                "Gross Amount",
+                total_style
+            ),
             _p(
                 f"{invoice.subtotal:,.2f}",
                 total_style
