@@ -1622,8 +1622,8 @@ def build_invoice_pdf(invoice):
                 ]
             ],
             colWidths=[
-                doc.width * 0.80,
-                doc.width * 0.40,
+                doc.width * 0.65,
+                doc.width * 0.35,
             ],
             style=[
                 (
