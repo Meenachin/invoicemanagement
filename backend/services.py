@@ -1365,8 +1365,8 @@ def build_invoice_pdf(invoice):
     )
 
     taxable_amount = (
-        invoice.subtotal
-        - non_taxable_amount
+    Decimal(str(invoice.subtotal or 0))
+    - non_taxable_amount
     )
 
     gst_total = (
