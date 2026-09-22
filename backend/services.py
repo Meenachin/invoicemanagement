@@ -1617,7 +1617,7 @@ def build_invoice_pdf(invoice):
                     ),
                     _p(
                         "For PVR TOURS & TRAVELS",
-                        small_bold,
+                         right,
                     ),
                 ]
             ],
