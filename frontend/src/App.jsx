@@ -1699,18 +1699,36 @@ function MonthlyBillHistory() {
             </h2>
 
             <p>
-              Search and manage your saved Monthly Bills.
+              Search by invoice number, customer, or reference.
             </p>
           </div>
 
-          <button
-            type="button"
-            className="button ghost"
-            onClick={loadBills}
-            disabled={loading}
-          >
-            ↻ Refresh
-          </button>
+          <div className="heading-actions">
+            <button
+              type="button"
+              className="button ghost"
+              onClick={loadBills}
+              disabled={loading}
+            >
+              {loading ? 'Loading…' : '↻ Refresh'}
+            </button>
+
+            <a
+              className="button ghost"
+              href="/api/monthly-bills/export/csv"
+              download
+            >
+              ⇩ CSV
+            </a>
+
+            <a
+              className="button ghost"
+              href="/api/monthly-bills/export/xlsx"
+              download
+            >
+              ⇩ Excel
+            </a>
+          </div>
         </div>
 
         <div className="search-row">
@@ -1731,50 +1749,21 @@ function MonthlyBillHistory() {
         )}
 
         <div className="table-wrap">
-          <table>
+          <table className="history-table">
             <thead>
               <tr>
-                <th>
-                  INVOICE NUMBER
-                </th>
-
-                <th>
-                  DATE
-                </th>
-
-                <th>
-                  CUSTOMER
-                </th>
-
-                <th>
-                  TAXABLE
-                </th>
-
-                <th>
-                  NON-TAXABLE
-                </th>
-
-                <th>
-                  GRAND TOTAL
-                </th>
-
-                <th>
-                  ACTIONS
-                </th>
+                <th>INVOICE NUMBER</th>
+                <th>DATE</th>
+                <th>CUSTOMER</th>
+                <th>TAXABLE</th>
+                <th>NON-TAXABLE</th>
+                <th>GRAND TOTAL</th>
+                <th>ACTIONS</th>
               </tr>
             </thead>
 
             <tbody>
-              {loading ? (
-                <tr>
-                  <td
-                    colSpan="7"
-                    className="empty"
-                  >
-                    Loading Monthly Bills...
-                  </td>
-                </tr>
-              ) : filteredBills.length === 0 ? (
+              {!loading && filteredBills.length === 0 && (
                 <tr>
                   <td
                     colSpan="7"
@@ -1783,54 +1772,75 @@ function MonthlyBillHistory() {
                     No Monthly Bills found.
                   </td>
                 </tr>
-              ) : (
-                filteredBills.map(bill => (
-                  <tr key={bill.id}>
-                    <td>
-                      <strong>
-                        {bill.invoice_number}
-                      </strong>
-                    </td>
+              )}
 
-                    <td>
-                      {bill.invoice_date || '—'}
-                    </td>
+              {filteredBills.map(bill => (
+                <tr key={bill.id}>
+                  <td>
+                    <strong>
+                      {bill.invoice_number}
+                    </strong>
+                  </td>
 
-                    <td>
-                      {bill.customer_name || '—'}
-                    </td>
+                  <td>
+                    {bill.invoice_date || '—'}
+                  </td>
 
-                    <td>
-                      ₹ {money(bill.taxable_subtotal)}
-                    </td>
+                  <td>
+                    {bill.customer_name || '—'}
+                  </td>
 
-                    <td>
-                      ₹ {money(bill.non_taxable_total)}
-                    </td>
+                  <td>
+                    ₹ {money(bill.taxable_subtotal)}
+                  </td>
 
-                    <td>
-                      <strong>
-                        ₹ {money(bill.grand_total)}
-                      </strong>
-                    </td>
+                  <td>
+                    ₹ {money(bill.non_taxable_total)}
+                  </td>
 
-                    <td>
-                      <div className="row-actions">
-                        <button
-                          type="button"
-                          className="button ghost small"
-                          onClick={() =>
-                            alert(
-                              'Open / Update will be added next.'
-                            )
-                          }
-                        >
-                          Open
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                  <td>
+                    <strong>
+                      ₹ {money(bill.grand_total)}
+                    </strong>
+                  </td>
+
+                  <td>
+                    <div className="actions">
+                      <button
+                        type="button"
+                        className="icon-button"
+                        title="View / Edit"
+                        onClick={() =>
+                          navigate(
+                            `/monthly-edit/${bill.id}`
+                          )
+                        }
+                      >
+                        View / Edit
+                      </button>
+
+                      <a
+                        className="icon-button pdf"
+                        title="Download PDF"
+                        href={`/api/monthly-bills/${bill.id}/pdf`}
+                        download
+                      >
+                        PDF
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+
+              {loading && (
+                <tr>
+                  <td
+                    colSpan="7"
+                    className="empty"
+                  >
+                    Loading Monthly Bills…
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
