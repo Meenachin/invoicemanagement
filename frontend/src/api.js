@@ -55,14 +55,22 @@ export const api = {
   csvUrl: () =>
     '/api/invoices/export/csv',
 
-  createMonthlyBill: (payload) =>
+  createMonthlyBill: payload =>
   request('/api/monthly-bills', {
     method: 'POST',
     body: JSON.stringify(payload)
   }),
 
 listMonthlyBills: () =>
-  request('/api/monthly-bills')
+  request('/api/monthly-bills'),
 
+getMonthlyBill: id =>
+  request(`/api/monthly-bills/${id}`),
+
+updateMonthlyBill: (id, payload) =>
+  request(`/api/monthly-bills/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload)
+  })
 }
 
