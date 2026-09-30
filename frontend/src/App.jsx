@@ -2628,7 +2628,11 @@ const data = editing
 export default function App() {
   const location = useLocation()
 
-  if (location.pathname === '/monthly') {
+ if (location.pathname === '/') {
+  return <Dashboard />
+}
+
+if (location.pathname === '/monthly') {
   return <MonthlyBillForm />
 }
 
@@ -2640,5 +2644,13 @@ if (location.pathname.startsWith('/monthly-edit/')) {
   return <MonthlyBillForm />
 }
 
-return <InvoiceForm />
+if (location.pathname === '/new') {
+  return <InvoiceForm />
+}
+
+if (location.pathname.startsWith('/edit/')) {
+  return <InvoiceForm />
+}
+
+return <Dashboard />
 }
