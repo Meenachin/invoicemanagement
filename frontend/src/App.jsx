@@ -268,7 +268,9 @@ function Layout({ children }) {
   <Link to="/monthly">
     Monthly Bill
   </Link>
-
+<Link to="/monthly-history">
+    Monthly Bill History
+  </Link>
   <Link to="/new" className="nav-primary">
     + New Invoice
   </Link>
