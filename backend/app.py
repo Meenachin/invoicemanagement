@@ -763,20 +763,47 @@ def list_monthly_bills():
             .all()
         )
 
+        result = []
+
+        for bill in bills:
+            result.append({
+                "id": bill.id,
+                "invoice_number": bill.invoice_number,
+                "invoice_date": (
+                    bill.invoice_date.isoformat()
+                    if bill.invoice_date
+                    else ""
+                ),
+                "customer_name": bill.customer_name or "",
+                "customer_address": bill.customer_address or "",
+                "customer_gstin": bill.customer_gstin or "",
+                "booked_by": bill.booked_by or "",
+                "used_by": bill.used_by or "",
+                "reference_number": bill.reference_number or "",
+                "taxable_subtotal": bill.taxable_subtotal or 0,
+                "cgst_rate": bill.cgst_rate or 0,
+                "cgst": bill.cgst or 0,
+                "sgst_rate": bill.sgst_rate or 0,
+                "sgst": bill.sgst or 0,
+                "non_taxable_total": bill.non_taxable_total or 0,
+                "round_off": bill.round_off or 0,
+                "grand_total": bill.grand_total or 0,
+                "items": []
+            })
+
         return jsonify({
             "success": True,
-            "monthly_bills": [
-                serialize_monthly_bill(bill)
-                for bill in bills
-            ]
+            "monthly_bills": result
         })
 
     except Exception as exc:
+        session.rollback()
         traceback.print_exc()
+
         return error_response(
             "Unable to load Monthly Bills",
             500,
-            "SERVER_ERROR",
+            "MONTHLY_BILL_LIST_ERROR",
             str(exc)
         )
 
