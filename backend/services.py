@@ -621,7 +621,465 @@ def amount_to_words_indian(amount):
         + " Only"
     )
 
+def build_monthly_bill_pdf(bill):
+    buffer = BytesIO()
 
+    page = portrait(A4)
+
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=page,
+        rightMargin=8 * mm,
+        leftMargin=8 * mm,
+        topMargin=7 * mm,
+        bottomMargin=7 * mm,
+        title=f"PVR Monthly Bill {bill.invoice_number}",
+        author="PVR Tours & Travels",
+    )
+
+    styles = getSampleStyleSheet()
+
+    company = ParagraphStyle(
+        "monthly_company",
+        parent=styles["Heading1"],
+        fontName="Helvetica-Bold",
+        fontSize=16,
+        leading=18,
+        alignment=TA_CENTER,
+        spaceAfter=1,
+    )
+
+    address = ParagraphStyle(
+        "monthly_address",
+        parent=styles["Normal"],
+        fontName="Helvetica",
+        fontSize=7.5,
+        leading=9,
+        alignment=TA_CENTER,
+    )
+
+    title_style = ParagraphStyle(
+        "monthly_title",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=9,
+        leading=10,
+        alignment=TA_CENTER,
+    )
+
+    normal = ParagraphStyle(
+        "monthly_normal",
+        parent=styles["Normal"],
+        fontName="Helvetica",
+        fontSize=7,
+        leading=9,
+    )
+
+    bold = ParagraphStyle(
+        "monthly_bold",
+        parent=normal,
+        fontName="Helvetica-Bold",
+    )
+
+    right = ParagraphStyle(
+        "monthly_right",
+        parent=normal,
+        alignment=TA_RIGHT,
+    )
+
+    total_style = ParagraphStyle(
+        "monthly_total",
+        parent=normal,
+        fontName="Helvetica-Bold",
+        fontSize=8,
+        leading=10,
+        alignment=TA_RIGHT,
+    )
+
+    story = []
+
+    # ---------------------------------------------------------
+    # COMPANY HEADER
+    # ---------------------------------------------------------
+
+    story.append(
+        Paragraph(
+            "P.V.R. TOURS AND TRAVELS",
+            company,
+        )
+    )
+
+    story.append(
+        Paragraph(
+            "H. No. 4-1-756, Tuljaguda, Troop Bazar, Hyderabad, "
+            "Telangana State - 500 001. "
+            "Ph: 9030588882 / 9963578399",
+            address,
+        )
+    )
+
+    story.append(Spacer(1, 3 * mm))
+
+    story.append(
+        Table(
+            [
+                [
+                    Paragraph(
+                        "TAX INVOICE",
+                        title_style,
+                    )
+                ]
+            ],
+            colWidths=[doc.width],
+            style=[
+                ("BOX", (0, 0), (-1, -1), 0.7, colors.black),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("TOPPADDING", (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ],
+        )
+    )
+
+    story.append(Spacer(1, 3 * mm))
+
+    # ---------------------------------------------------------
+    # CUSTOMER / INVOICE DETAILS
+    # ---------------------------------------------------------
+
+    customer_data = [
+        [
+            Paragraph("Billed To", bold),
+            Paragraph(
+                bill.customer_name or "",
+                normal,
+            ),
+            Paragraph("Invoice Date", bold),
+            Paragraph(
+                bill.invoice_date.strftime("%d-%m-%Y")
+                if bill.invoice_date
+                else "",
+                normal,
+            ),
+        ],
+        [
+            Paragraph("Address", bold),
+            Paragraph(
+                bill.customer_address or "",
+                normal,
+            ),
+            Paragraph("Invoice No", bold),
+            Paragraph(
+                bill.invoice_number or "",
+                normal,
+            ),
+        ],
+        [
+            Paragraph("GSTIN", bold),
+            Paragraph(
+                bill.customer_gstin or "",
+                normal,
+            ),
+            Paragraph("GSTIN", bold),
+            Paragraph(
+                "36AYPPR7981L1Z8",
+                normal,
+            ),
+        ],
+        [
+            Paragraph("Booked By", bold),
+            Paragraph(
+                bill.booked_by or "",
+                normal,
+            ),
+            Paragraph("Used By", bold),
+            Paragraph(
+                bill.used_by or "",
+                normal,
+            ),
+        ],
+        [
+            Paragraph("Reference / PO", bold),
+            Paragraph(
+                bill.reference_number or "",
+                normal,
+            ),
+            Paragraph("", normal),
+            Paragraph("", normal),
+        ],
+    ]
+
+    story.append(
+        Table(
+            customer_data,
+            colWidths=[
+                28 * mm,
+                70 * mm,
+                28 * mm,
+                55 * mm,
+            ],
+            style=[
+                ("BOX", (0, 0), (-1, -1), 0.5, colors.grey),
+                ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.lightgrey),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 3),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+                ("TOPPADDING", (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ],
+        )
+    )
+
+    story.append(Spacer(1, 4 * mm))
+
+    # ---------------------------------------------------------
+    # ITEM TABLE
+    # ---------------------------------------------------------
+
+    item_rows = [
+        [
+            Paragraph("S.No", bold),
+            Paragraph("Description", bold),
+            Paragraph("Qty", bold),
+            Paragraph("Rate", bold),
+            Paragraph("Amount", bold),
+        ]
+    ]
+
+    serial = 1
+
+    for item in bill.items:
+        item_rows.append(
+            [
+                Paragraph(str(serial), normal),
+                Paragraph(
+                    item.description or "",
+                    normal,
+                ),
+                Paragraph(
+                    f"{float(item.quantity or 0):g}",
+                    right,
+                ),
+                Paragraph(
+                    f"{float(item.rate or 0):,.2f}",
+                    right,
+                ),
+                Paragraph(
+                    f"{float(item.amount or 0):,.2f}",
+                    right,
+                ),
+            ]
+        )
+
+        serial += 1
+
+    if len(item_rows) == 1:
+        item_rows.append(
+            [
+                Paragraph("1", normal),
+                Paragraph("", normal),
+                Paragraph("0", right),
+                Paragraph("0.00", right),
+                Paragraph("0.00", right),
+            ]
+        )
+
+    story.append(
+        Table(
+            item_rows,
+            colWidths=[
+                14 * mm,
+                92 * mm,
+                18 * mm,
+                30 * mm,
+                34 * mm,
+            ],
+            repeatRows=1,
+            style=[
+                ("BOX", (0, 0), (-1, -1), 0.6, colors.black),
+                ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.grey),
+                ("BACKGROUND", (0, 0), (-1, 0), colors.whitesmoke),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("ALIGN", (0, 0), (0, -1), "CENTER"),
+                ("ALIGN", (2, 1), (-1, -1), "RIGHT"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 3),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ],
+        )
+    )
+
+    story.append(Spacer(1, 3 * mm))
+
+    # ---------------------------------------------------------
+    # TOTALS
+    # ---------------------------------------------------------
+
+    totals = [
+        [
+            Paragraph("Taxable Subtotal", normal),
+            Paragraph(
+                f"₹ {float(bill.taxable_subtotal or 0):,.2f}",
+                right,
+            ),
+        ],
+        [
+            Paragraph(
+                f"CGST @ {float(bill.cgst_rate or 0):g}%",
+                normal,
+            ),
+            Paragraph(
+                f"₹ {float(bill.cgst or 0):,.2f}",
+                right,
+            ),
+        ],
+        [
+            Paragraph(
+                f"SGST @ {float(bill.sgst_rate or 0):g}%",
+                normal,
+            ),
+            Paragraph(
+                f"₹ {float(bill.sgst or 0):,.2f}",
+                right,
+            ),
+        ],
+        [
+            Paragraph("Non-Taxable Subtotal", normal),
+            Paragraph(
+                f"₹ {float(bill.non_taxable_total or 0):,.2f}",
+                right,
+            ),
+        ],
+        [
+            Paragraph("Round Off", normal),
+            Paragraph(
+                f"{'+' if float(bill.round_off or 0) >= 0 else ''}"
+                f"{float(bill.round_off or 0):,.2f}",
+                right,
+            ),
+        ],
+        [
+            Paragraph("Grand Total", bold),
+            Paragraph(
+                f"₹ {float(bill.grand_total or 0):,.2f}",
+                total_style,
+            ),
+        ],
+    ]
+
+    story.append(
+        Table(
+            totals,
+            colWidths=[55 * mm, 45 * mm],
+            hAlign="RIGHT",
+            style=[
+                ("BOX", (0, 0), (-1, -1), 0.6, colors.black),
+                ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.grey),
+                ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("BACKGROUND", (0, -1), (-1, -1), colors.whitesmoke),
+                ("LEFTPADDING", (0, 0), (-1, -1), 4),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ],
+        )
+    )
+
+    story.append(Spacer(1, 3 * mm))
+
+    # ---------------------------------------------------------
+    # AMOUNT IN WORDS
+    # ---------------------------------------------------------
+
+    story.append(
+        Table(
+            [
+                [
+                    Paragraph(
+                        amount_to_words_indian(
+                            bill.grand_total or 0
+                        ),
+                        bold,
+                    )
+                ]
+            ],
+            colWidths=[doc.width],
+            style=[
+                ("BOX", (0, 0), (-1, -1), 0.5, colors.black),
+                ("LEFTPADDING", (0, 0), (-1, -1), 4),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ],
+        )
+    )
+
+    story.append(Spacer(1, 5 * mm))
+
+    # ---------------------------------------------------------
+    # BANK DETAILS + SIGNATURE
+    # ---------------------------------------------------------
+
+    bank = [
+        Paragraph("Please make payment by Bank Transfer:", bold),
+        Paragraph(
+            "Account Name: PVR Tours & Travels<br/>"
+            "SBI Account No: 39169597084<br/>"
+            "IFSC: SBIN0000487",
+            normal,
+        ),
+    ]
+
+    signature = [
+        Paragraph("For PVR TOURS & TRAVELS", bold),
+        Spacer(1, 10 * mm),
+        Paragraph("Authorised Signatory", bold),
+    ]
+
+    story.append(
+        Table(
+            [[
+                Table(
+                    [[x] for x in bank],
+                    colWidths=[105 * mm],
+                    style=[
+                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                        ("TOPPADDING", (0, 0), (-1, -1), 1),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
+                    ],
+                ),
+                Table(
+                    [[x] for x in signature],
+                    colWidths=[70 * mm],
+                    style=[
+                        ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
+                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                        ("TOPPADDING", (0, 0), (-1, -1), 1),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
+                    ],
+                ),
+            ]],
+            colWidths=[105 * mm, 70 * mm],
+            style=[
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+            ],
+        )
+    )
+
+    doc.build(story)
+
+    buffer.seek(0)
+
+    return buffer.getvalue()
 # ============================================================
 # BUILD INVOICE PDF
 # ============================================================
