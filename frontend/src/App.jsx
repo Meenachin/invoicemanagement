@@ -521,7 +521,109 @@ function InvoiceForm() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [activeTrip, setActiveTrip] = useState(0)
+useEffect(() => {
+  if (!editing) {
+    return
+  }
 
+  let mounted = true
+
+  setError('')
+  setSuccess('')
+
+  api.getMonthlyBill(editId)
+    .then(data => {
+      if (!mounted) return
+
+      const bill = data.monthly_bill
+
+      setInvoiceNumber(
+        bill.invoice_number || ''
+      )
+
+      setInvoiceDate(
+        bill.invoice_date || todayISO()
+      )
+
+      setCustomerName(
+        bill.customer_name || ''
+      )
+
+      setCustomerAddress(
+        bill.customer_address || ''
+      )
+
+      setCustomerGstin(
+        bill.customer_gstin || ''
+      )
+
+      setBookedBy(
+        bill.booked_by || ''
+      )
+
+      setUsedBy(
+        bill.used_by || ''
+      )
+
+      setReferenceNumber(
+        bill.reference_number || ''
+      )
+
+      const items = bill.items || []
+
+      const taxable = items
+        .filter(item => item.item_type === 'taxable')
+        .map(item => ({
+          description: item.description || '',
+          quantity: item.quantity || 0,
+          rate: item.rate || 0,
+          amount: item.amount || 0
+        }))
+
+      const nonTaxable = items
+        .filter(item => item.item_type === 'non-taxable')
+        .map(item => ({
+          description: item.description || '',
+          quantity: item.quantity || 0,
+          rate: item.rate || 0,
+          amount: item.amount || 0
+        }))
+
+      setTaxableItems(
+        taxable.length
+          ? taxable
+          : [{
+              description: '',
+              quantity: 1,
+              rate: 0,
+              amount: 0
+            }]
+      )
+
+      setNonTaxableItems(
+        nonTaxable.length
+          ? nonTaxable
+          : [{
+              description: '',
+              quantity: 1,
+              rate: 0,
+              amount: 0
+            }]
+      )
+    })
+    .catch(e => {
+      if (mounted) {
+        setError(
+          e.message ||
+          'Unable to load Monthly Bill.'
+        )
+      }
+    })
+
+  return () => {
+    mounted = false
+  }
+}, [editId, editing])
   useEffect(() => {
     let mounted = true
 
@@ -1851,6 +1953,13 @@ function MonthlyBillHistory() {
 }
 function MonthlyBillForm() {
   const navigate = useNavigate()
+  const location = useLocation()
+
+  const editId = location.pathname.startsWith('/monthly-edit/')
+    ? location.pathname.split('/')[2]
+    : null
+
+  const editing = Boolean(editId)
 
   const [invoiceNumber, setInvoiceNumber] = useState('')
   const [invoiceDate, setInvoiceDate] = useState(todayISO())
@@ -2046,12 +2155,20 @@ function MonthlyBillForm() {
         }))
       }
 
-      const data =
-        await api.createMonthlyBill(payload)
+const data = editing
+  ? await api.updateMonthlyBill(
+      editId,
+      payload
+    )
+  : await api.createMonthlyBill(
+      payload
+    )
 
-      setSuccess(
-        'Monthly Bill saved successfully.'
-      )
+     setSuccess(
+  editing
+    ? 'Monthly Bill updated successfully.'
+    : 'Monthly Bill saved successfully.'
+)
 
       if (data.monthly_bill) {
         setInvoiceNumber(
@@ -2499,8 +2616,10 @@ function MonthlyBillForm() {
           disabled={saving}
         >
           {saving
-            ? 'Saving…'
-            : 'Save Monthly Bill'}
+  ? 'Saving…'
+  : editing
+    ? 'Update Monthly Bill'
+    : 'Save Monthly Bill'}
         </button>
       </div>
     </Layout>
@@ -2509,17 +2628,17 @@ function MonthlyBillForm() {
 export default function App() {
   const location = useLocation()
 
-  if (location.pathname === '/') {
-    return <Dashboard />
-  }
-
   if (location.pathname === '/monthly') {
-    return <MonthlyBillForm />
-  }
+  return <MonthlyBillForm />
+}
 
-  if (location.pathname === '/monthly-history') {
-    return <MonthlyBillHistory />
-  }
+if (location.pathname === '/monthly-history') {
+  return <MonthlyBillHistory />
+}
 
-  return <InvoiceForm />
+if (location.pathname.startsWith('/monthly-edit/')) {
+  return <MonthlyBillForm />
+}
+
+return <InvoiceForm />
 }
