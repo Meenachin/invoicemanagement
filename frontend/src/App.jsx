@@ -285,32 +285,17 @@ function Layout({ children }) {
 function Dashboard() {
   const navigate = useNavigate()
 
-  const [rows, setRows] = useState([])
+ const [rows, setRows] = useState([])
 const [search, setSearch] = useState('')
 const [loading, setLoading] = useState(true)
 const [error, setError] = useState('')
 
-const [billType, setBillType] = useState('daily')
-const [selectedMonth, setSelectedMonth] = useState(
-  String(new Date().getMonth() + 1)
-)
-const [selectedYear, setSelectedYear] = useState(
-  String(new Date().getFullYear())
-)
-
- const load = async () => {
+const load = async () => {
   setLoading(true)
   setError('')
 
   try {
-    const data =
-      billType === 'monthly'
-        ? await api.listInvoices(
-            search,
-            selectedMonth,
-            selectedYear
-          )
-        : await api.listInvoices(search)
+    const data = await api.listInvoices(search)
 
     setRows(data.invoices || [])
   } catch (e) {
@@ -321,15 +306,9 @@ const [selectedYear, setSelectedYear] = useState(
     setLoading(false)
   }
 }
-
  useEffect(() => {
   load()
-}, [
-  search,
-  billType,
-  selectedMonth,
-  selectedYear
-])
+}, [search])
   const total = useMemo(
     () => rows.reduce((s, r) => s + num(r.grand_total), 0),
     [rows]
@@ -394,16 +373,9 @@ const [selectedYear, setSelectedYear] = useState(
     {loading ? 'Loading…' : '↻ Refresh'}
   </button>
 
- <a
+<a
   className="button ghost"
-  href={
-    billType === 'monthly'
-      ? api.csvUrl(
-          selectedMonth,
-          selectedYear
-        )
-      : api.csvUrl()
-  }
+  href={api.csvUrl()}
   download
 >
   ⇩ CSV
@@ -411,14 +383,10 @@ const [selectedYear, setSelectedYear] = useState(
 
 <a
   className="button ghost"
-  href={
-    billType === 'monthly'
-      ? api.xlsxUrl(
-          selectedMonth,
-          selectedYear
-        )
-      : api.xlsxUrl()
-  }
+  href={api.csvUrl().replace(
+    '/export/csv',
+    '/export/xlsx'
+  )}
   download
 >
   ⇩ Excel
