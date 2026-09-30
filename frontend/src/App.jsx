@@ -1601,7 +1601,62 @@ function InvoiceForm() {
     </Layout>
   )
 }
+function MonthlyBillForm() {
+  const navigate = useNavigate()
 
+  return (
+    <Layout>
+      <section className="form-hero">
+        <div>
+          <Link
+            className="back-link"
+            to="/"
+          >
+            ← Invoice History
+          </Link>
+
+          <div className="eyebrow">
+            MONTHLY BILL
+          </div>
+
+          <h1>
+            Create Monthly Bill
+          </h1>
+
+          <p>
+            Monthly billing form will be added here.
+          </p>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <h2>
+              Monthly Bill
+            </h2>
+
+            <p>
+              This is a separate Monthly Bill form.
+            </p>
+          </div>
+
+          <span className="section-badge">
+            MONTHLY
+          </span>
+        </div>
+
+        <button
+          type="button"
+          className="button ghost"
+          onClick={() => navigate('/')}
+        >
+          ← Back to Invoices
+        </button>
+      </section>
+    </Layout>
+  )
+}
 export default function App() {
   /*
    * IMPORTANT:
