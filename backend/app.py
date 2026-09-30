@@ -14,7 +14,7 @@ from models import (
     Invoice,
     Trip,
     MonthlyBill,
-    MonthlyBillItem,
+    BillItem,
 )
 from services import (
     calculate_invoice,
@@ -739,6 +739,42 @@ def create_monthly_bill():
 
         return error_response(
             "Unable to save Monthly Bill",
+            500,
+            "SERVER_ERROR",
+            str(exc)
+        )
+
+    finally:
+        session.close()
+@app.get("/api/monthly-bills")
+def list_monthly_bills():
+    session = SessionLocal()
+
+    try:
+        bills = (
+            session.execute(
+                select(MonthlyBill)
+                .order_by(
+                    MonthlyBill.invoice_date.desc(),
+                    MonthlyBill.id.desc()
+                )
+            )
+            .scalars()
+            .all()
+        )
+
+        return jsonify({
+            "success": True,
+            "monthly_bills": [
+                serialize_monthly_bill(bill)
+                for bill in bills
+            ]
+        })
+
+    except Exception as exc:
+        traceback.print_exc()
+        return error_response(
+            "Unable to load Monthly Bills",
             500,
             "SERVER_ERROR",
             str(exc)
