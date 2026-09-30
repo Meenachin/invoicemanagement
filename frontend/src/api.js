@@ -31,5 +31,12 @@ export const api = {
   updateInvoice: (id, payload) => request(`/api/invoices/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   deleteInvoice: (id) => request(`/api/invoices/${id}`, { method: 'DELETE' }),
   pdfUrl: (id) => `/api/invoices/${id}/pdf`,
-  csvUrl: () => '/api/invoices/export/csv'
+  csvUrl: () => '/api/invoices/export/csv',
+  monthlyBills: {
+  create: payload =>
+    request('/api/monthly-bills', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    })
+}
 }
