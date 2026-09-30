@@ -14,7 +14,7 @@ from models import (
     Invoice,
     Trip,
     MonthlyBill,
-    BillItem,
+    MonthlyBillItem,
 )
 from services import (
     calculate_invoice,
