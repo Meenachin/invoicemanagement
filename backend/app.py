@@ -363,7 +363,134 @@ def list_invoices():
     finally:
         session.close()
 
+@app.post("/api/invoices")
+def create_invoice():
+    session = SessionLocal()
 
+    try:
+        data = request.get_json(silent=True) or {}
+
+        invoice_number, _ = validate_payload(data)
+
+        existing = session.execute(
+            select(Invoice.id).where(
+                Invoice.invoice_number == invoice_number
+            )
+        ).scalar_one_or_none()
+
+        if existing is not None:
+            return error_response(
+                "Invoice number already exists",
+                409,
+                "DUPLICATE_INVOICE_NUMBER"
+            )
+
+        calculated_trips, totals = calculate_invoice(
+            data,
+            data["trips"]
+        )
+
+        inv = Invoice()
+
+        apply_invoice(
+            inv,
+            data,
+            totals
+        )
+
+        session.add(inv)
+        session.flush()
+
+        for tdata in calculated_trips:
+            trip_date = (
+                parse_date(
+                    tdata["trip_date"],
+                    "Trip Date"
+                )
+                if tdata.get("trip_date")
+                else None
+            )
+
+            end_date = (
+                parse_date(
+                    tdata["end_date"],
+                    "End Date"
+                )
+                if tdata.get("end_date")
+                else trip_date
+            )
+
+            tdata["trip_date"] = trip_date
+            tdata["end_date"] = end_date
+
+            inv.trips.append(
+                Trip(**tdata)
+            )
+
+        session.commit()
+
+        refreshed = (
+            session.execute(
+                select(Invoice)
+                .options(
+                    joinedload(Invoice.trips)
+                )
+                .where(
+                    Invoice.id == inv.id
+                )
+            )
+            .unique()
+            .scalar_one()
+        )
+
+        return jsonify({
+            "success": True,
+            "message": "Invoice created successfully",
+            "invoice": serialize_invoice(refreshed)
+        }), 201
+
+    except ValueError as exc:
+        session.rollback()
+
+        return error_response(
+            str(exc),
+            400,
+            "VALIDATION_ERROR"
+        )
+
+    except IntegrityError as exc:
+        session.rollback()
+
+        return error_response(
+            "Invoice number already exists",
+            409,
+            "DUPLICATE_INVOICE_NUMBER",
+            str(getattr(exc, "orig", exc))
+        )
+
+    except (DataError, StatementError) as exc:
+        session.rollback()
+
+        return error_response(
+            "Invalid data type or value sent to PostgreSQL",
+            400,
+            "DATABASE_DATA_ERROR",
+            str(getattr(exc, "orig", exc))
+        )
+
+    except Exception as exc:
+        session.rollback()
+        traceback.print_exc()
+
+        return error_response(
+            "Unable to save invoice",
+            500,
+            "SERVER_ERROR",
+            str(exc)
+        )
+
+    finally:
+        session.close()
 @app.get("/api/invoices/<int:invoice_id>")
 def get_invoice(invoice_id):
     session = SessionLocal()
