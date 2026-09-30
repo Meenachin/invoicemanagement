@@ -19,6 +19,7 @@ from models import (
 from services import (
     calculate_invoice,
     build_invoice_pdf,
+    build_monthly_bill_pdf,
     invoice_to_csv,
     invoice_to_excel,
 )
@@ -741,6 +742,51 @@ def create_monthly_bill():
             "Unable to save Monthly Bill",
             500,
             "SERVER_ERROR",
+            str(exc)
+        )
+
+    finally:
+        session.close()
+        @app.get("/api/monthly-bills/<int:bill_id>/pdf")
+def monthly_bill_pdf(bill_id):
+    session = SessionLocal()
+
+    try:
+        bill = (
+            session.execute(
+                select(MonthlyBill)
+                .where(MonthlyBill.id == bill_id)
+            )
+            .scalar_one_or_none()
+        )
+
+        if not bill:
+            return error_response(
+                "Monthly Bill not found",
+                404,
+                "NOT_FOUND"
+            )
+
+        pdf = build_monthly_bill_pdf(bill)
+
+        filename = (
+            f"{bill.invoice_number.replace('/', '-')}.pdf"
+        )
+
+        return send_file(
+            __import__("io").BytesIO(pdf),
+            mimetype="application/pdf",
+            as_attachment=True,
+            download_name=filename
+        )
+
+    except Exception as exc:
+        traceback.print_exc()
+
+        return error_response(
+            "Unable to generate Monthly Bill PDF",
+            500,
+            "MONTHLY_BILL_PDF_ERROR",
             str(exc)
         )
 
