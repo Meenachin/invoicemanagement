@@ -1603,6 +1603,241 @@ function InvoiceForm() {
     </Layout>
   )
 }
+function MonthlyBillHistory() {
+  const navigate = useNavigate()
+
+  const [bills, setBills] = useState([])
+  const [search, setSearch] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  const loadBills = async () => {
+    setLoading(true)
+    setError('')
+
+    try {
+      const data = await api.listMonthlyBills()
+      setBills(data.monthly_bills || [])
+    } catch (e) {
+      setError(
+        e.message || 'Unable to load Monthly Bills.'
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadBills()
+  }, [])
+
+  const filteredBills = bills.filter(bill => {
+    const text = [
+      bill.invoice_number,
+      bill.customer_name,
+      bill.customer_gstin,
+      bill.reference_number
+    ]
+      .join(' ')
+      .toLowerCase()
+
+    return text.includes(search.toLowerCase())
+  })
+
+  const total = filteredBills.reduce(
+    (sum, bill) =>
+      sum + (Number(bill.grand_total) || 0),
+    0
+  )
+
+  return (
+    <Layout>
+      <section className="hero">
+        <div>
+          <div className="eyebrow">
+            MONTHLY BILL HISTORY
+          </div>
+
+          <h1>
+            Monthly Bills
+          </h1>
+
+          <p>
+            View all saved Monthly Bills.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="button primary big"
+          onClick={() => navigate('/monthly')}
+        >
+          + New Monthly Bill
+        </button>
+      </section>
+
+      <section className="stats-grid">
+        <Stat
+          title="Saved Monthly Bills"
+          value={bills.length}
+          tone="purple"
+        />
+
+        <Stat
+          title="Visible bill value"
+          value={`₹ ${money(total)}`}
+          tone="green"
+        />
+      </section>
+
+      <section className="panel history-panel">
+        <div className="panel-heading">
+          <div>
+            <h2>
+              Saved Monthly Bills
+            </h2>
+
+            <p>
+              Search and manage your saved Monthly Bills.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            className="button ghost"
+            onClick={loadBills}
+            disabled={loading}
+          >
+            ↻ Refresh
+          </button>
+        </div>
+
+        <div className="search-row">
+          <input
+            className="search"
+            value={search}
+            onChange={e =>
+              setSearch(e.target.value)
+            }
+            placeholder="Search invoice number, customer, reference..."
+          />
+        </div>
+
+        {error && (
+          <div className="error-box">
+            {error}
+          </div>
+        )}
+
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>
+                  INVOICE NUMBER
+                </th>
+
+                <th>
+                  DATE
+                </th>
+
+                <th>
+                  CUSTOMER
+                </th>
+
+                <th>
+                  TAXABLE
+                </th>
+
+                <th>
+                  NON-TAXABLE
+                </th>
+
+                <th>
+                  GRAND TOTAL
+                </th>
+
+                <th>
+                  ACTIONS
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td
+                    colSpan="7"
+                    className="empty"
+                  >
+                    Loading Monthly Bills...
+                  </td>
+                </tr>
+              ) : filteredBills.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan="7"
+                    className="empty"
+                  >
+                    No Monthly Bills found.
+                  </td>
+                </tr>
+              ) : (
+                filteredBills.map(bill => (
+                  <tr key={bill.id}>
+                    <td>
+                      <strong>
+                        {bill.invoice_number}
+                      </strong>
+                    </td>
+
+                    <td>
+                      {bill.invoice_date || '—'}
+                    </td>
+
+                    <td>
+                      {bill.customer_name || '—'}
+                    </td>
+
+                    <td>
+                      ₹ {money(bill.taxable_subtotal)}
+                    </td>
+
+                    <td>
+                      ₹ {money(bill.non_taxable_total)}
+                    </td>
+
+                    <td>
+                      <strong>
+                        ₹ {money(bill.grand_total)}
+                      </strong>
+                    </td>
+
+                    <td>
+                      <div className="row-actions">
+                        <button
+                          type="button"
+                          className="button ghost small"
+                          onClick={() =>
+                            alert(
+                              'Open / Update will be added next.'
+                            )
+                          }
+                        >
+                          Open
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </Layout>
+  )
+}
 function MonthlyBillForm() {
   const navigate = useNavigate()
 
@@ -2269,6 +2504,10 @@ export default function App() {
 
   if (location.pathname === '/monthly') {
     return <MonthlyBillForm />
+  }
+
+  if (location.pathname === '/monthly-history') {
+    return <MonthlyBillHistory />
   }
 
   return <InvoiceForm />
