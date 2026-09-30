@@ -56,11 +56,13 @@ export const api = {
     '/api/invoices/export/csv',
 
   createMonthlyBill: (payload) =>
-    request('/api/monthly-bills', {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    })
-  listMonthlyBills: () =>
+  request('/api/monthly-bills', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }),
+
+listMonthlyBills: () =>
   request('/api/monthly-bills')
+
 }
 
