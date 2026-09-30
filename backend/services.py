@@ -848,29 +848,41 @@ def build_monthly_bill_pdf(bill):
     serial = 1
 
     for item in bill.items:
-        item_rows.append(
-            [
-                Paragraph(str(serial), normal),
-                Paragraph(
-                    item.description or "",
-                    normal,
-                ),
-                Paragraph(
-                    f"{float(item.quantity or 0):g}",
-                    right,
-                ),
-                Paragraph(
-                    f"{float(item.rate or 0):,.2f}",
-                    right,
-                ),
-                Paragraph(
-                    f"{float(item.amount or 0):,.2f}",
-                    right,
-                ),
-            ]
+    description_text = item.description or ""
+
+    if item.item_type == "non-taxable":
+        description_text += (
+            ' <font name="Helvetica-Bold">'
+            '  [Non-Taxable]'
+            '</font>'
         )
 
-        serial += 1
+    item_rows.append(
+        [
+            Paragraph(
+                str(serial),
+                normal,
+            ),
+            Paragraph(
+                description_text,
+                normal,
+            ),
+            Paragraph(
+                f"{float(item.quantity or 0):g}",
+                right,
+            ),
+            Paragraph(
+                f"{float(item.rate or 0):,.2f}",
+                right,
+            ),
+            Paragraph(
+                f"{float(item.amount or 0):,.2f}",
+                right,
+            ),
+        ]
+    )
+
+    serial += 1
 
     if len(item_rows) == 1:
         item_rows.append(
