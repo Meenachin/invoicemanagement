@@ -404,11 +404,7 @@ const load = async () => {
 
  
 
-        {error && (
-          <div className="alert error">
-            {error}
-          </div>
-        )}
+      
 
         <div className="table-wrap">
           <table className="history-table">
