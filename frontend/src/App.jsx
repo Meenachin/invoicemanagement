@@ -1953,7 +1953,7 @@ function MonthlyBillHistory() {
 }
 function MonthlyBillForm() {
   const navigate = useNavigate()
-  const location = useLocation()
+   const location = useLocation()
 
   const editId = location.pathname.startsWith('/monthly-edit/')
     ? location.pathname.split('/')[2]
