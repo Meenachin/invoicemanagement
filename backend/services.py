@@ -793,7 +793,7 @@ def build_monthly_bill_pdf(bill):
             ),
             Paragraph("Used By", bold),
             Paragraph(
-                bill.used_by or "",
+                bill.vehicle_number or "",
                 normal,
             ),
         ],
