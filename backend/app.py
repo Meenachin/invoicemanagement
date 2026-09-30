@@ -359,8 +359,6 @@ def list_invoices():
 
     finally:
         session.close()
-    finally:
-        session.close()
 
 
 @app.get("/api/invoices/<int:invoice_id>")
