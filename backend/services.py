@@ -629,13 +629,17 @@ def build_monthly_bill_pdf(bill):
         pagesize=portrait(A4),
         rightMargin=14 * mm,
         leftMargin=14 * mm,
-        topMargin=12 * mm,
-        bottomMargin=12 * mm,
+        topMargin=11 * mm,
+        bottomMargin=11 * mm,
         title=f"PVR Monthly Bill {bill.invoice_number}",
         author="PVR Tours & Travels",
     )
 
     styles = getSampleStyleSheet()
+
+    # =========================================================
+    # STYLES
+    # =========================================================
 
     company = ParagraphStyle(
         "monthly_company",
@@ -666,18 +670,7 @@ def build_monthly_bill_pdf(bill):
         leading=13,
         alignment=TA_CENTER,
         textColor=colors.HexColor("#102A43"),
-        spaceBefore=5,
-        spaceAfter=6,
-    )
-
-    section_title = ParagraphStyle(
-        "monthly_section_title",
-        parent=styles["Normal"],
-        fontName="Helvetica-Bold",
-        fontSize=8,
-        leading=10,
-        textColor=colors.HexColor("#102A43"),
-        spaceBefore=3,
+        spaceBefore=4,
         spaceAfter=4,
     )
 
@@ -714,19 +707,24 @@ def build_monthly_bill_pdf(bill):
         textColor=colors.HexColor("#102A43"),
     )
 
+    section_title = ParagraphStyle(
+        "monthly_section_title",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=8,
+        leading=10,
+        textColor=colors.HexColor("#102A43"),
+        spaceBefore=1,
+        spaceAfter=3,
+    )
+
     table_header = ParagraphStyle(
         "monthly_table_header",
         parent=normal,
         fontName="Helvetica-Bold",
-        fontSize=7.5,
+        fontSize=7,
         leading=9,
         textColor=colors.white,
-    )
-
-    right = ParagraphStyle(
-        "monthly_right",
-        parent=normal,
-        alignment=TA_RIGHT,
     )
 
     center = ParagraphStyle(
@@ -735,21 +733,18 @@ def build_monthly_bill_pdf(bill):
         alignment=TA_CENTER,
     )
 
-    total_label = ParagraphStyle(
-        "monthly_total_label",
+    right = ParagraphStyle(
+        "monthly_right",
         parent=normal,
-        fontName="Helvetica-Bold",
-        fontSize=8,
-        leading=10,
-        textColor=colors.HexColor("#102A43"),
+        alignment=TA_RIGHT,
     )
 
     total_value = ParagraphStyle(
         "monthly_total_value",
         parent=normal,
         fontName="Helvetica-Bold",
-        fontSize=9,
-        leading=11,
+        fontSize=8,
+        leading=10,
         alignment=TA_RIGHT,
         textColor=colors.HexColor("#102A43"),
     )
@@ -777,9 +772,18 @@ def build_monthly_bill_pdf(bill):
         "monthly_amount_words",
         parent=normal,
         fontName="Helvetica-Bold",
-        fontSize=7.5,
-        leading=10,
+        fontSize=8.5,
+        leading=12,
         textColor=colors.HexColor("#102A43"),
+    )
+
+    footer_note = ParagraphStyle(
+        "monthly_footer_note",
+        parent=normal,
+        fontSize=6.5,
+        leading=8,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor("#7B8794"),
     )
 
     story = []
@@ -836,7 +840,7 @@ def build_monthly_bill_pdf(bill):
                     "TOPPADDING",
                     (0, 0),
                     (-1, -1),
-                    4,
+                    3,
                 ),
                 (
                     "BOTTOMPADDING",
@@ -851,7 +855,7 @@ def build_monthly_bill_pdf(bill):
     story.append(Spacer(1, 4 * mm))
 
     # =========================================================
-    # CUSTOMER + INVOICE INFORMATION
+    # CUSTOMER / INVOICE INFORMATION
     # =========================================================
 
     invoice_date = (
@@ -860,7 +864,7 @@ def build_monthly_bill_pdf(bill):
         else ""
     )
 
-    info_left = [
+    left_information = [
         [
             Paragraph("BILLED TO", label),
             Paragraph(
@@ -884,7 +888,7 @@ def build_monthly_bill_pdf(bill):
         ],
     ]
 
-    info_right = [
+    right_information = [
         [
             Paragraph("INVOICE NO", label),
             Paragraph(
@@ -923,14 +927,14 @@ def build_monthly_bill_pdf(bill):
     ]
 
     left_table = Table(
-        info_left,
-        colWidths=[34 * mm, 56 * mm],
+        left_information,
+        colWidths=[35 * mm, 55 * mm],
         style=[
             (
                 "LINEBELOW",
                 (0, 0),
                 (-1, -1),
-                0.3,
+                0.35,
                 colors.HexColor("#D9E2EC"),
             ),
             (
@@ -967,14 +971,14 @@ def build_monthly_bill_pdf(bill):
     )
 
     right_table = Table(
-        info_right,
-        colWidths=[34 * mm, 56 * mm],
+        right_information,
+        colWidths=[35 * mm, 55 * mm],
         style=[
             (
                 "LINEBELOW",
                 (0, 0),
                 (-1, -1),
-                0.3,
+                0.35,
                 colors.HexColor("#D9E2EC"),
             ),
             (
@@ -1012,7 +1016,12 @@ def build_monthly_bill_pdf(bill):
 
     story.append(
         Table(
-            [[left_table, right_table]],
+            [
+                [
+                    left_table,
+                    right_table,
+                ]
+            ],
             colWidths=[90 * mm, 90 * mm],
             style=[
                 (
@@ -1049,10 +1058,10 @@ def build_monthly_bill_pdf(bill):
         )
     )
 
-    story.append(Spacer(1, 6 * mm))
+    story.append(Spacer(1, 5 * mm))
 
     # =========================================================
-    # TAXABLE SERVICES
+    # SEPARATE TAXABLE / NON-TAXABLE ITEMS
     # =========================================================
 
     taxable_items = [
@@ -1067,7 +1076,12 @@ def build_monthly_bill_pdf(bill):
         if item.item_type == "non-taxable"
     ]
 
+    # =========================================================
+    # ITEM TABLE BUILDER
+    # =========================================================
+
     def build_item_rows(items):
+
         rows = [
             [
                 Paragraph("S.NO", table_header),
@@ -1079,6 +1093,7 @@ def build_monthly_bill_pdf(bill):
         ]
 
         for index, item in enumerate(items, start=1):
+
             rows.append(
                 [
                     Paragraph(
@@ -1091,14 +1106,14 @@ def build_monthly_bill_pdf(bill):
                     ),
                     Paragraph(
                         f"{float(item.quantity or 0):g}",
+                        center,
+                    ),
+                    Paragraph(
+                        f"Rs. {float(item.rate or 0):,.2f}",
                         right,
                     ),
                     Paragraph(
-                        f"₹ {float(item.rate or 0):,.2f}",
-                        right,
-                    ),
-                    Paragraph(
-                        f"₹ {float(item.amount or 0):,.2f}",
+                        f"Rs. {float(item.amount or 0):,.2f}",
                         right,
                     ),
                 ]
@@ -1106,7 +1121,12 @@ def build_monthly_bill_pdf(bill):
 
         return rows
 
+    # =========================================================
+    # TAXABLE SERVICES
+    # =========================================================
+
     if taxable_items:
+
         story.append(
             Paragraph(
                 "TAXABLE SERVICES",
@@ -1122,8 +1142,8 @@ def build_monthly_bill_pdf(bill):
             Table(
                 taxable_rows,
                 colWidths=[
-                    12 * mm,
-                    76 * mm,
+                    13 * mm,
+                    75 * mm,
                     18 * mm,
                     32 * mm,
                     42 * mm,
@@ -1155,6 +1175,30 @@ def build_monthly_bill_pdf(bill):
                         (0, 0),
                         (-1, -1),
                         "MIDDLE",
+                    ),
+                    (
+                        "ALIGN",
+                        (0, 0),
+                        (0, -1),
+                        "CENTER",
+                    ),
+                    (
+                        "ALIGN",
+                        (1, 0),
+                        (1, -1),
+                        "LEFT",
+                    ),
+                    (
+                        "ALIGN",
+                        (2, 0),
+                        (2, -1),
+                        "CENTER",
+                    ),
+                    (
+                        "ALIGN",
+                        (3, 0),
+                        (-1, -1),
+                        "RIGHT",
                     ),
                     (
                         "LEFTPADDING",
@@ -1191,6 +1235,7 @@ def build_monthly_bill_pdf(bill):
     # =========================================================
 
     if non_taxable_items:
+
         story.append(
             Paragraph(
                 "NON-TAXABLE CHARGES",
@@ -1206,8 +1251,8 @@ def build_monthly_bill_pdf(bill):
             Table(
                 non_taxable_rows,
                 colWidths=[
-                    12 * mm,
-                    76 * mm,
+                    13 * mm,
+                    75 * mm,
                     18 * mm,
                     32 * mm,
                     42 * mm,
@@ -1239,6 +1284,30 @@ def build_monthly_bill_pdf(bill):
                         (0, 0),
                         (-1, -1),
                         "MIDDLE",
+                    ),
+                    (
+                        "ALIGN",
+                        (0, 0),
+                        (0, -1),
+                        "CENTER",
+                    ),
+                    (
+                        "ALIGN",
+                        (1, 0),
+                        (1, -1),
+                        "LEFT",
+                    ),
+                    (
+                        "ALIGN",
+                        (2, 0),
+                        (2, -1),
+                        "CENTER",
+                    ),
+                    (
+                        "ALIGN",
+                        (3, 0),
+                        (-1, -1),
+                        "RIGHT",
                     ),
                     (
                         "LEFTPADDING",
@@ -1274,11 +1343,24 @@ def build_monthly_bill_pdf(bill):
     # TOTALS
     # =========================================================
 
+    round_off_value = float(
+        bill.round_off or 0
+    )
+
+    round_off_text = (
+        "+"
+        if round_off_value >= 0
+        else ""
+    )
+
     totals_rows = [
         [
-            Paragraph("Taxable Subtotal", normal),
             Paragraph(
-                f"₹ {float(bill.taxable_subtotal or 0):,.2f}",
+                "Taxable Subtotal",
+                normal,
+            ),
+            Paragraph(
+                f"Rs. {float(bill.taxable_subtotal or 0):,.2f}",
                 total_value,
             ),
         ],
@@ -1288,7 +1370,7 @@ def build_monthly_bill_pdf(bill):
                 normal,
             ),
             Paragraph(
-                f"₹ {float(bill.cgst or 0):,.2f}",
+                f"Rs. {float(bill.cgst or 0):,.2f}",
                 total_value,
             ),
         ],
@@ -1298,29 +1380,37 @@ def build_monthly_bill_pdf(bill):
                 normal,
             ),
             Paragraph(
-                f"₹ {float(bill.sgst or 0):,.2f}",
+                f"Rs. {float(bill.sgst or 0):,.2f}",
                 total_value,
             ),
         ],
         [
-            Paragraph("Non-Taxable Total", normal),
             Paragraph(
-                f"₹ {float(bill.non_taxable_total or 0):,.2f}",
+                "Non-Taxable Total",
+                normal,
+            ),
+            Paragraph(
+                f"Rs. {float(bill.non_taxable_total or 0):,.2f}",
                 total_value,
             ),
         ],
         [
-            Paragraph("Round Off", normal),
             Paragraph(
-                f"{'+' if float(bill.round_off or 0) >= 0 else ''}"
-                f"₹ {float(bill.round_off or 0):,.2f}",
+                "Round Off",
+                normal,
+            ),
+            Paragraph(
+                f"{round_off_text}Rs. {round_off_value:,.2f}",
                 total_value,
             ),
         ],
         [
-            Paragraph("GRAND TOTAL", grand_label),
             Paragraph(
-                f"₹ {float(bill.grand_total or 0):,.2f}",
+                "GRAND TOTAL",
+                grand_label,
+            ),
+            Paragraph(
+                f"Rs. {float(bill.grand_total or 0):,.2f}",
                 grand_value,
             ),
         ],
@@ -1401,8 +1491,8 @@ def build_monthly_bill_pdf(bill):
 
     story.append(
         Paragraph(
-            "Amount in Words",
-            label,
+            "AMOUNT IN WORDS",
+            section_title,
         )
     )
 
@@ -1440,86 +1530,99 @@ def build_monthly_bill_pdf(bill):
             "FOR P.V.R. TOURS AND TRAVELS",
             label,
         ),
-        Spacer(1, 10 * mm),
+        Spacer(1, 11 * mm),
         Paragraph(
             "AUTHORISED SIGNATORY",
             label,
         ),
     ]
 
+    bank_table = Table(
+        [[x] for x in bank_details],
+        colWidths=[100 * mm],
+        style=[
+            (
+                "ALIGN",
+                (0, 0),
+                (-1, -1),
+                "LEFT",
+            ),
+            (
+                "LEFTPADDING",
+                (0, 0),
+                (-1, -1),
+                0,
+            ),
+            (
+                "RIGHTPADDING",
+                (0, 0),
+                (-1, -1),
+                0,
+            ),
+            (
+                "TOPPADDING",
+                (0, 0),
+                (-1, -1),
+                0,
+            ),
+            (
+                "BOTTOMPADDING",
+                (0, 0),
+                (-1, -1),
+                1,
+            ),
+        ],
+    )
+
+    signature_table = Table(
+        [[x] for x in signature_details],
+        colWidths=[80 * mm],
+        style=[
+            (
+                "ALIGN",
+                (0, 0),
+                (-1, -1),
+                "RIGHT",
+            ),
+            (
+                "LEFTPADDING",
+                (0, 0),
+                (-1, -1),
+                0,
+            ),
+            (
+                "RIGHTPADDING",
+                (0, 0),
+                (-1, -1),
+                0,
+            ),
+            (
+                "TOPPADDING",
+                (0, 0),
+                (-1, -1),
+                0,
+            ),
+            (
+                "BOTTOMPADDING",
+                (0, 0),
+                (-1, -1),
+                1,
+            ),
+        ],
+    )
+
     story.append(
         Table(
             [
                 [
-                    Table(
-                        [[x] for x in bank_details],
-                        colWidths=[105 * mm],
-                        style=[
-                            (
-                                "LEFTPADDING",
-                                (0, 0),
-                                (-1, -1),
-                                0,
-                            ),
-                            (
-                                "RIGHTPADDING",
-                                (0, 0),
-                                (-1, -1),
-                                0,
-                            ),
-                            (
-                                "TOPPADDING",
-                                (0, 0),
-                                (-1, -1),
-                                0,
-                            ),
-                            (
-                                "BOTTOMPADDING",
-                                (0, 0),
-                                (-1, -1),
-                                1,
-                            ),
-                        ],
-                    ),
-                    Table(
-                        [[x] for x in signature_details],
-                        colWidths=[75 * mm],
-                        style=[
-                            (
-                                "ALIGN",
-                                (0, 0),
-                                (-1, -1),
-                                "RIGHT",
-                            ),
-                            (
-                                "LEFTPADDING",
-                                (0, 0),
-                                (-1, -1),
-                                0,
-                            ),
-                            (
-                                "RIGHTPADDING",
-                                (0, 0),
-                                (-1, -1),
-                                0,
-                            ),
-                            (
-                                "TOPPADDING",
-                                (0, 0),
-                                (-1, -1),
-                                0,
-                            ),
-                            (
-                                "BOTTOMPADDING",
-                                (0, 0),
-                                (-1, -1),
-                                1,
-                            ),
-                        ],
-                    ),
+                    bank_table,
+                    signature_table,
                 ]
             ],
-            colWidths=[105 * mm, 75 * mm],
+            colWidths=[
+                100 * mm,
+                80 * mm,
+            ],
             style=[
                 (
                     "VALIGN",
@@ -1555,20 +1658,9 @@ def build_monthly_bill_pdf(bill):
         )
     )
 
-    story.append(Spacer(1, 4 * mm))
-
-    story.append(
-        Paragraph(
-            "This is a computer-generated invoice and does not require a physical signature.",
-            ParagraphStyle(
-                "monthly_footer",
-                parent=small,
-                fontSize=6.5,
-                alignment=TA_CENTER,
-                textColor=colors.HexColor("#7B8794"),
-            ),
-        )
-    )
+    # =========================================================
+    # BUILD PDF
+    # =========================================================
 
     doc.build(story)
 
