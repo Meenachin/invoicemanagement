@@ -9,7 +9,13 @@ from sqlalchemy.exc import IntegrityError, DataError, StatementError
 from sqlalchemy.orm import sessionmaker, joinedload
 from dotenv import load_dotenv
 
-from models import Base, Invoice, Trip
+from models import (
+    Base,
+    Invoice,
+    Trip,
+    MonthlyBill,
+    MonthlyBillItem,
+)
 from services import (
     calculate_invoice,
     build_invoice_pdf,
@@ -133,7 +139,54 @@ def serialize_invoice(inv):
         "trips": [serialize_trip(t) for t in inv.trips],
     }
 
+def serialize_monthly_bill(bill):
+    return {
+        "id": bill.id,
+        "invoice_number": bill.invoice_number,
+        "invoice_date": (
+            bill.invoice_date.isoformat()
+            if bill.invoice_date
+            else ""
+        ),
+        "customer_name": bill.customer_name or "",
+        "customer_address": bill.customer_address or "",
+        "customer_gstin": bill.customer_gstin or "",
+        "booked_by": bill.booked_by or "",
+        "used_by": bill.used_by or "",
+        "reference_number": bill.reference_number or "",
 
+        "taxable_subtotal": bill.taxable_subtotal or 0,
+        "cgst_rate": bill.cgst_rate or 0,
+        "cgst": bill.cgst or 0,
+        "sgst_rate": bill.sgst_rate or 0,
+        "sgst": bill.sgst or 0,
+        "non_taxable_total": bill.non_taxable_total or 0,
+        "round_off": bill.round_off or 0,
+        "grand_total": bill.grand_total or 0,
+
+        "created_at": (
+            bill.created_at.isoformat()
+            if bill.created_at
+            else None
+        ),
+        "updated_at": (
+            bill.updated_at.isoformat()
+            if bill.updated_at
+            else None
+        ),
+
+        "items": [
+            {
+                "id": item.id,
+                "item_type": item.item_type,
+                "description": item.description or "",
+                "quantity": item.quantity or 0,
+                "rate": item.rate or 0,
+                "amount": item.amount or 0,
+            }
+            for item in bill.items
+        ],
+    }
 def validate_payload(data):
     if not isinstance(data, dict):
         raise ValueError("Request body must be a JSON object")
@@ -475,6 +528,219 @@ def export_excel():
             "Unable to export invoices to Excel",
             500,
             "EXCEL_EXPORT_ERROR",
+            str(exc)
+        )
+
+    finally:
+        session.close()
+
+
+@app.post("/api/monthly-bills")
+def create_monthly_bill():
+    session = SessionLocal()
+
+    try:
+        data = request.get_json(silent=True) or {}
+
+        customer_name = str(
+            data.get("customer_name") or ""
+        ).strip()
+
+        if not customer_name:
+            return error_response(
+                "Customer Name is required",
+                400,
+                "VALIDATION_ERROR"
+            )
+
+        invoice_number = str(
+            data.get("invoice_number") or ""
+        ).strip()
+
+        if not invoice_number:
+            return error_response(
+                "Invoice Number is required",
+                400,
+                "VALIDATION_ERROR"
+            )
+
+        invoice_date = parse_date(
+            data.get("invoice_date"),
+            "Invoice Date"
+        )
+
+        items = data.get("items")
+
+        if not isinstance(items, list):
+            return error_response(
+                "Items must be an array",
+                400,
+                "VALIDATION_ERROR"
+            )
+
+        taxable_subtotal = 0
+        non_taxable_total = 0
+
+        cleaned_items = []
+
+        for item in items:
+            item_type = str(
+                item.get("item_type") or ""
+            ).strip().lower()
+
+            if item_type not in (
+                "taxable",
+                "non-taxable"
+            ):
+                return error_response(
+                    "Item type must be taxable or non-taxable",
+                    400,
+                    "VALIDATION_ERROR"
+                )
+
+            description = str(
+                item.get("description") or ""
+            ).strip()
+
+            quantity = float(
+                item.get("quantity") or 0
+            )
+
+            rate = float(
+                item.get("rate") or 0
+            )
+
+            amount = quantity * rate
+
+            cleaned_items.append({
+                "item_type": item_type,
+                "description": description,
+                "quantity": quantity,
+                "rate": rate,
+                "amount": amount,
+            })
+
+            if item_type == "taxable":
+                taxable_subtotal += amount
+            else:
+                non_taxable_total += amount
+
+        cgst_rate = float(
+            data.get("cgst_rate") or 2.5
+        )
+
+        sgst_rate = float(
+            data.get("sgst_rate") or 2.5
+        )
+
+        cgst = taxable_subtotal * (
+            cgst_rate / 100
+        )
+
+        sgst = taxable_subtotal * (
+            sgst_rate / 100
+        )
+
+        subtotal_before_round = (
+            taxable_subtotal
+            + cgst
+            + sgst
+            + non_taxable_total
+        )
+
+        rounded_total = round(
+            subtotal_before_round
+        )
+
+        round_off = (
+            rounded_total
+            - subtotal_before_round
+        )
+
+        grand_total = rounded_total
+
+        bill = MonthlyBill(
+            invoice_number=invoice_number,
+            invoice_date=invoice_date,
+            customer_name=customer_name,
+            customer_address=str(
+                data.get("customer_address") or ""
+            ).strip(),
+            customer_gstin=str(
+                data.get("customer_gstin") or ""
+            ).strip(),
+            booked_by=str(
+                data.get("booked_by") or ""
+            ).strip(),
+            used_by=str(
+                data.get("used_by") or ""
+            ).strip(),
+            reference_number=str(
+                data.get("reference_number") or ""
+            ).strip(),
+
+            taxable_subtotal=taxable_subtotal,
+            cgst_rate=cgst_rate,
+            cgst=cgst,
+            sgst_rate=sgst_rate,
+            sgst=sgst,
+            non_taxable_total=non_taxable_total,
+            round_off=round_off,
+            grand_total=grand_total,
+        )
+
+        for item_data in cleaned_items:
+            bill.items.append(
+                MonthlyBillItem(**item_data)
+            )
+
+        session.add(bill)
+        session.commit()
+
+        refreshed = session.execute(
+            select(MonthlyBill)
+            .options(
+                joinedload(
+                    MonthlyBill.items
+                )
+            )
+            .where(
+                MonthlyBill.id == bill.id
+            )
+        ).unique().scalar_one()
+
+        return jsonify({
+            "success": True,
+            "message": "Monthly Bill created successfully",
+            "monthly_bill": serialize_monthly_bill(
+                refreshed
+            )
+        }), 201
+
+    except ValueError as exc:
+        session.rollback()
+        return error_response(
+            str(exc),
+            400,
+            "VALIDATION_ERROR"
+        )
+
+    except IntegrityError:
+        session.rollback()
+        return error_response(
+            "Monthly Bill invoice number already exists",
+            409,
+            "DUPLICATE_MONTHLY_BILL_NUMBER"
+        )
+
+    except Exception as exc:
+        session.rollback()
+        traceback.print_exc()
+
+        return error_response(
+            "Unable to save Monthly Bill",
+            500,
+            "SERVER_ERROR",
             str(exc)
         )
 
