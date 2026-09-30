@@ -1604,6 +1604,95 @@ function InvoiceForm() {
 function MonthlyBillForm() {
   const navigate = useNavigate()
 
+  const [activeType, setActiveType] = useState('taxable')
+
+  const [taxableItems, setTaxableItems] = useState([
+    {
+      description: '',
+      quantity: 1,
+      rate: 0,
+      amount: 0
+    }
+  ])
+
+  const [nonTaxableItems, setNonTaxableItems] = useState([
+    {
+      description: '',
+      quantity: 1,
+      rate: 0,
+      amount: 0
+    }
+  ])
+
+  const updateItem = (type, index, key, value) => {
+    const setter =
+      type === 'taxable'
+        ? setTaxableItems
+        : setNonTaxableItems
+
+    setter(items =>
+      items.map((item, i) => {
+        if (i !== index) {
+          return item
+        }
+
+        const updated = {
+          ...item,
+          [key]: value
+        }
+
+        const quantity =
+          Number(updated.quantity) || 0
+
+        const rate =
+          Number(updated.rate) || 0
+
+        updated.amount = quantity * rate
+
+        return updated
+      })
+    )
+  }
+
+  const addItem = type => {
+    const setter =
+      type === 'taxable'
+        ? setTaxableItems
+        : setNonTaxableItems
+
+    setter(items => [
+      ...items,
+      {
+        description: '',
+        quantity: 1,
+        rate: 0,
+        amount: 0
+      }
+    ])
+  }
+
+  const taxableSubtotal = taxableItems.reduce(
+    (sum, item) =>
+      sum + (Number(item.amount) || 0),
+    0
+  )
+
+  const nonTaxableSubtotal =
+    nonTaxableItems.reduce(
+      (sum, item) =>
+        sum + (Number(item.amount) || 0),
+      0
+    )
+
+  const cgst = taxableSubtotal * 0.025
+  const sgst = taxableSubtotal * 0.025
+
+  const totalBeforeRoundOff =
+    taxableSubtotal +
+    cgst +
+    sgst +
+    nonTaxableSubtotal
+
   return (
     <Layout>
       <section className="form-hero">
@@ -1624,7 +1713,8 @@ function MonthlyBillForm() {
           </h1>
 
           <p>
-            Monthly billing form will be added here.
+            Create a separate monthly bill with
+            taxable and non-taxable items.
           </p>
         </div>
       </section>
@@ -1633,27 +1723,402 @@ function MonthlyBillForm() {
         <div className="panel-heading">
           <div>
             <h2>
-              Monthly Bill
+              Invoice & Customer
             </h2>
 
             <p>
-              This is a separate Monthly Bill form.
+              Monthly bill customer details.
             </p>
           </div>
 
           <span className="section-badge">
-            MONTHLY
+            HEADER
           </span>
         </div>
 
+        <div className="form-grid four">
+          <Input
+            label="Invoice Number"
+            value=""
+            onChange={() => {}}
+            placeholder="Monthly invoice number"
+          />
+
+          <Input
+            label="Invoice Date"
+            value={todayISO()}
+            onChange={() => {}}
+            type="date"
+          />
+
+          <EditableSelect
+            label="Customer Name"
+            value=""
+            onChange={() => {}}
+            options={CUSTOMER_NAMES}
+            placeholder="Enter customer name"
+          />
+
+          <EditableSelect
+            label="Customer GST Number"
+            value=""
+            onChange={() => {}}
+            options={CUSTOMER_GSTINS}
+            placeholder="Enter GSTIN"
+          />
+        </div>
+
+        <div className="form-grid three">
+          <EditableSelect
+            label="Customer Address"
+            value=""
+            onChange={() => {}}
+            options={CUSTOMER_ADDRESSES}
+            placeholder="Enter customer address"
+            className="span-2"
+          />
+
+          <EditableSelect
+            label="Booked By"
+            value=""
+            onChange={() => {}}
+            options={BOOKED_BY}
+            placeholder="Enter booked by"
+          />
+        </div>
+
+        <div className="form-grid three">
+          <Input
+            label="Used By"
+            value=""
+            onChange={() => {}}
+            placeholder="Used by"
+          />
+
+          <EditableSelect
+            label="Reference / PO Number"
+            value=""
+            onChange={() => {}}
+            options={REFERENCE_NUMBERS}
+            placeholder="Enter reference / PO number"
+          />
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <h2>
+              Bill Details
+            </h2>
+
+            <p>
+              Add taxable and non-taxable charges separately.
+            </p>
+          </div>
+
+          <span className="section-badge">
+            ITEMS
+          </span>
+        </div>
+
+        <div className="trip-tabs">
+          <button
+            type="button"
+            className={
+              activeType === 'taxable'
+                ? 'active'
+                : ''
+            }
+            onClick={() =>
+              setActiveType('taxable')
+            }
+          >
+            Taxable
+          </button>
+
+          <button
+            type="button"
+            className={
+              activeType === 'non-taxable'
+                ? 'active'
+                : ''
+            }
+            onClick={() =>
+              setActiveType('non-taxable')
+            }
+          >
+            Non-Taxable
+          </button>
+        </div>
+
+        {activeType === 'taxable' && (
+          <>
+            <div className="table-wrap">
+              <table className="history-table">
+                <thead>
+                  <tr>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                    <th>Rate</th>
+                    <th>Amount</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {taxableItems.map((item, index) => (
+                    <tr key={index}>
+                      <td>
+                        <input
+                          className="search"
+                          value={item.description}
+                          onChange={e =>
+                            updateItem(
+                              'taxable',
+                              index,
+                              'description',
+                              e.target.value
+                            )
+                          }
+                          placeholder="Description"
+                        />
+                      </td>
+
+                      <td>
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          onChange={e =>
+                            updateItem(
+                              'taxable',
+                              index,
+                              'quantity',
+                              e.target.value
+                            )
+                          }
+                        />
+                      </td>
+
+                      <td>
+                        <input
+                          type="number"
+                          value={item.rate}
+                          onChange={e =>
+                            updateItem(
+                              'taxable',
+                              index,
+                              'rate',
+                              e.target.value
+                            )
+                          }
+                        />
+                      </td>
+
+                      <td>
+                        ₹ {money(item.amount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <button
+              type="button"
+              className="button primary"
+              onClick={() =>
+                addItem('taxable')
+              }
+            >
+              + Add Taxable Item
+            </button>
+          </>
+        )}
+
+        {activeType === 'non-taxable' && (
+          <>
+            <div className="table-wrap">
+              <table className="history-table">
+                <thead>
+                  <tr>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                    <th>Rate</th>
+                    <th>Amount</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {nonTaxableItems.map(
+                    (item, index) => (
+                      <tr key={index}>
+                        <td>
+                          <input
+                            className="search"
+                            value={item.description}
+                            onChange={e =>
+                              updateItem(
+                                'non-taxable',
+                                index,
+                                'description',
+                                e.target.value
+                              )
+                            }
+                            placeholder="Description"
+                          />
+                        </td>
+
+                        <td>
+                          <input
+                            type="number"
+                            value={item.quantity}
+                            onChange={e =>
+                              updateItem(
+                                'non-taxable',
+                                index,
+                                'quantity',
+                                e.target.value
+                              )
+                            }
+                          />
+                        </td>
+
+                        <td>
+                          <input
+                            type="number"
+                            value={item.rate}
+                            onChange={e =>
+                              updateItem(
+                                'non-taxable',
+                                index,
+                                'rate',
+                                e.target.value
+                              )
+                            }
+                          />
+                        </td>
+
+                        <td>
+                          ₹ {money(item.amount)}
+                        </td>
+                      </tr>
+                    )
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <button
+              type="button"
+              className="button primary"
+              onClick={() =>
+                addItem('non-taxable')
+              }
+            >
+              + Add Non-Taxable Item
+            </button>
+          </>
+        )}
+      </section>
+
+      <section className="summary-layout">
+        <div className="panel">
+          <div className="panel-heading">
+            <div>
+              <h2>
+                GST & Totals
+              </h2>
+
+              <p>
+                CGST 2.5% + SGST 2.5%
+              </p>
+            </div>
+
+            <span className="section-badge">
+              TAX
+            </span>
+          </div>
+
+          <div className="totals-box">
+            <div>
+              <span>
+                Taxable Subtotal
+              </span>
+
+              <strong>
+                ₹ {money(taxableSubtotal)}
+              </strong>
+            </div>
+
+            <div>
+              <span>
+                CGST @ 2.5%
+              </span>
+
+              <strong>
+                ₹ {money(cgst)}
+              </strong>
+            </div>
+
+            <div>
+              <span>
+                SGST @ 2.5%
+              </span>
+
+              <strong>
+                ₹ {money(sgst)}
+              </strong>
+            </div>
+
+            <div>
+              <span>
+                Non-Taxable Amount
+              </span>
+
+              <strong>
+                ₹ {money(nonTaxableSubtotal)}
+              </strong>
+            </div>
+
+            <div>
+              <span>
+                Round Off
+              </span>
+
+              <strong>
+                ₹ 0.00
+              </strong>
+            </div>
+
+            <div className="grand">
+              <span>
+                Grand Total
+              </span>
+
+              <strong>
+                ₹ {money(totalBeforeRoundOff)}
+              </strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="sticky-actions">
         <button
           type="button"
           className="button ghost"
           onClick={() => navigate('/')}
         >
-          ← Back to Invoices
+          Cancel
         </button>
-      </section>
+
+        <button
+          type="button"
+          className="button primary big"
+        >
+          Save Monthly Bill
+        </button>
+      </div>
     </Layout>
   )
 }
