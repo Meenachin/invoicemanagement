@@ -262,13 +262,17 @@ function Layout({ children }) {
           </span>
         </Link>
 
-        <nav>
-          <Link to="/">Invoices</Link>
+      <nav>
+  <Link to="/">Invoices</Link>
 
-          <Link to="/new" className="nav-primary">
-            + New Invoice
-          </Link>
-        </nav>
+  <Link to="/monthly">
+    Monthly Bill
+  </Link>
+
+  <Link to="/new" className="nav-primary">
+    + New Invoice
+  </Link>
+</nav>
       </header>
 
       <main className="main-content">
