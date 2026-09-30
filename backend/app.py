@@ -152,7 +152,7 @@ def serialize_monthly_bill(bill):
         "customer_address": bill.customer_address or "",
         "customer_gstin": bill.customer_gstin or "",
         "booked_by": bill.booked_by or "",
-        "used_by": bill.used_by or "",
+        "vehicle_number": bill.vehicle_number or "",
         "reference_number": bill.reference_number or "",
 
         "taxable_subtotal": bill.taxable_subtotal or 0,
@@ -695,7 +695,7 @@ def create_monthly_bill():
                 data.get("booked_by") or ""
             ).strip(),
             used_by=str(
-                data.get("used_by") or ""
+                data.get("vehicle_number") or ""
             ).strip(),
             reference_number=str(
                 data.get("reference_number") or ""
@@ -846,7 +846,7 @@ def list_monthly_bills():
                 "customer_address": bill.customer_address or "",
                 "customer_gstin": bill.customer_gstin or "",
                 "booked_by": bill.booked_by or "",
-                "used_by": bill.used_by or "",
+                "vehicle_number": bill.vehicle_number or "",
                 "reference_number": bill.reference_number or "",
                 "taxable_subtotal": bill.taxable_subtotal or 0,
                 "cgst_rate": bill.cgst_rate or 0,
@@ -1089,8 +1089,8 @@ def update_monthly_bill(bill_id):
         bill.booked_by = str(
             data.get("booked_by") or ""
         ).strip()
-        bill.used_by = str(
-            data.get("used_by") or ""
+        bill.vehicle_number = str(
+            data.get("vehicle_number") or ""
         ).strip()
         bill.reference_number = str(
             data.get("reference_number") or ""
