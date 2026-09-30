@@ -521,109 +521,7 @@ function InvoiceForm() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [activeTrip, setActiveTrip] = useState(0)
-useEffect(() => {
-  if (!editing) {
-    return
-  }
 
-  let mounted = true
-
-  setError('')
-  setSuccess('')
-
-  api.getMonthlyBill(editId)
-    .then(data => {
-      if (!mounted) return
-
-      const bill = data.monthly_bill
-
-      setInvoiceNumber(
-        bill.invoice_number || ''
-      )
-
-      setInvoiceDate(
-        bill.invoice_date || todayISO()
-      )
-
-      setCustomerName(
-        bill.customer_name || ''
-      )
-
-      setCustomerAddress(
-        bill.customer_address || ''
-      )
-
-      setCustomerGstin(
-        bill.customer_gstin || ''
-      )
-
-      setBookedBy(
-        bill.booked_by || ''
-      )
-
-      setUsedBy(
-        bill.used_by || ''
-      )
-
-      setReferenceNumber(
-        bill.reference_number || ''
-      )
-
-      const items = bill.items || []
-
-      const taxable = items
-        .filter(item => item.item_type === 'taxable')
-        .map(item => ({
-          description: item.description || '',
-          quantity: item.quantity || 0,
-          rate: item.rate || 0,
-          amount: item.amount || 0
-        }))
-
-      const nonTaxable = items
-        .filter(item => item.item_type === 'non-taxable')
-        .map(item => ({
-          description: item.description || '',
-          quantity: item.quantity || 0,
-          rate: item.rate || 0,
-          amount: item.amount || 0
-        }))
-
-      setTaxableItems(
-        taxable.length
-          ? taxable
-          : [{
-              description: '',
-              quantity: 1,
-              rate: 0,
-              amount: 0
-            }]
-      )
-
-      setNonTaxableItems(
-        nonTaxable.length
-          ? nonTaxable
-          : [{
-              description: '',
-              quantity: 1,
-              rate: 0,
-              amount: 0
-            }]
-      )
-    })
-    .catch(e => {
-      if (mounted) {
-        setError(
-          e.message ||
-          'Unable to load Monthly Bill.'
-        )
-      }
-    })
-
-  return () => {
-    mounted = false
-  }
-}, [editId, editing])
   useEffect(() => {
     let mounted = true
 
@@ -2000,7 +1898,109 @@ function MonthlyBillForm() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+useEffect(() => {
+  if (!editing) {
+    return
+  }
 
+  let mounted = true
+
+  setError('')
+  setSuccess('')
+
+  api.getMonthlyBill(editId)
+    .then(data => {
+      if (!mounted) return
+
+      const bill = data.monthly_bill
+
+      setInvoiceNumber(
+        bill.invoice_number || ''
+      )
+
+      setInvoiceDate(
+        bill.invoice_date || todayISO()
+      )
+
+      setCustomerName(
+        bill.customer_name || ''
+      )
+
+      setCustomerAddress(
+        bill.customer_address || ''
+      )
+
+      setCustomerGstin(
+        bill.customer_gstin || ''
+      )
+
+      setBookedBy(
+        bill.booked_by || ''
+      )
+
+      setUsedBy(
+        bill.used_by || ''
+      )
+
+      setReferenceNumber(
+        bill.reference_number || ''
+      )
+
+      const items = bill.items || []
+
+      const taxable = items
+        .filter(item => item.item_type === 'taxable')
+        .map(item => ({
+          description: item.description || '',
+          quantity: item.quantity || 0,
+          rate: item.rate || 0,
+          amount: item.amount || 0
+        }))
+
+      const nonTaxable = items
+        .filter(item => item.item_type === 'non-taxable')
+        .map(item => ({
+          description: item.description || '',
+          quantity: item.quantity || 0,
+          rate: item.rate || 0,
+          amount: item.amount || 0
+        }))
+
+      setTaxableItems(
+        taxable.length
+          ? taxable
+          : [{
+              description: '',
+              quantity: 1,
+              rate: 0,
+              amount: 0
+            }]
+      )
+
+      setNonTaxableItems(
+        nonTaxable.length
+          ? nonTaxable
+          : [{
+              description: '',
+              quantity: 1,
+              rate: 0,
+              amount: 0
+            }]
+      )
+    })
+    .catch(e => {
+      if (mounted) {
+        setError(
+          e.message ||
+          'Unable to load Monthly Bill.'
+        )
+      }
+    })
+
+  return () => {
+    mounted = false
+  }
+}, [editId, editing])
   const updateItem = (type, index, key, value) => {
     const setter =
       type === 'taxable'
