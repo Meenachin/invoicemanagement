@@ -2123,16 +2123,14 @@ function MonthlyBillForm() {
   )
 }
 export default function App() {
-  /*
-   * IMPORTANT:
-   * useLocation() makes App reactive to React Router
-   * navigation. This means /new and /edit/:id render
-   * immediately without requiring a browser refresh.
-   */
   const location = useLocation()
 
   if (location.pathname === '/') {
     return <Dashboard />
+  }
+
+  if (location.pathname === '/monthly') {
+    return <MonthlyBillForm />
   }
 
   return <InvoiceForm />
