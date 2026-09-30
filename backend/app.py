@@ -809,3 +809,292 @@ def list_monthly_bills():
 
     finally:
         session.close()
+@app.get("/api/monthly-bills/<int:bill_id>")
+def get_monthly_bill(bill_id):
+    session = SessionLocal()
+
+    try:
+        bill = (
+            session.execute(
+                select(MonthlyBill)
+                .options(
+                    joinedload(MonthlyBill.items)
+                )
+                .where(MonthlyBill.id == bill_id)
+            )
+            .unique()
+            .scalar_one_or_none()
+        )
+
+        if not bill:
+            return error_response(
+                "Monthly Bill not found",
+                404,
+                "NOT_FOUND"
+            )
+
+        return jsonify({
+            "success": True,
+            "monthly_bill": serialize_monthly_bill(bill)
+        })
+
+    except Exception as exc:
+        session.rollback()
+        traceback.print_exc()
+
+        return error_response(
+            "Unable to load Monthly Bill",
+            500,
+            "MONTHLY_BILL_GET_ERROR",
+            str(exc)
+        )
+
+    finally:
+        session.close()
+
+
+@app.put("/api/monthly-bills/<int:bill_id>")
+def update_monthly_bill(bill_id):
+    session = SessionLocal()
+
+    try:
+        bill = (
+            session.execute(
+                select(MonthlyBill)
+                .options(
+                    joinedload(MonthlyBill.items)
+                )
+                .where(MonthlyBill.id == bill_id)
+            )
+            .unique()
+            .scalar_one_or_none()
+        )
+
+        if not bill:
+            return error_response(
+                "Monthly Bill not found",
+                404,
+                "NOT_FOUND"
+            )
+
+        data = request.get_json(silent=True) or {}
+
+        customer_name = str(
+            data.get("customer_name") or ""
+        ).strip()
+
+        if not customer_name:
+            return error_response(
+                "Customer Name is required",
+                400,
+                "VALIDATION_ERROR"
+            )
+
+        invoice_number = str(
+            data.get("invoice_number") or ""
+        ).strip()
+
+        if not invoice_number:
+            return error_response(
+                "Invoice Number is required",
+                400,
+                "VALIDATION_ERROR"
+            )
+
+        invoice_date = parse_date(
+            data.get("invoice_date"),
+            "Invoice Date"
+        )
+
+        existing = session.execute(
+            select(MonthlyBill.id).where(
+                MonthlyBill.invoice_number == invoice_number,
+                MonthlyBill.id != bill_id
+            )
+        ).scalar_one_or_none()
+
+        if existing is not None:
+            return error_response(
+                "Monthly Bill invoice number already exists",
+                409,
+                "DUPLICATE_MONTHLY_BILL_NUMBER"
+            )
+
+        items = data.get("items")
+
+        if not isinstance(items, list):
+            return error_response(
+                "Items must be an array",
+                400,
+                "VALIDATION_ERROR"
+            )
+
+        taxable_subtotal = 0
+        non_taxable_total = 0
+        cleaned_items = []
+
+        for item in items:
+            item_type = str(
+                item.get("item_type") or ""
+            ).strip().lower()
+
+            if item_type not in (
+                "taxable",
+                "non-taxable"
+            ):
+                return error_response(
+                    "Item type must be taxable or non-taxable",
+                    400,
+                    "VALIDATION_ERROR"
+                )
+
+            description = str(
+                item.get("description") or ""
+            ).strip()
+
+            quantity = float(
+                item.get("quantity") or 0
+            )
+
+            rate = float(
+                item.get("rate") or 0
+            )
+
+            amount = quantity * rate
+
+            cleaned_items.append({
+                "item_type": item_type,
+                "description": description,
+                "quantity": quantity,
+                "rate": rate,
+                "amount": amount,
+            })
+
+            if item_type == "taxable":
+                taxable_subtotal += amount
+            else:
+                non_taxable_total += amount
+
+        cgst_rate = float(
+            data.get("cgst_rate") or 2.5
+        )
+
+        sgst_rate = float(
+            data.get("sgst_rate") or 2.5
+        )
+
+        cgst = taxable_subtotal * (
+            cgst_rate / 100
+        )
+
+        sgst = taxable_subtotal * (
+            sgst_rate / 100
+        )
+
+        subtotal_before_round = (
+            taxable_subtotal
+            + cgst
+            + sgst
+            + non_taxable_total
+        )
+
+        rounded_total = round(
+            subtotal_before_round
+        )
+
+        round_off = (
+            rounded_total
+            - subtotal_before_round
+        )
+
+        grand_total = rounded_total
+
+        bill.invoice_number = invoice_number
+        bill.invoice_date = invoice_date
+        bill.customer_name = customer_name
+        bill.customer_address = str(
+            data.get("customer_address") or ""
+        ).strip()
+        bill.customer_gstin = str(
+            data.get("customer_gstin") or ""
+        ).strip()
+        bill.booked_by = str(
+            data.get("booked_by") or ""
+        ).strip()
+        bill.used_by = str(
+            data.get("used_by") or ""
+        ).strip()
+        bill.reference_number = str(
+            data.get("reference_number") or ""
+        ).strip()
+
+        bill.taxable_subtotal = taxable_subtotal
+        bill.cgst_rate = cgst_rate
+        bill.cgst = cgst
+        bill.sgst_rate = sgst_rate
+        bill.sgst = sgst
+        bill.non_taxable_total = non_taxable_total
+        bill.round_off = round_off
+        bill.grand_total = grand_total
+
+        bill.items.clear()
+        session.flush()
+
+        for item_data in cleaned_items:
+            bill.items.append(
+                MonthlyBillItem(**item_data)
+            )
+
+        session.commit()
+
+        refreshed = (
+            session.execute(
+                select(MonthlyBill)
+                .options(
+                    joinedload(MonthlyBill.items)
+                )
+                .where(MonthlyBill.id == bill_id)
+            )
+            .unique()
+            .scalar_one()
+        )
+
+        return jsonify({
+            "success": True,
+            "message": "Monthly Bill updated successfully",
+            "monthly_bill": serialize_monthly_bill(
+                refreshed
+            )
+        })
+
+    except ValueError as exc:
+        session.rollback()
+
+        return error_response(
+            str(exc),
+            400,
+            "VALIDATION_ERROR"
+        )
+
+    except IntegrityError:
+        session.rollback()
+
+        return error_response(
+            "Monthly Bill invoice number already exists",
+            409,
+            "DUPLICATE_MONTHLY_BILL_NUMBER"
+        )
+
+    except Exception as exc:
+        session.rollback()
+        traceback.print_exc()
+
+        return error_response(
+            "Unable to update Monthly Bill",
+            500,
+            "MONTHLY_BILL_UPDATE_ERROR",
+            str(exc)
+        )
+
+    finally:
+        session.close()
