@@ -22,7 +22,7 @@ class Invoice(Base):
     customer_address = Column(Text)
     customer_gstin = Column(String(30))
     booked_by = Column(String(255))
-    used_by = Column(String(255))
+    vehicle_number = Column(String(255))
     reference_number = Column(String(255))
     cgst_rate = Column(Float, default=0)
     sgst_rate = Column(Float, default=0)
