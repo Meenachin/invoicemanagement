@@ -846,7 +846,72 @@ def build_monthly_bill_pdf(bill):
     ]
 
     serial = 1
+def non_taxable_label():
+    label_table = Table(
+        [
+            [
+                Paragraph(
+                    "Non-Taxable",
+                    ParagraphStyle(
+                        "non_taxable_label",
+                        parent=normal,
+                        fontName="Helvetica-Bold",
+                        fontSize=5.5,
+                        leading=6,
+                        alignment=TA_CENTER,
+                    ),
+                )
+            ]
+        ],
+        colWidths=[22 * mm],
+        rowHeights=[5 * mm],
+    )
 
+    label_table.setStyle(
+        TableStyle(
+            [
+                (
+                    "BOX",
+                    (0, 0),
+                    (-1, -1),
+                    0.5,
+                    colors.black,
+                ),
+                (
+                    "VALIGN",
+                    (0, 0),
+                    (-1, -1),
+                    "MIDDLE",
+                ),
+                (
+                    "LEFTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    2,
+                ),
+                (
+                    "RIGHTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    2,
+                ),
+                (
+                    "TOPPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    1,
+                ),
+                (
+                    "BOTTOMPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    1,
+                ),
+            ]
+        )
+    )
+
+    return label_table
     for item in bill.items:
     description_text = item.description or ""
 
