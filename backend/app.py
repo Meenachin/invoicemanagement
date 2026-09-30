@@ -410,32 +410,167 @@ def invoice_pdf(invoice_id):
 @app.get("/api/invoices/export/csv")
 def export_csv():
     session = SessionLocal()
+
     try:
-        invoices = session.execute(select(Invoice).options(joinedload(Invoice.trips)).order_by(Invoice.invoice_date.desc(), Invoice.id.desc())).unique().scalars().all()
+        month_value = (
+            request.args.get("month") or ""
+        ).strip()
+
+        year_value = (
+            request.args.get("year") or ""
+        ).strip()
+
+        query = (
+            select(Invoice)
+            .options(joinedload(Invoice.trips))
+            .order_by(
+                Invoice.invoice_date.desc(),
+                Invoice.id.desc()
+            )
+        )
+
+        if month_value and year_value:
+            try:
+                selected_month = int(month_value)
+                selected_year = int(year_value)
+
+                if selected_month < 1 or selected_month > 12:
+                    return error_response(
+                        "Month must be between 1 and 12",
+                        400,
+                        "INVALID_MONTH"
+                    )
+
+                if selected_year < 2000 or selected_year > 2100:
+                    return error_response(
+                        "Invalid year",
+                        400,
+                        "INVALID_YEAR"
+                    )
+
+                start_date = date(
+                    selected_year,
+                    selected_month,
+                    1
+                )
+
+                if selected_month == 12:
+                    next_month_date = date(
+                        selected_year + 1,
+                        1,
+                        1
+                    )
+                else:
+                    next_month_date = date(
+                        selected_year,
+                        selected_month + 1,
+                        1
+                    )
+
+                query = query.where(
+                    Invoice.invoice_date >= start_date,
+                    Invoice.invoice_date < next_month_date
+                )
+
+            except ValueError:
+                return error_response(
+                    "Month and year must be valid numbers",
+                    400,
+                    "INVALID_MONTH_YEAR"
+                )
+
+        invoices = (
+            session.execute(query)
+            .unique()
+            .scalars()
+            .all()
+        )
+
         csv_bytes = invoice_to_csv(invoices)
-        return send_file(__import__("io").BytesIO(csv_bytes), mimetype="text/csv; charset=utf-8", as_attachment=True, download_name="pvr-invoices.csv")
+
+        return send_file(
+            __import__("io").BytesIO(csv_bytes),
+            mimetype="text/csv; charset=utf-8",
+            as_attachment=True,
+            download_name="pvr-invoices.csv"
+        )
+
     finally:
         session.close()
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=os.getenv("FLASK_DEBUG", "0") == "1")
-
-
 @app.get("/api/invoices/export/xlsx")
 def export_excel():
     session = SessionLocal()
 
     try:
-        invoices = (
-            session.execute(
-                select(Invoice)
-                .options(joinedload(Invoice.trips))
-                .order_by(
-                    Invoice.invoice_date.desc(),
-                    Invoice.id.desc()
-                )
+        month_value = (
+            request.args.get("month") or ""
+        ).strip()
+
+        year_value = (
+            request.args.get("year") or ""
+        ).strip()
+
+        query = (
+            select(Invoice)
+            .options(joinedload(Invoice.trips))
+            .order_by(
+                Invoice.invoice_date.desc(),
+                Invoice.id.desc()
             )
+        )
+
+        if month_value and year_value:
+            try:
+                selected_month = int(month_value)
+                selected_year = int(year_value)
+
+                if selected_month < 1 or selected_month > 12:
+                    return error_response(
+                        "Month must be between 1 and 12",
+                        400,
+                        "INVALID_MONTH"
+                    )
+
+                if selected_year < 2000 or selected_year > 2100:
+                    return error_response(
+                        "Invalid year",
+                        400,
+                        "INVALID_YEAR"
+                    )
+
+                start_date = date(
+                    selected_year,
+                    selected_month,
+                    1
+                )
+
+                if selected_month == 12:
+                    next_month_date = date(
+                        selected_year + 1,
+                        1,
+                        1
+                    )
+                else:
+                    next_month_date = date(
+                        selected_year,
+                        selected_month + 1,
+                        1
+                    )
+
+                query = query.where(
+                    Invoice.invoice_date >= start_date,
+                    Invoice.invoice_date < next_month_date
+                )
+
+            except ValueError:
+                return error_response(
+                    "Month and year must be valid numbers",
+                    400,
+                    "INVALID_MONTH_YEAR"
+                )
+
+        invoices = (
+            session.execute(query)
             .unique()
             .scalars()
             .all()
@@ -450,7 +585,7 @@ def export_excel():
                 "spreadsheetml.sheet"
             ),
             as_attachment=True,
-            download_name="PVR_Invoice_Register.xlsx",
+            download_name="PVR_Invoice_Register.xlsx"
         )
 
     except Exception as exc:
@@ -460,7 +595,7 @@ def export_excel():
             "Unable to export invoices to Excel",
             500,
             "EXCEL_EXPORT_ERROR",
-            str(exc),
+            str(exc)
         )
 
     finally:
