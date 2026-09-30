@@ -61,3 +61,5 @@ export const api = {
       body: JSON.stringify(payload)
     })
 }
+listMonthlyBills: () =>
+  request('/api/monthly-bills'),
