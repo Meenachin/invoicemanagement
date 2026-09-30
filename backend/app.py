@@ -694,7 +694,7 @@ def create_monthly_bill():
             booked_by=str(
                 data.get("booked_by") or ""
             ).strip(),
-            used_by=str(
+            vehicle_number=str(
                 data.get("vehicle_number") or ""
             ).strip(),
             reference_number=str(
