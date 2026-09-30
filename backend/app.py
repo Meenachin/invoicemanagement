@@ -19,7 +19,6 @@ from models import (
 from services import (
     calculate_invoice,
     build_invoice_pdf,
-    build_monthly_bill_pdf,
     invoice_to_csv,
     invoice_to_excel,
 )
@@ -790,6 +789,7 @@ def monthly_bill_pdf(bill_id):
                 404,
                 "NOT_FOUND"
             )
+        from services import build_monthly_bill_pdf
 
         pdf = build_monthly_bill_pdf(bill)
 
