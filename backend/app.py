@@ -412,75 +412,15 @@ def export_csv():
     session = SessionLocal()
 
     try:
-        month_value = (
-            request.args.get("month") or ""
-        ).strip()
-
-        year_value = (
-            request.args.get("year") or ""
-        ).strip()
-
-        query = (
-            select(Invoice)
-            .options(joinedload(Invoice.trips))
-            .order_by(
-                Invoice.invoice_date.desc(),
-                Invoice.id.desc()
-            )
-        )
-
-        if month_value and year_value:
-            try:
-                selected_month = int(month_value)
-                selected_year = int(year_value)
-
-                if selected_month < 1 or selected_month > 12:
-                    return error_response(
-                        "Month must be between 1 and 12",
-                        400,
-                        "INVALID_MONTH"
-                    )
-
-                if selected_year < 2000 or selected_year > 2100:
-                    return error_response(
-                        "Invalid year",
-                        400,
-                        "INVALID_YEAR"
-                    )
-
-                start_date = date(
-                    selected_year,
-                    selected_month,
-                    1
-                )
-
-                if selected_month == 12:
-                    next_month_date = date(
-                        selected_year + 1,
-                        1,
-                        1
-                    )
-                else:
-                    next_month_date = date(
-                        selected_year,
-                        selected_month + 1,
-                        1
-                    )
-
-                query = query.where(
-                    Invoice.invoice_date >= start_date,
-                    Invoice.invoice_date < next_month_date
-                )
-
-            except ValueError:
-                return error_response(
-                    "Month and year must be valid numbers",
-                    400,
-                    "INVALID_MONTH_YEAR"
-                )
-
         invoices = (
-            session.execute(query)
+            session.execute(
+                select(Invoice)
+                .options(joinedload(Invoice.trips))
+                .order_by(
+                    Invoice.invoice_date.desc(),
+                    Invoice.id.desc()
+                )
+            )
             .unique()
             .scalars()
             .all()
@@ -502,75 +442,15 @@ def export_excel():
     session = SessionLocal()
 
     try:
-        month_value = (
-            request.args.get("month") or ""
-        ).strip()
-
-        year_value = (
-            request.args.get("year") or ""
-        ).strip()
-
-        query = (
-            select(Invoice)
-            .options(joinedload(Invoice.trips))
-            .order_by(
-                Invoice.invoice_date.desc(),
-                Invoice.id.desc()
-            )
-        )
-
-        if month_value and year_value:
-            try:
-                selected_month = int(month_value)
-                selected_year = int(year_value)
-
-                if selected_month < 1 or selected_month > 12:
-                    return error_response(
-                        "Month must be between 1 and 12",
-                        400,
-                        "INVALID_MONTH"
-                    )
-
-                if selected_year < 2000 or selected_year > 2100:
-                    return error_response(
-                        "Invalid year",
-                        400,
-                        "INVALID_YEAR"
-                    )
-
-                start_date = date(
-                    selected_year,
-                    selected_month,
-                    1
-                )
-
-                if selected_month == 12:
-                    next_month_date = date(
-                        selected_year + 1,
-                        1,
-                        1
-                    )
-                else:
-                    next_month_date = date(
-                        selected_year,
-                        selected_month + 1,
-                        1
-                    )
-
-                query = query.where(
-                    Invoice.invoice_date >= start_date,
-                    Invoice.invoice_date < next_month_date
-                )
-
-            except ValueError:
-                return error_response(
-                    "Month and year must be valid numbers",
-                    400,
-                    "INVALID_MONTH_YEAR"
-                )
-
         invoices = (
-            session.execute(query)
+            session.execute(
+                select(Invoice)
+                .options(joinedload(Invoice.trips))
+                .order_by(
+                    Invoice.invoice_date.desc(),
+                    Invoice.id.desc()
+                )
+            )
             .unique()
             .scalars()
             .all()
