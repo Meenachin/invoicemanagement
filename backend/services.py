@@ -845,7 +845,8 @@ def build_monthly_bill_pdf(bill):
         ]
     ]
 
-    serial = 1
+       serial = 1
+
     for item in bill.items:
         description_text = item.description or ""
 
