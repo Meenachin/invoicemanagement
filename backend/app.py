@@ -1,5 +1,7 @@
 import os
+import csv
 import traceback
+from io import BytesIO, StringIO
 from datetime import datetime, date
 from pathlib import Path
 from flask import Flask, jsonify, request, send_file
@@ -8,7 +10,8 @@ from sqlalchemy import create_engine, select, or_, func
 from sqlalchemy.exc import IntegrityError, DataError, StatementError
 from sqlalchemy.orm import sessionmaker, joinedload
 from dotenv import load_dotenv
-
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from models import (
     Base,
     Invoice,
@@ -550,6 +553,469 @@ def export_excel():
             "Unable to export invoices to Excel",
             500,
             "EXCEL_EXPORT_ERROR",
+            str(exc)
+        )
+
+    finally:
+        session.close()
+
+# =========================================================
+# MONTHLY BILL CSV EXPORT
+# =========================================================
+
+@app.get("/api/monthly-bills/export/csv")
+def export_monthly_bills_csv():
+    session = SessionLocal()
+
+    try:
+        bills = (
+            session.execute(
+                select(MonthlyBill)
+                .options(
+                    joinedload(MonthlyBill.items)
+                )
+                .order_by(
+                    MonthlyBill.invoice_date.desc(),
+                    MonthlyBill.id.desc()
+                )
+            )
+            .unique()
+            .scalars()
+            .all()
+        )
+
+        output = StringIO()
+
+        writer = csv.writer(output)
+
+        writer.writerow([
+            "Invoice Number",
+            "Invoice Date",
+            "Customer Name",
+            "Customer Address",
+            "Customer GSTIN",
+            "Booked By",
+            "Vehicle Number",
+            "Reference / PO",
+            "Taxable Subtotal",
+            "CGST Rate",
+            "CGST",
+            "SGST Rate",
+            "SGST",
+            "Non-Taxable Total",
+            "Round Off",
+            "Grand Total",
+            "Taxable Items",
+            "Non-Taxable Items",
+        ])
+
+        for bill in bills:
+
+            taxable_items = []
+            non_taxable_items = []
+
+            for item in bill.items:
+
+                item_text = (
+                    f"{item.description or ''} "
+                    f"(Qty: {float(item.quantity or 0):g}, "
+                    f"Rate: {float(item.rate or 0):,.2f}, "
+                    f"Amount: {float(item.amount or 0):,.2f})"
+                ).strip()
+
+                if item.item_type == "taxable":
+                    taxable_items.append(
+                        item_text
+                    )
+                else:
+                    non_taxable_items.append(
+                        item_text
+                    )
+
+            writer.writerow([
+                bill.invoice_number or "",
+                (
+                    bill.invoice_date.isoformat()
+                    if bill.invoice_date
+                    else ""
+                ),
+                bill.customer_name or "",
+                bill.customer_address or "",
+                bill.customer_gstin or "",
+                bill.booked_by or "",
+                getattr(
+                    bill,
+                    "vehicle_number",
+                    ""
+                ) or "",
+                bill.reference_number or "",
+                f"{float(bill.taxable_subtotal or 0):.2f}",
+                f"{float(bill.cgst_rate or 0):.2f}",
+                f"{float(bill.cgst or 0):.2f}",
+                f"{float(bill.sgst_rate or 0):.2f}",
+                f"{float(bill.sgst or 0):.2f}",
+                f"{float(bill.non_taxable_total or 0):.2f}",
+                f"{float(bill.round_off or 0):.2f}",
+                f"{float(bill.grand_total or 0):.2f}",
+                " | ".join(taxable_items),
+                " | ".join(non_taxable_items),
+            ])
+
+        csv_bytes = output.getvalue().encode(
+            "utf-8-sig"
+        )
+
+        return send_file(
+            BytesIO(csv_bytes),
+            mimetype="text/csv; charset=utf-8",
+            as_attachment=True,
+            download_name="PVR_Monthly_Bills.csv"
+        )
+
+    except Exception as exc:
+        traceback.print_exc()
+
+        return error_response(
+            "Unable to export Monthly Bills to CSV",
+            500,
+            "MONTHLY_CSV_EXPORT_ERROR",
+            str(exc)
+        )
+
+    finally:
+        session.close()
+
+
+# =========================================================
+# MONTHLY BILL EXCEL EXPORT
+# =========================================================
+
+@app.get("/api/monthly-bills/export/xlsx")
+def export_monthly_bills_excel():
+    session = SessionLocal()
+
+    try:
+        bills = (
+            session.execute(
+                select(MonthlyBill)
+                .options(
+                    joinedload(MonthlyBill.items)
+                )
+                .order_by(
+                    MonthlyBill.invoice_date.desc(),
+                    MonthlyBill.id.desc()
+                )
+            )
+            .unique()
+            .scalars()
+            .all()
+        )
+
+        workbook = Workbook()
+
+        # =====================================================
+        # STYLES
+        # =====================================================
+
+        header_fill = PatternFill(
+            fill_type="solid",
+            fgColor="102A43"
+        )
+
+        header_font = Font(
+            bold=True,
+            color="FFFFFF"
+        )
+
+        title_font = Font(
+            bold=True,
+            size=14
+        )
+
+        thin_side = Side(
+            style="thin",
+            color="D9E2EC"
+        )
+
+        border = Border(
+            left=thin_side,
+            right=thin_side,
+            top=thin_side,
+            bottom=thin_side
+        )
+
+        center = Alignment(
+            horizontal="center",
+            vertical="center",
+            wrap_text=True
+        )
+
+        left = Alignment(
+            horizontal="left",
+            vertical="top",
+            wrap_text=True
+        )
+
+        right = Alignment(
+            horizontal="right",
+            vertical="top"
+        )
+
+        # =====================================================
+        # SHEET 1 - MONTHLY BILL REGISTER
+        # =====================================================
+
+        sheet = workbook.active
+        sheet.title = "Monthly Bill Register"
+
+        headers = [
+            "Invoice Number",
+            "Invoice Date",
+            "Customer Name",
+            "Customer Address",
+            "Customer GSTIN",
+            "Booked By",
+            "Vehicle Number",
+            "Reference / PO",
+            "Taxable Subtotal",
+            "CGST %",
+            "CGST",
+            "SGST %",
+            "SGST",
+            "Non-Taxable Total",
+            "Round Off",
+            "Grand Total",
+        ]
+
+        sheet.append(headers)
+
+        for cell in sheet[1]:
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = center
+            cell.border = border
+
+        for bill in bills:
+
+            sheet.append([
+                bill.invoice_number or "",
+                (
+                    bill.invoice_date
+                    if bill.invoice_date
+                    else ""
+                ),
+                bill.customer_name or "",
+                bill.customer_address or "",
+                bill.customer_gstin or "",
+                bill.booked_by or "",
+                getattr(
+                    bill,
+                    "vehicle_number",
+                    ""
+                ) or "",
+                bill.reference_number or "",
+                float(
+                    bill.taxable_subtotal or 0
+                ),
+                float(
+                    bill.cgst_rate or 0
+                ),
+                float(
+                    bill.cgst or 0
+                ),
+                float(
+                    bill.sgst_rate or 0
+                ),
+                float(
+                    bill.sgst or 0
+                ),
+                float(
+                    bill.non_taxable_total or 0
+                ),
+                float(
+                    bill.round_off or 0
+                ),
+                float(
+                    bill.grand_total or 0
+                ),
+            ])
+
+        # =====================================================
+        # FORMAT REGISTER
+        # =====================================================
+
+        for row in sheet.iter_rows(
+            min_row=2
+        ):
+            for cell in row:
+                cell.border = border
+                cell.alignment = left
+
+            for index in [
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+            ]:
+                row[index - 1].alignment = right
+                row[index - 1].number_format = (
+                    '#,##0.00'
+                )
+
+        sheet.freeze_panes = "A2"
+        sheet.auto_filter.ref = sheet.dimensions
+
+        column_widths = {
+            "A": 18,
+            "B": 14,
+            "C": 34,
+            "D": 30,
+            "E": 22,
+            "F": 32,
+            "G": 18,
+            "H": 20,
+            "I": 18,
+            "J": 12,
+            "K": 15,
+            "L": 12,
+            "M": 15,
+            "N": 20,
+            "O": 14,
+            "P": 18,
+        }
+
+        for column, width in column_widths.items():
+            sheet.column_dimensions[column].width = width
+
+        sheet.row_dimensions[1].height = 30
+
+        # =====================================================
+        # SHEET 2 - ITEM DETAILS
+        # =====================================================
+
+        item_sheet = workbook.create_sheet(
+            "Monthly Bill Items"
+        )
+
+        item_headers = [
+            "Invoice Number",
+            "Invoice Date",
+            "Customer Name",
+            "Item Type",
+            "Description",
+            "Quantity",
+            "Rate",
+            "Amount",
+        ]
+
+        item_sheet.append(item_headers)
+
+        for cell in item_sheet[1]:
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = center
+            cell.border = border
+
+        for bill in bills:
+
+            for item in bill.items:
+
+                item_sheet.append([
+                    bill.invoice_number or "",
+                    (
+                        bill.invoice_date
+                        if bill.invoice_date
+                        else ""
+                    ),
+                    bill.customer_name or "",
+                    (
+                        "Taxable"
+                        if item.item_type == "taxable"
+                        else "Non-Taxable"
+                    ),
+                    item.description or "",
+                    float(
+                        item.quantity or 0
+                    ),
+                    float(
+                        item.rate or 0
+                    ),
+                    float(
+                        item.amount or 0
+                    ),
+                ])
+
+        for row in item_sheet.iter_rows(
+            min_row=2
+        ):
+            for cell in row:
+                cell.border = border
+                cell.alignment = left
+
+            row[5].alignment = right
+            row[6].alignment = right
+            row[7].alignment = right
+
+            row[5].number_format = '#,##0.00'
+            row[6].number_format = '#,##0.00'
+            row[7].number_format = '#,##0.00'
+
+        item_sheet.freeze_panes = "A2"
+        item_sheet.auto_filter.ref = (
+            item_sheet.dimensions
+        )
+
+        item_widths = {
+            "A": 18,
+            "B": 14,
+            "C": 34,
+            "D": 16,
+            "E": 45,
+            "F": 14,
+            "G": 16,
+            "H": 18,
+        }
+
+        for column, width in item_widths.items():
+            item_sheet.column_dimensions[
+                column
+            ].width = width
+
+        item_sheet.row_dimensions[1].height = 30
+
+        # =====================================================
+        # SAVE EXCEL TO MEMORY
+        # =====================================================
+
+        excel_buffer = BytesIO()
+
+        workbook.save(
+            excel_buffer
+        )
+
+        excel_buffer.seek(0)
+
+        return send_file(
+            excel_buffer,
+            mimetype=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
+            as_attachment=True,
+            download_name="PVR_Monthly_Bills.xlsx"
+        )
+
+    except Exception as exc:
+        traceback.print_exc()
+
+        return error_response(
+            "Unable to export Monthly Bills to Excel",
+            500,
+            "MONTHLY_EXCEL_EXPORT_ERROR",
             str(exc)
         )
 
