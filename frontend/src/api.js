@@ -25,18 +25,39 @@ async function request(url, options = {}) {
 
 export const api = {
   health: () => request('/api/health'),
-  listInvoices: (search = '') => request(`/api/invoices?search=${encodeURIComponent(search)}`),
-  getInvoice: (id) => request(`/api/invoices/${id}`),
-  createInvoice: (payload) => request('/api/invoices', { method: 'POST', body: JSON.stringify(payload) }),
-  updateInvoice: (id, payload) => request(`/api/invoices/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
-  deleteInvoice: (id) => request(`/api/invoices/${id}`, { method: 'DELETE' }),
-  pdfUrl: (id) => `/api/invoices/${id}/pdf`,
-  csvUrl: () => '/api/invoices/export/csv',
-  monthlyBills: {
-  create: payload =>
+
+  listInvoices: (search = '') =>
+    request(`/api/invoices?search=${encodeURIComponent(search)}`),
+
+  getInvoice: (id) =>
+    request(`/api/invoices/${id}`),
+
+  createInvoice: (payload) =>
+    request('/api/invoices', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }),
+
+  updateInvoice: (id, payload) =>
+    request(`/api/invoices/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    }),
+
+  deleteInvoice: (id) =>
+    request(`/api/invoices/${id}`, {
+      method: 'DELETE'
+    }),
+
+  pdfUrl: (id) =>
+    `/api/invoices/${id}/pdf`,
+
+  csvUrl: () =>
+    '/api/invoices/export/csv',
+
+  createMonthlyBill: (payload) =>
     request('/api/monthly-bills', {
       method: 'POST',
       body: JSON.stringify(payload)
     })
-}
 }
