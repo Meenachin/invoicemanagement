@@ -78,3 +78,82 @@ class Trip(Base):
     notes = Column(Text)
 
     invoice = relationship("Invoice", back_populates="trips")
+
+
+class MonthlyBill(Base):
+    __tablename__ = "monthly_bills"
+
+    id = Column(Integer, primary_key=True)
+
+    invoice_number = Column(String(120), nullable=False, unique=True)
+    invoice_date = Column(Date, nullable=False)
+
+    customer_name = Column(String(255), nullable=False)
+    customer_address = Column(Text)
+    customer_gstin = Column(String(30))
+    booked_by = Column(String(255))
+    used_by = Column(String(255))
+    reference_number = Column(String(255))
+
+    taxable_subtotal = Column(Float, default=0)
+    cgst_rate = Column(Float, default=2.5)
+    cgst = Column(Float, default=0)
+    sgst_rate = Column(Float, default=2.5)
+    sgst = Column(Float, default=0)
+
+    non_taxable_total = Column(Float, default=0)
+
+    round_off = Column(Float, default=0)
+    grand_total = Column(Float, default=0)
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
+
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False
+    )
+
+    items = relationship(
+        "MonthlyBillItem",
+        back_populates="monthly_bill",
+        cascade="all, delete-orphan",
+        order_by="MonthlyBillItem.id",
+    )
+
+
+class MonthlyBillItem(Base):
+    __tablename__ = "monthly_bill_items"
+
+    id = Column(Integer, primary_key=True)
+
+    monthly_bill_id = Column(
+        Integer,
+        ForeignKey(
+            "monthly_bills.id",
+            ondelete="CASCADE"
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    item_type = Column(
+        String(30),
+        nullable=False
+    )
+
+    description = Column(Text)
+
+    quantity = Column(Float, default=0)
+    rate = Column(Float, default=0)
+    amount = Column(Float, default=0)
+
+    monthly_bill = relationship(
+        "MonthlyBill",
+        back_populates="items"
+    )
