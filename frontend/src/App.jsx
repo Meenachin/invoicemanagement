@@ -401,7 +401,7 @@ const load = async () => {
     onChange={e => setSearch(e.target.value)}
     placeholder="Search invoice number, customer, reference…"
   />
-
+</div>
  
 
       
