@@ -624,15 +624,13 @@ def amount_to_words_indian(amount):
 def build_monthly_bill_pdf(bill):
     buffer = BytesIO()
 
-    page = portrait(A4)
-
     doc = SimpleDocTemplate(
         buffer,
-        pagesize=page,
-        rightMargin=8 * mm,
-        leftMargin=8 * mm,
-        topMargin=7 * mm,
-        bottomMargin=7 * mm,
+        pagesize=portrait(A4),
+        rightMargin=14 * mm,
+        leftMargin=14 * mm,
+        topMargin=12 * mm,
+        bottomMargin=12 * mm,
         title=f"PVR Monthly Bill {bill.invoice_number}",
         author="PVR Tours & Travels",
     )
@@ -641,12 +639,13 @@ def build_monthly_bill_pdf(bill):
 
     company = ParagraphStyle(
         "monthly_company",
-        parent=styles["Heading1"],
+        parent=styles["Normal"],
         fontName="Helvetica-Bold",
-        fontSize=16,
-        leading=18,
+        fontSize=17,
+        leading=20,
         alignment=TA_CENTER,
-        spaceAfter=1,
+        textColor=colors.HexColor("#102A43"),
+        spaceAfter=2,
     )
 
     address = ParagraphStyle(
@@ -654,31 +653,74 @@ def build_monthly_bill_pdf(bill):
         parent=styles["Normal"],
         fontName="Helvetica",
         fontSize=7.5,
-        leading=9,
-        alignment=TA_CENTER,
-    )
-
-    title_style = ParagraphStyle(
-        "monthly_title",
-        parent=styles["Normal"],
-        fontName="Helvetica-Bold",
-        fontSize=9,
         leading=10,
         alignment=TA_CENTER,
+        textColor=colors.HexColor("#52606D"),
+    )
+
+    invoice_title = ParagraphStyle(
+        "monthly_invoice_title",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=11,
+        leading=13,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor("#102A43"),
+        spaceBefore=5,
+        spaceAfter=6,
+    )
+
+    section_title = ParagraphStyle(
+        "monthly_section_title",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=8,
+        leading=10,
+        textColor=colors.HexColor("#102A43"),
+        spaceBefore=3,
+        spaceAfter=4,
     )
 
     normal = ParagraphStyle(
         "monthly_normal",
         parent=styles["Normal"],
         fontName="Helvetica",
+        fontSize=7.5,
+        leading=10,
+        textColor=colors.HexColor("#243B53"),
+    )
+
+    small = ParagraphStyle(
+        "monthly_small",
+        parent=normal,
         fontSize=7,
         leading=9,
     )
 
-    bold = ParagraphStyle(
-        "monthly_bold",
+    label = ParagraphStyle(
+        "monthly_label",
         parent=normal,
         fontName="Helvetica-Bold",
+        fontSize=7,
+        leading=9,
+        textColor=colors.HexColor("#52606D"),
+    )
+
+    value = ParagraphStyle(
+        "monthly_value",
+        parent=normal,
+        fontSize=7.5,
+        leading=10,
+        textColor=colors.HexColor("#102A43"),
+    )
+
+    table_header = ParagraphStyle(
+        "monthly_table_header",
+        parent=normal,
+        fontName="Helvetica-Bold",
+        fontSize=7.5,
+        leading=9,
+        textColor=colors.white,
     )
 
     right = ParagraphStyle(
@@ -687,20 +729,64 @@ def build_monthly_bill_pdf(bill):
         alignment=TA_RIGHT,
     )
 
-    total_style = ParagraphStyle(
-        "monthly_total",
+    center = ParagraphStyle(
+        "monthly_center",
+        parent=normal,
+        alignment=TA_CENTER,
+    )
+
+    total_label = ParagraphStyle(
+        "monthly_total_label",
         parent=normal,
         fontName="Helvetica-Bold",
         fontSize=8,
         leading=10,
+        textColor=colors.HexColor("#102A43"),
+    )
+
+    total_value = ParagraphStyle(
+        "monthly_total_value",
+        parent=normal,
+        fontName="Helvetica-Bold",
+        fontSize=9,
+        leading=11,
         alignment=TA_RIGHT,
+        textColor=colors.HexColor("#102A43"),
+    )
+
+    grand_label = ParagraphStyle(
+        "monthly_grand_label",
+        parent=normal,
+        fontName="Helvetica-Bold",
+        fontSize=10,
+        leading=12,
+        textColor=colors.HexColor("#102A43"),
+    )
+
+    grand_value = ParagraphStyle(
+        "monthly_grand_value",
+        parent=normal,
+        fontName="Helvetica-Bold",
+        fontSize=11,
+        leading=13,
+        alignment=TA_RIGHT,
+        textColor=colors.HexColor("#102A43"),
+    )
+
+    amount_words = ParagraphStyle(
+        "monthly_amount_words",
+        parent=normal,
+        fontName="Helvetica-Bold",
+        fontSize=7.5,
+        leading=10,
+        textColor=colors.HexColor("#102A43"),
     )
 
     story = []
 
-    # ---------------------------------------------------------
+    # =========================================================
     # COMPANY HEADER
-    # ---------------------------------------------------------
+    # =========================================================
 
     story.append(
         Paragraph(
@@ -725,214 +811,475 @@ def build_monthly_bill_pdf(bill):
             [
                 [
                     Paragraph(
-                        "TAX INVOICE",
-                        title_style,
+                        "MONTHLY TAX INVOICE",
+                        invoice_title,
                     )
                 ]
             ],
             colWidths=[doc.width],
             style=[
-                ("BOX", (0, 0), (-1, -1), 0.7, colors.black),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("TOPPADDING", (0, 0), (-1, -1), 3),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-            ],
-        )
-    )
-
-    story.append(Spacer(1, 3 * mm))
-
-    # ---------------------------------------------------------
-    # CUSTOMER / INVOICE DETAILS
-    # ---------------------------------------------------------
-
-    customer_data = [
-        [
-            Paragraph("Billed To", bold),
-            Paragraph(
-                bill.customer_name or "",
-                normal,
-            ),
-            Paragraph("Invoice Date", bold),
-            Paragraph(
-                bill.invoice_date.strftime("%d-%m-%Y")
-                if bill.invoice_date
-                else "",
-                normal,
-            ),
-        ],
-        [
-            Paragraph("Address", bold),
-            Paragraph(
-                bill.customer_address or "",
-                normal,
-            ),
-            Paragraph("Invoice No", bold),
-            Paragraph(
-                bill.invoice_number or "",
-                normal,
-            ),
-        ],
-        [
-            Paragraph("GSTIN", bold),
-            Paragraph(
-                bill.customer_gstin or "",
-                normal,
-            ),
-            Paragraph("GSTIN", bold),
-            Paragraph(
-                "36AYPPR7981L1Z8",
-                normal,
-            ),
-        ],
-        [
-            Paragraph("Booked By", bold),
-            Paragraph(
-                bill.booked_by or "",
-                normal,
-            ),
-            Paragraph("Vehicle Number", bold),
-            Paragraph(
-                bill.vehicle_number or "",
-                normal,
-            ),
-        ],
-        [
-            Paragraph("Reference / PO", bold),
-            Paragraph(
-                bill.reference_number or "",
-                normal,
-            ),
-            Paragraph("", normal),
-            Paragraph("", normal),
-        ],
-    ]
-
-    story.append(
-        Table(
-            customer_data,
-            colWidths=[
-                28 * mm,
-                70 * mm,
-                28 * mm,
-                55 * mm,
-            ],
-            style=[
-                ("BOX", (0, 0), (-1, -1), 0.5, colors.grey),
-                ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.lightgrey),
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 3),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 3),
-                ("TOPPADDING", (0, 0), (-1, -1), 3),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                (
+                    "LINEABOVE",
+                    (0, 0),
+                    (-1, 0),
+                    1.2,
+                    colors.HexColor("#102A43"),
+                ),
+                (
+                    "LINEBELOW",
+                    (0, 0),
+                    (-1, 0),
+                    1.2,
+                    colors.HexColor("#102A43"),
+                ),
+                (
+                    "TOPPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    4,
+                ),
+                (
+                    "BOTTOMPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    2,
+                ),
             ],
         )
     )
 
     story.append(Spacer(1, 4 * mm))
 
-    # ---------------------------------------------------------
-    # ITEM TABLE
-    # ---------------------------------------------------------
+    # =========================================================
+    # CUSTOMER + INVOICE INFORMATION
+    # =========================================================
 
-    item_rows = [
+    invoice_date = (
+        bill.invoice_date.strftime("%d-%m-%Y")
+        if bill.invoice_date
+        else ""
+    )
+
+    info_left = [
         [
-            Paragraph("S.No", bold),
-            Paragraph("Description", bold),
-            Paragraph("Qty", bold),
-            Paragraph("Rate", bold),
-            Paragraph("Amount", bold),
-        ]
+            Paragraph("BILLED TO", label),
+            Paragraph(
+                bill.customer_name or "",
+                value,
+            ),
+        ],
+        [
+            Paragraph("ADDRESS", label),
+            Paragraph(
+                bill.customer_address or "",
+                value,
+            ),
+        ],
+        [
+            Paragraph("CUSTOMER GSTIN", label),
+            Paragraph(
+                bill.customer_gstin or "",
+                value,
+            ),
+        ],
     ]
 
-    serial = 1
+    info_right = [
+        [
+            Paragraph("INVOICE NO", label),
+            Paragraph(
+                bill.invoice_number or "",
+                value,
+            ),
+        ],
+        [
+            Paragraph("INVOICE DATE", label),
+            Paragraph(
+                invoice_date,
+                value,
+            ),
+        ],
+        [
+            Paragraph("BOOKED BY", label),
+            Paragraph(
+                bill.booked_by or "",
+                value,
+            ),
+        ],
+        [
+            Paragraph("VEHICLE NUMBER", label),
+            Paragraph(
+                bill.vehicle_number or "",
+                value,
+            ),
+        ],
+        [
+            Paragraph("REFERENCE / PO", label),
+            Paragraph(
+                bill.reference_number or "",
+                value,
+            ),
+        ],
+    ]
 
-    for item in bill.items:
-        description_text = item.description or ""
+    left_table = Table(
+        info_left,
+        colWidths=[34 * mm, 56 * mm],
+        style=[
+            (
+                "LINEBELOW",
+                (0, 0),
+                (-1, -1),
+                0.3,
+                colors.HexColor("#D9E2EC"),
+            ),
+            (
+                "VALIGN",
+                (0, 0),
+                (-1, -1),
+                "TOP",
+            ),
+            (
+                "LEFTPADDING",
+                (0, 0),
+                (-1, -1),
+                0,
+            ),
+            (
+                "RIGHTPADDING",
+                (0, 0),
+                (-1, -1),
+                3,
+            ),
+            (
+                "TOPPADDING",
+                (0, 0),
+                (-1, -1),
+                3,
+            ),
+            (
+                "BOTTOMPADDING",
+                (0, 0),
+                (-1, -1),
+                3,
+            ),
+        ],
+    )
 
-        if item.item_type == "non-taxable":
-            description_text += (
-                ' <font name="Helvetica-Bold">'
-                '  [Non-Taxable]'
-                '</font>'
-            )
-
-        item_rows.append(
-            [
-                Paragraph(
-                    str(serial),
-                    normal,
-                ),
-                Paragraph(
-                    description_text,
-                    normal,
-                ),
-                Paragraph(
-                    f"{float(item.quantity or 0):g}",
-                    right,
-                ),
-                Paragraph(
-                    f"{float(item.rate or 0):,.2f}",
-                    right,
-                ),
-                Paragraph(
-                    f"{float(item.amount or 0):,.2f}",
-                    right,
-                ),
-            ]
-        )
-
-        serial += 1
-
-    if len(item_rows) == 1:
-        item_rows.append(
-            [
-                Paragraph("1", normal),
-                Paragraph("", normal),
-                Paragraph("0", right),
-                Paragraph("0.00", right),
-                Paragraph("0.00", right),
-            ]
-        )
+    right_table = Table(
+        info_right,
+        colWidths=[34 * mm, 56 * mm],
+        style=[
+            (
+                "LINEBELOW",
+                (0, 0),
+                (-1, -1),
+                0.3,
+                colors.HexColor("#D9E2EC"),
+            ),
+            (
+                "VALIGN",
+                (0, 0),
+                (-1, -1),
+                "TOP",
+            ),
+            (
+                "LEFTPADDING",
+                (0, 0),
+                (-1, -1),
+                0,
+            ),
+            (
+                "RIGHTPADDING",
+                (0, 0),
+                (-1, -1),
+                0,
+            ),
+            (
+                "TOPPADDING",
+                (0, 0),
+                (-1, -1),
+                3,
+            ),
+            (
+                "BOTTOMPADDING",
+                (0, 0),
+                (-1, -1),
+                3,
+            ),
+        ],
+    )
 
     story.append(
         Table(
-            item_rows,
-            colWidths=[
-                14 * mm,
-                92 * mm,
-                18 * mm,
-                30 * mm,
-                34 * mm,
-            ],
-            repeatRows=1,
+            [[left_table, right_table]],
+            colWidths=[90 * mm, 90 * mm],
             style=[
-                ("BOX", (0, 0), (-1, -1), 0.6, colors.black),
-                ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.grey),
-                ("BACKGROUND", (0, 0), (-1, 0), colors.whitesmoke),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("ALIGN", (0, 0), (0, -1), "CENTER"),
-                ("ALIGN", (2, 1), (-1, -1), "RIGHT"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 3),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 3),
-                ("TOPPADDING", (0, 0), (-1, -1), 4),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                (
+                    "VALIGN",
+                    (0, 0),
+                    (-1, -1),
+                    "TOP",
+                ),
+                (
+                    "LEFTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    0,
+                ),
+                (
+                    "RIGHTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    0,
+                ),
+                (
+                    "TOPPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    0,
+                ),
+                (
+                    "BOTTOMPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    0,
+                ),
             ],
         )
     )
 
-    story.append(Spacer(1, 3 * mm))
+    story.append(Spacer(1, 6 * mm))
 
-    # ---------------------------------------------------------
+    # =========================================================
+    # TAXABLE SERVICES
+    # =========================================================
+
+    taxable_items = [
+        item
+        for item in bill.items
+        if item.item_type == "taxable"
+    ]
+
+    non_taxable_items = [
+        item
+        for item in bill.items
+        if item.item_type == "non-taxable"
+    ]
+
+    def build_item_rows(items):
+        rows = [
+            [
+                Paragraph("S.NO", table_header),
+                Paragraph("DESCRIPTION", table_header),
+                Paragraph("QTY", table_header),
+                Paragraph("RATE", table_header),
+                Paragraph("AMOUNT", table_header),
+            ]
+        ]
+
+        for index, item in enumerate(items, start=1):
+            rows.append(
+                [
+                    Paragraph(
+                        str(index),
+                        center,
+                    ),
+                    Paragraph(
+                        item.description or "",
+                        normal,
+                    ),
+                    Paragraph(
+                        f"{float(item.quantity or 0):g}",
+                        right,
+                    ),
+                    Paragraph(
+                        f"₹ {float(item.rate or 0):,.2f}",
+                        right,
+                    ),
+                    Paragraph(
+                        f"₹ {float(item.amount or 0):,.2f}",
+                        right,
+                    ),
+                ]
+            )
+
+        return rows
+
+    if taxable_items:
+        story.append(
+            Paragraph(
+                "TAXABLE SERVICES",
+                section_title,
+            )
+        )
+
+        taxable_rows = build_item_rows(
+            taxable_items
+        )
+
+        story.append(
+            Table(
+                taxable_rows,
+                colWidths=[
+                    12 * mm,
+                    76 * mm,
+                    18 * mm,
+                    32 * mm,
+                    42 * mm,
+                ],
+                repeatRows=1,
+                style=[
+                    (
+                        "BACKGROUND",
+                        (0, 0),
+                        (-1, 0),
+                        colors.HexColor("#102A43"),
+                    ),
+                    (
+                        "LINEBELOW",
+                        (0, 0),
+                        (-1, 0),
+                        0.8,
+                        colors.HexColor("#102A43"),
+                    ),
+                    (
+                        "LINEBELOW",
+                        (0, 1),
+                        (-1, -1),
+                        0.35,
+                        colors.HexColor("#D9E2EC"),
+                    ),
+                    (
+                        "VALIGN",
+                        (0, 0),
+                        (-1, -1),
+                        "MIDDLE",
+                    ),
+                    (
+                        "LEFTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        4,
+                    ),
+                    (
+                        "RIGHTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        4,
+                    ),
+                    (
+                        "TOPPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        4,
+                    ),
+                    (
+                        "BOTTOMPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        4,
+                    ),
+                ],
+            )
+        )
+
+        story.append(Spacer(1, 5 * mm))
+
+    # =========================================================
+    # NON-TAXABLE CHARGES
+    # =========================================================
+
+    if non_taxable_items:
+        story.append(
+            Paragraph(
+                "NON-TAXABLE CHARGES",
+                section_title,
+            )
+        )
+
+        non_taxable_rows = build_item_rows(
+            non_taxable_items
+        )
+
+        story.append(
+            Table(
+                non_taxable_rows,
+                colWidths=[
+                    12 * mm,
+                    76 * mm,
+                    18 * mm,
+                    32 * mm,
+                    42 * mm,
+                ],
+                repeatRows=1,
+                style=[
+                    (
+                        "BACKGROUND",
+                        (0, 0),
+                        (-1, 0),
+                        colors.HexColor("#52606D"),
+                    ),
+                    (
+                        "LINEBELOW",
+                        (0, 0),
+                        (-1, 0),
+                        0.8,
+                        colors.HexColor("#52606D"),
+                    ),
+                    (
+                        "LINEBELOW",
+                        (0, 1),
+                        (-1, -1),
+                        0.35,
+                        colors.HexColor("#D9E2EC"),
+                    ),
+                    (
+                        "VALIGN",
+                        (0, 0),
+                        (-1, -1),
+                        "MIDDLE",
+                    ),
+                    (
+                        "LEFTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        4,
+                    ),
+                    (
+                        "RIGHTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        4,
+                    ),
+                    (
+                        "TOPPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        4,
+                    ),
+                    (
+                        "BOTTOMPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        4,
+                    ),
+                ],
+            )
+        )
+
+        story.append(Spacer(1, 5 * mm))
+
+    # =========================================================
     # TOTALS
-    # ---------------------------------------------------------
+    # =========================================================
 
-    totals = [
+    totals_rows = [
         [
             Paragraph("Taxable Subtotal", normal),
             Paragraph(
                 f"₹ {float(bill.taxable_subtotal or 0):,.2f}",
-                right,
+                total_value,
             ),
         ],
         [
@@ -942,7 +1289,7 @@ def build_monthly_bill_pdf(bill):
             ),
             Paragraph(
                 f"₹ {float(bill.cgst or 0):,.2f}",
-                right,
+                total_value,
             ),
         ],
         [
@@ -952,138 +1299,274 @@ def build_monthly_bill_pdf(bill):
             ),
             Paragraph(
                 f"₹ {float(bill.sgst or 0):,.2f}",
-                right,
+                total_value,
             ),
         ],
         [
-            Paragraph("Non-Taxable Subtotal", normal),
+            Paragraph("Non-Taxable Total", normal),
             Paragraph(
                 f"₹ {float(bill.non_taxable_total or 0):,.2f}",
-                right,
+                total_value,
             ),
         ],
         [
             Paragraph("Round Off", normal),
             Paragraph(
                 f"{'+' if float(bill.round_off or 0) >= 0 else ''}"
-                f"{float(bill.round_off or 0):,.2f}",
-                right,
+                f"₹ {float(bill.round_off or 0):,.2f}",
+                total_value,
             ),
         ],
         [
-            Paragraph("Grand Total", bold),
+            Paragraph("GRAND TOTAL", grand_label),
             Paragraph(
                 f"₹ {float(bill.grand_total or 0):,.2f}",
-                total_style,
+                grand_value,
             ),
         ],
     ]
 
     story.append(
         Table(
-            totals,
-            colWidths=[55 * mm, 45 * mm],
+            totals_rows,
+            colWidths=[62 * mm, 48 * mm],
             hAlign="RIGHT",
             style=[
-                ("BOX", (0, 0), (-1, -1), 0.6, colors.black),
-                ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.grey),
-                ("ALIGN", (1, 0), (1, -1), "RIGHT"),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("BACKGROUND", (0, -1), (-1, -1), colors.whitesmoke),
-                ("LEFTPADDING", (0, 0), (-1, -1), 4),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-                ("TOPPADDING", (0, 0), (-1, -1), 4),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-            ],
-        )
-    )
-
-    story.append(Spacer(1, 3 * mm))
-
-    # ---------------------------------------------------------
-    # AMOUNT IN WORDS
-    # ---------------------------------------------------------
-
-    story.append(
-        Table(
-            [
-                [
-                    Paragraph(
-                        amount_to_words_indian(
-                            bill.grand_total or 0
-                        ),
-                        bold,
-                    )
-                ]
-            ],
-            colWidths=[doc.width],
-            style=[
-                ("BOX", (0, 0), (-1, -1), 0.5, colors.black),
-                ("LEFTPADDING", (0, 0), (-1, -1), 4),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-                ("TOPPADDING", (0, 0), (-1, -1), 4),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                (
+                    "LINEABOVE",
+                    (0, 0),
+                    (-1, 0),
+                    0.8,
+                    colors.HexColor("#9FB3C8"),
+                ),
+                (
+                    "LINEABOVE",
+                    (0, -1),
+                    (-1, -1),
+                    1.2,
+                    colors.HexColor("#102A43"),
+                ),
+                (
+                    "LINEBELOW",
+                    (0, -1),
+                    (-1, -1),
+                    1.2,
+                    colors.HexColor("#102A43"),
+                ),
+                (
+                    "VALIGN",
+                    (0, 0),
+                    (-1, -1),
+                    "MIDDLE",
+                ),
+                (
+                    "ALIGN",
+                    (1, 0),
+                    (1, -1),
+                    "RIGHT",
+                ),
+                (
+                    "LEFTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    4,
+                ),
+                (
+                    "RIGHTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    4,
+                ),
+                (
+                    "TOPPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    4,
+                ),
+                (
+                    "BOTTOMPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    4,
+                ),
             ],
         )
     )
 
     story.append(Spacer(1, 5 * mm))
 
-    # ---------------------------------------------------------
-    # BANK DETAILS + SIGNATURE
-    # ---------------------------------------------------------
+    # =========================================================
+    # AMOUNT IN WORDS
+    # =========================================================
 
-    bank = [
-        Paragraph("Please make payment by Bank Transfer:", bold),
+    story.append(
+        Paragraph(
+            "Amount in Words",
+            label,
+        )
+    )
+
+    story.append(
+        Paragraph(
+            amount_to_words_indian(
+                bill.grand_total or 0
+            ),
+            amount_words,
+        )
+    )
+
+    story.append(Spacer(1, 6 * mm))
+
+    # =========================================================
+    # BANK DETAILS + SIGNATURE
+    # =========================================================
+
+    bank_details = [
+        Paragraph(
+            "BANK DETAILS",
+            section_title,
+        ),
         Paragraph(
             "Account Name: PVR Tours & Travels<br/>"
-            "SBI Account No: 39169597084<br/>"
+            "Bank: State Bank of India<br/>"
+            "Account No: 39169597084<br/>"
             "IFSC: SBIN0000487",
-            normal,
+            small,
         ),
     ]
 
-    signature = [
-        Paragraph("For PVR TOURS & TRAVELS", bold),
+    signature_details = [
+        Paragraph(
+            "FOR P.V.R. TOURS AND TRAVELS",
+            label,
+        ),
         Spacer(1, 10 * mm),
-        Paragraph("Authorised Signatory", bold),
+        Paragraph(
+            "AUTHORISED SIGNATORY",
+            label,
+        ),
     ]
 
     story.append(
         Table(
-            [[
-                Table(
-                    [[x] for x in bank],
-                    colWidths=[105 * mm],
-                    style=[
-                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-                        ("TOPPADDING", (0, 0), (-1, -1), 1),
-                        ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
-                    ],
-                ),
-                Table(
-                    [[x] for x in signature],
-                    colWidths=[70 * mm],
-                    style=[
-                        ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
-                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-                        ("TOPPADDING", (0, 0), (-1, -1), 1),
-                        ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
-                    ],
-                ),
-            ]],
-            colWidths=[105 * mm, 70 * mm],
-            style=[
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-                ("TOPPADDING", (0, 0), (-1, -1), 0),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+            [
+                [
+                    Table(
+                        [[x] for x in bank_details],
+                        colWidths=[105 * mm],
+                        style=[
+                            (
+                                "LEFTPADDING",
+                                (0, 0),
+                                (-1, -1),
+                                0,
+                            ),
+                            (
+                                "RIGHTPADDING",
+                                (0, 0),
+                                (-1, -1),
+                                0,
+                            ),
+                            (
+                                "TOPPADDING",
+                                (0, 0),
+                                (-1, -1),
+                                0,
+                            ),
+                            (
+                                "BOTTOMPADDING",
+                                (0, 0),
+                                (-1, -1),
+                                1,
+                            ),
+                        ],
+                    ),
+                    Table(
+                        [[x] for x in signature_details],
+                        colWidths=[75 * mm],
+                        style=[
+                            (
+                                "ALIGN",
+                                (0, 0),
+                                (-1, -1),
+                                "RIGHT",
+                            ),
+                            (
+                                "LEFTPADDING",
+                                (0, 0),
+                                (-1, -1),
+                                0,
+                            ),
+                            (
+                                "RIGHTPADDING",
+                                (0, 0),
+                                (-1, -1),
+                                0,
+                            ),
+                            (
+                                "TOPPADDING",
+                                (0, 0),
+                                (-1, -1),
+                                0,
+                            ),
+                            (
+                                "BOTTOMPADDING",
+                                (0, 0),
+                                (-1, -1),
+                                1,
+                            ),
+                        ],
+                    ),
+                ]
             ],
+            colWidths=[105 * mm, 75 * mm],
+            style=[
+                (
+                    "VALIGN",
+                    (0, 0),
+                    (-1, -1),
+                    "TOP",
+                ),
+                (
+                    "LEFTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    0,
+                ),
+                (
+                    "RIGHTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    0,
+                ),
+                (
+                    "TOPPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    0,
+                ),
+                (
+                    "BOTTOMPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    0,
+                ),
+            ],
+        )
+    )
+
+    story.append(Spacer(1, 4 * mm))
+
+    story.append(
+        Paragraph(
+            "This is a computer-generated invoice and does not require a physical signature.",
+            ParagraphStyle(
+                "monthly_footer",
+                parent=small,
+                fontSize=6.5,
+                alignment=TA_CENTER,
+                textColor=colors.HexColor("#7B8794"),
+            ),
         )
     )
 
