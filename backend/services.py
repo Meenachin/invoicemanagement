@@ -791,7 +791,7 @@ def build_monthly_bill_pdf(bill):
                 bill.booked_by or "",
                 normal,
             ),
-            Paragraph("Used By", bold),
+            Paragraph("Vehicle Number", bold),
             Paragraph(
                 bill.vehicle_number or "",
                 normal,
