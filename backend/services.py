@@ -912,7 +912,7 @@ def non_taxable_label():
     )
 
     return label_table
-    for item in bill.items:
+for item in bill.items:
     description_text = item.description or ""
 
     if item.item_type == "non-taxable":
