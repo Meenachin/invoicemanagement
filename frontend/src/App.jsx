@@ -1870,7 +1870,7 @@ function MonthlyBillForm() {
     CUSTOMER_GSTINS[0]
   )
   const [bookedBy, setBookedBy] = useState(BOOKED_BY[0])
-  const [usedBy, setUsedBy] = useState('')
+  const [vehicleNumber, setVehicleNumber] = useState('')
   const [referenceNumber, setReferenceNumber] = useState(
     REFERENCE_NUMBERS[0]
   )
@@ -1938,8 +1938,8 @@ useEffect(() => {
         bill.booked_by || ''
       )
 
-      setUsedBy(
-        bill.used_by || ''
+      setVehicleNumber(
+         bill.vehicle_number || ''
       )
 
       setReferenceNumber(
@@ -2136,7 +2136,7 @@ useEffect(() => {
         customer_address: customerAddress.trim(),
         customer_gstin: customerGstin.trim(),
         booked_by: bookedBy.trim(),
-        used_by: usedBy.trim(),
+        vehicle_number: vehicleNumber.trim(),
         reference_number: referenceNumber.trim(),
 
         cgst_rate: 2.5,
@@ -2294,10 +2294,10 @@ const data = editing
 
         <div className="form-grid three">
           <Input
-            label="Used By"
-            value={usedBy}
-            onChange={setUsedBy}
-            placeholder="Used by"
+            label="Vehicle Number"
+            value={vehicleNumber}
+            onChange={setVehicleNumber}
+            placeholder="Vehicle number"
           />
 
           <EditableSelect
