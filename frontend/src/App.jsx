@@ -1604,6 +1604,22 @@ function InvoiceForm() {
 function MonthlyBillForm() {
   const navigate = useNavigate()
 
+  const [invoiceNumber, setInvoiceNumber] = useState('')
+  const [invoiceDate, setInvoiceDate] = useState(todayISO())
+
+  const [customerName, setCustomerName] = useState(CUSTOMER_NAMES[0])
+  const [customerAddress, setCustomerAddress] = useState(
+    CUSTOMER_ADDRESSES[0]
+  )
+  const [customerGstin, setCustomerGstin] = useState(
+    CUSTOMER_GSTINS[0]
+  )
+  const [bookedBy, setBookedBy] = useState(BOOKED_BY[0])
+  const [usedBy, setUsedBy] = useState('')
+  const [referenceNumber, setReferenceNumber] = useState(
+    REFERENCE_NUMBERS[0]
+  )
+
   const [activeType, setActiveType] = useState('taxable')
 
   const [taxableItems, setTaxableItems] = useState([
@@ -1623,6 +1639,10 @@ function MonthlyBillForm() {
       amount: 0
     }
   ])
+
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
   const updateItem = (type, index, key, value) => {
     const setter =
@@ -1693,6 +1713,117 @@ function MonthlyBillForm() {
     sgst +
     nonTaxableSubtotal
 
+  const roundedTotal = Math.round(
+    totalBeforeRoundOff
+  )
+
+  const roundOff =
+    roundedTotal - totalBeforeRoundOff
+
+  const grandTotal = roundedTotal
+
+  const saveMonthlyBill = async () => {
+    if (saving) {
+      return
+    }
+
+    setError('')
+    setSuccess('')
+
+    if (!invoiceNumber.trim()) {
+      setError('Invoice Number is required.')
+      return
+    }
+
+    if (!customerName.trim()) {
+      setError('Customer Name is required.')
+      return
+    }
+
+    if (!invoiceDate) {
+      setError('Invoice Date is required.')
+      return
+    }
+
+    const allItems = [
+      ...taxableItems.map(item => ({
+        ...item,
+        item_type: 'taxable'
+      })),
+      ...nonTaxableItems.map(item => ({
+        ...item,
+        item_type: 'non-taxable'
+      }))
+    ]
+
+    const validItems = allItems.filter(
+      item =>
+        String(item.description || '').trim() ||
+        Number(item.quantity) ||
+        Number(item.rate)
+    )
+
+    if (!validItems.length) {
+      setError('Add at least one Monthly Bill item.')
+      return
+    }
+
+    setSaving(true)
+
+    try {
+      const payload = {
+        invoice_number: invoiceNumber.trim(),
+        invoice_date: invoiceDate,
+
+        customer_name: customerName.trim(),
+        customer_address: customerAddress.trim(),
+        customer_gstin: customerGstin.trim(),
+        booked_by: bookedBy.trim(),
+        used_by: usedBy.trim(),
+        reference_number: referenceNumber.trim(),
+
+        cgst_rate: 2.5,
+        sgst_rate: 2.5,
+
+        items: validItems.map(item => ({
+          item_type: item.item_type,
+          description: String(
+            item.description || ''
+          ).trim(),
+          quantity: Number(item.quantity) || 0,
+          rate: Number(item.rate) || 0,
+          amount:
+            (Number(item.quantity) || 0) *
+            (Number(item.rate) || 0)
+        }))
+      }
+
+      const data =
+        await api.createMonthlyBill(payload)
+
+      setSuccess(
+        'Monthly Bill saved successfully.'
+      )
+
+      if (data.monthly_bill) {
+        setInvoiceNumber(
+          data.monthly_bill.invoice_number
+        )
+      }
+    } catch (e) {
+      const code = e.payload?.code
+
+      setError(
+        code
+          ? `${e.message} [${code}]`
+          : e.message ||
+            'Unable to save Monthly Bill.'
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <Layout>
       <section className="form-hero">
@@ -1708,9 +1839,7 @@ function MonthlyBillForm() {
             MONTHLY BILL
           </div>
 
-          <h1>
-            Create Monthly Bill
-          </h1>
+          <h1>Create Monthly Bill</h1>
 
           <p>
             Create a separate monthly bill with
@@ -1719,13 +1848,22 @@ function MonthlyBillForm() {
         </div>
       </section>
 
+      {error && (
+        <div className="alert error">
+          {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="alert success">
+          {success}
+        </div>
+      )}
+
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <h2>
-              Invoice & Customer
-            </h2>
-
+            <h2>Invoice & Customer</h2>
             <p>
               Monthly bill customer details.
             </p>
@@ -1739,30 +1877,32 @@ function MonthlyBillForm() {
         <div className="form-grid four">
           <Input
             label="Invoice Number"
-            value=""
-            onChange={() => {}}
+            value={invoiceNumber}
+            onChange={setInvoiceNumber}
             placeholder="Monthly invoice number"
+            required
           />
 
           <Input
             label="Invoice Date"
-            value={todayISO()}
-            onChange={() => {}}
+            value={invoiceDate}
+            onChange={setInvoiceDate}
             type="date"
+            required
           />
 
           <EditableSelect
             label="Customer Name"
-            value=""
-            onChange={() => {}}
+            value={customerName}
+            onChange={setCustomerName}
             options={CUSTOMER_NAMES}
             placeholder="Enter customer name"
           />
 
           <EditableSelect
             label="Customer GST Number"
-            value=""
-            onChange={() => {}}
+            value={customerGstin}
+            onChange={setCustomerGstin}
             options={CUSTOMER_GSTINS}
             placeholder="Enter GSTIN"
           />
@@ -1771,8 +1911,8 @@ function MonthlyBillForm() {
         <div className="form-grid three">
           <EditableSelect
             label="Customer Address"
-            value=""
-            onChange={() => {}}
+            value={customerAddress}
+            onChange={setCustomerAddress}
             options={CUSTOMER_ADDRESSES}
             placeholder="Enter customer address"
             className="span-2"
@@ -1780,8 +1920,8 @@ function MonthlyBillForm() {
 
           <EditableSelect
             label="Booked By"
-            value=""
-            onChange={() => {}}
+            value={bookedBy}
+            onChange={setBookedBy}
             options={BOOKED_BY}
             placeholder="Enter booked by"
           />
@@ -1790,15 +1930,15 @@ function MonthlyBillForm() {
         <div className="form-grid three">
           <Input
             label="Used By"
-            value=""
-            onChange={() => {}}
+            value={usedBy}
+            onChange={setUsedBy}
             placeholder="Used by"
           />
 
           <EditableSelect
             label="Reference / PO Number"
-            value=""
-            onChange={() => {}}
+            value={referenceNumber}
+            onChange={setReferenceNumber}
             options={REFERENCE_NUMBERS}
             placeholder="Enter reference / PO number"
           />
@@ -1808,10 +1948,7 @@ function MonthlyBillForm() {
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <h2>
-              Bill Details
-            </h2>
-
+            <h2>Bill Details</h2>
             <p>
               Add taxable and non-taxable charges separately.
             </p>
@@ -1866,59 +2003,67 @@ function MonthlyBillForm() {
                 </thead>
 
                 <tbody>
-                  {taxableItems.map((item, index) => (
-                    <tr key={index}>
-                      <td>
-                        <input
-                          className="search"
-                          value={item.description}
-                          onChange={e =>
-                            updateItem(
-                              'taxable',
-                              index,
-                              'description',
-                              e.target.value
-                            )
-                          }
-                          placeholder="Description"
-                        />
-                      </td>
+                  {taxableItems.map(
+                    (item, index) => (
+                      <tr key={index}>
+                        <td>
+                          <input
+                            className="search"
+                            value={
+                              item.description
+                            }
+                            onChange={e =>
+                              updateItem(
+                                'taxable',
+                                index,
+                                'description',
+                                e.target.value
+                              )
+                            }
+                            placeholder="Description"
+                          />
+                        </td>
 
-                      <td>
-                        <input
-                          type="number"
-                          value={item.quantity}
-                          onChange={e =>
-                            updateItem(
-                              'taxable',
-                              index,
-                              'quantity',
-                              e.target.value
-                            )
-                          }
-                        />
-                      </td>
+                        <td>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.quantity}
+                            onChange={e =>
+                              updateItem(
+                                'taxable',
+                                index,
+                                'quantity',
+                                e.target.value
+                              )
+                            }
+                          />
+                        </td>
 
-                      <td>
-                        <input
-                          type="number"
-                          value={item.rate}
-                          onChange={e =>
-                            updateItem(
-                              'taxable',
-                              index,
-                              'rate',
-                              e.target.value
-                            )
-                          }
-                        />
-                      </td>
+                        <td>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.rate}
+                            onChange={e =>
+                              updateItem(
+                                'taxable',
+                                index,
+                                'rate',
+                                e.target.value
+                              )
+                            }
+                          />
+                        </td>
 
-                      <td>
-                        ₹ {money(item.amount)}
-                      </td>
-                    </tr>
-                  ))}
+                        <td>
+                          ₹ {money(item.amount)}
+                        </td>
+                      </tr>
+                    )
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1955,7 +2100,9 @@ function MonthlyBillForm() {
                         <td>
                           <input
                             className="search"
-                            value={item.description}
+                            value={
+                              item.description
+                            }
                             onChange={e =>
                               updateItem(
                                 'non-taxable',
@@ -1971,6 +2118,8 @@ function MonthlyBillForm() {
                         <td>
                           <input
                             type="number"
+                            min="0"
+                            step="0.01"
                             value={item.quantity}
                             onChange={e =>
                               updateItem(
@@ -1986,6 +2135,8 @@ function MonthlyBillForm() {
                         <td>
                           <input
                             type="number"
+                            min="0"
+                            step="0.01"
                             value={item.rate}
                             onChange={e =>
                               updateItem(
@@ -2025,10 +2176,7 @@ function MonthlyBillForm() {
         <div className="panel">
           <div className="panel-heading">
             <div>
-              <h2>
-                GST & Totals
-              </h2>
-
+              <h2>GST & Totals</h2>
               <p>
                 CGST 2.5% + SGST 2.5%
               </p>
@@ -2041,62 +2189,45 @@ function MonthlyBillForm() {
 
           <div className="totals-box">
             <div>
-              <span>
-                Taxable Subtotal
-              </span>
-
+              <span>Taxable Subtotal</span>
               <strong>
                 ₹ {money(taxableSubtotal)}
               </strong>
             </div>
 
             <div>
-              <span>
-                CGST @ 2.5%
-              </span>
-
+              <span>CGST @ 2.5%</span>
               <strong>
                 ₹ {money(cgst)}
               </strong>
             </div>
 
             <div>
-              <span>
-                SGST @ 2.5%
-              </span>
-
+              <span>SGST @ 2.5%</span>
               <strong>
                 ₹ {money(sgst)}
               </strong>
             </div>
 
             <div>
-              <span>
-                Non-Taxable Amount
-              </span>
-
+              <span>Non-Taxable Amount</span>
               <strong>
                 ₹ {money(nonTaxableSubtotal)}
               </strong>
             </div>
 
             <div>
-              <span>
-                Round Off
-              </span>
-
+              <span>Round Off</span>
               <strong>
-                ₹ 0.00
+                {roundOff >= 0 ? '+' : ''}
+                ₹ {money(roundOff)}
               </strong>
             </div>
 
             <div className="grand">
-              <span>
-                Grand Total
-              </span>
-
+              <span>Grand Total</span>
               <strong>
-                ₹ {money(totalBeforeRoundOff)}
+                ₹ {money(grandTotal)}
               </strong>
             </div>
           </div>
@@ -2108,6 +2239,7 @@ function MonthlyBillForm() {
           type="button"
           className="button ghost"
           onClick={() => navigate('/')}
+          disabled={saving}
         >
           Cancel
         </button>
@@ -2115,8 +2247,12 @@ function MonthlyBillForm() {
         <button
           type="button"
           className="button primary big"
+          onClick={saveMonthlyBill}
+          disabled={saving}
         >
-          Save Monthly Bill
+          {saving
+            ? 'Saving…'
+            : 'Save Monthly Bill'}
         </button>
       </div>
     </Layout>
