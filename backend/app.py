@@ -747,7 +747,7 @@ def create_monthly_bill():
 
     finally:
         session.close()
-        @app.get("/api/monthly-bills/<int:bill_id>/pdf")
+@app.get("/api/monthly-bills/<int:bill_id>/pdf")
 def monthly_bill_pdf(bill_id):
     session = SessionLocal()
 
