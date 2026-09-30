@@ -286,28 +286,50 @@ function Dashboard() {
   const navigate = useNavigate()
 
   const [rows, setRows] = useState([])
-  const [search, setSearch] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+const [search, setSearch] = useState('')
+const [loading, setLoading] = useState(true)
+const [error, setError] = useState('')
 
-  const load = async () => {
-    setLoading(true)
-    setError('')
+const [billType, setBillType] = useState('daily')
+const [selectedMonth, setSelectedMonth] = useState(
+  String(new Date().getMonth() + 1)
+)
+const [selectedYear, setSelectedYear] = useState(
+  String(new Date().getFullYear())
+)
 
-    try {
-      const data = await api.listInvoices(search)
-      setRows(data.invoices || [])
-    } catch (e) {
-      setError(e.message || 'Unable to load invoices.')
-    } finally {
-      setLoading(false)
-    }
+ const load = async () => {
+  setLoading(true)
+  setError('')
+
+  try {
+    const data =
+      billType === 'monthly'
+        ? await api.listInvoices(
+            search,
+            selectedMonth,
+            selectedYear
+          )
+        : await api.listInvoices(search)
+
+    setRows(data.invoices || [])
+  } catch (e) {
+    setError(
+      e.message || 'Unable to load invoices.'
+    )
+  } finally {
+    setLoading(false)
   }
+}
 
-  useEffect(() => {
-    load()
-  }, [search])
-
+ useEffect(() => {
+  load()
+}, [
+  search,
+  billType,
+  selectedMonth,
+  selectedYear
+])
   const total = useMemo(
     () => rows.reduce((s, r) => s + num(r.grand_total), 0),
     [rows]
