@@ -360,13 +360,37 @@ def list_invoices():
 
     finally:
         session.close()
+    finally:
+        session.close()
+
+
+@app.get("/api/invoices/<int:invoice_id>")
 def get_invoice(invoice_id):
     session = SessionLocal()
+
     try:
-        inv = session.execute(select(Invoice).options(joinedload(Invoice.trips)).where(Invoice.id == invoice_id)).unique().scalar_one_or_none()
+        inv = (
+            session.execute(
+                select(Invoice)
+                .options(joinedload(Invoice.trips))
+                .where(Invoice.id == invoice_id)
+            )
+            .unique()
+            .scalar_one_or_none()
+        )
+
         if not inv:
-            return error_response("Invoice not found", 404, "NOT_FOUND")
-        return jsonify({"success": True, "invoice": serialize_invoice(inv)})
+            return error_response(
+                "Invoice not found",
+                404,
+                "NOT_FOUND"
+            )
+
+        return jsonify({
+            "success": True,
+            "invoice": serialize_invoice(inv)
+        })
+
     finally:
         session.close()
 
