@@ -1530,7 +1530,7 @@ signature_details = [
         ),
     ]
 
-    bank_table = Table(
+bank_table = Table(
         [[x] for x in bank_details],
         colWidths=[85 * mm],
         style=[
@@ -1542,7 +1542,7 @@ signature_details = [
         ],
     )
 
-    signature_table = Table(
+signature_table = Table(
         [[x] for x in signature_details],
         colWidths=[85 * mm],
         style=[
@@ -1554,7 +1554,7 @@ signature_details = [
         ],
     )
 
-    story.append(
+story.append(
         Table(
             [
                 [
