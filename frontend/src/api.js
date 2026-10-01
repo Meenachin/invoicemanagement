@@ -82,8 +82,26 @@ export const api = {
     body: JSON.stringify(payload)
   }),
 
-listMonthlyBills: () =>
-  request('/api/monthly-bills'),
+listMonthlyBills: (
+  month = '',
+  year = ''
+) => {
+  const params = new URLSearchParams()
+
+  if (month) {
+    params.set('month', month)
+  }
+
+  if (year) {
+    params.set('year', year)
+  }
+
+  const query = params.toString()
+
+  return request(
+    `/api/monthly-bills${query ? `?${query}` : ''}`
+  )
+},
 
 getMonthlyBill: id =>
   request(`/api/monthly-bills/${id}`),
