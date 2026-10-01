@@ -263,17 +263,21 @@ function Layout({ children }) {
           </span>
         </Link>
 
-      <nav>
-  <Link to="/">Invoices</Link>
+    <nav>
+  <Link to="/new">
+    Daily Bills
+  </Link>
 
   <Link to="/monthly">
-    Monthly Bill
+    Monthly Bills
   </Link>
-<Link to="/monthly-history">
+
+  <Link to="/daily-history">
+    Daily Bill History
+  </Link>
+
+  <Link to="/monthly-history">
     Monthly Bill History
-  </Link>
-  <Link to="/new" className="nav-primary">
-    + New Invoice
   </Link>
 </nav>
       </header>
@@ -288,8 +292,112 @@ function Layout({ children }) {
     </div>
   )
 }
-
 function Dashboard() {
+  const navigate = useNavigate()
+
+  return (
+    <Layout>
+      <section className="hero">
+        <div>
+          <div className="eyebrow">
+            CONTROL CENTER
+          </div>
+
+          <h1>
+            PVR Invoice Management
+          </h1>
+
+          <p>
+            Manage Daily Bills, Monthly Bills,
+            and their history from one place.
+          </p>
+        </div>
+      </section>
+
+      <section className="stats-grid">
+
+        <div className="panel">
+          <div className="panel-heading">
+            <div>
+              <h2>Daily Bills</h2>
+              <p>
+                Create a new daily bill.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="button primary big"
+            onClick={() => navigate('/new')}
+          >
+            Daily Bills →
+          </button>
+        </div>
+
+        <div className="panel">
+          <div className="panel-heading">
+            <div>
+              <h2>Monthly Bills</h2>
+              <p>
+                Create a new monthly bill.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="button primary big"
+            onClick={() => navigate('/monthly')}
+          >
+            Monthly Bills →
+          </button>
+        </div>
+
+        <div className="panel">
+          <div className="panel-heading">
+            <div>
+              <h2>Daily Bill History</h2>
+              <p>
+                View, edit, PDF, CSV and Excel
+                for daily bills.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="button primary big"
+            onClick={() => navigate('/daily-history')}
+          >
+            Daily Bill History →
+          </button>
+        </div>
+
+        <div className="panel">
+          <div className="panel-heading">
+            <div>
+              <h2>Monthly Bill History</h2>
+              <p>
+                View and manage saved monthly bills.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="button primary big"
+            onClick={() => navigate('/monthly-history')}
+          >
+            Monthly Bill History →
+          </button>
+        </div>
+
+      </section>
+    </Layout>
+  )
+}
+function DailyBillHistory() {
   const navigate = useNavigate()
 
  const [rows, setRows] = useState([])
@@ -2628,29 +2736,33 @@ const data = editing
 export default function App() {
   const location = useLocation()
 
- if (location.pathname === '/') {
+  if (location.pathname === '/') {
+    return <Dashboard />
+  }
+
+  if (location.pathname === '/new') {
+    return <InvoiceForm />
+  }
+
+  if (location.pathname === '/daily-history') {
+    return <DailyBillHistory />
+  }
+
+  if (location.pathname === '/monthly') {
+    return <MonthlyBillForm />
+  }
+
+  if (location.pathname === '/monthly-history') {
+    return <MonthlyBillHistory />
+  }
+
+  if (location.pathname.startsWith('/monthly-edit/')) {
+    return <MonthlyBillForm />
+  }
+
+  if (location.pathname.startsWith('/edit/')) {
+    return <InvoiceForm />
+  }
+
   return <Dashboard />
-}
-
-if (location.pathname === '/monthly') {
-  return <MonthlyBillForm />
-}
-
-if (location.pathname === '/monthly-history') {
-  return <MonthlyBillHistory />
-}
-
-if (location.pathname.startsWith('/monthly-edit/')) {
-  return <MonthlyBillForm />
-}
-
-if (location.pathname === '/new') {
-  return <InvoiceForm />
-}
-
-if (location.pathname.startsWith('/edit/')) {
-  return <InvoiceForm />
-}
-
-return <Dashboard />
 }
