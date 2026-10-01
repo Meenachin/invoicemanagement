@@ -1500,61 +1500,61 @@ def build_monthly_bill_pdf(bill):
     # =========================================================
     # BANK DETAILS + SIGNATURE
     # =========================================================
+bank_details = [
+        Paragraph(
+            "BANK DETAILS",
+            section_title
+        ),
+        Paragraph(
+            "Account Name: PVR Tours & Travels<br/>"
+            "Bank: State Bank of India<br/>"
+            "Account No: 39169597084<br/>"
+            "IFSC: SBIN0000487",
+            small,
+        ),
+    ]
 
-    bank_details = [
-    Paragraph(
-        "BANK DETAILS",
-        section_title
-    ),
-    Paragraph(
-        "Account Name: PVR Tours & Travels<br/>"
-        "Bank: State Bank of India<br/>"
-        "Account No: 39169597084<br/>"
-        "IFSC: SBIN0000487",
-        small,
-    ),
-]
+    signature_details = [
+        Paragraph(
+            "FOR P.V.R. TOURS AND TRAVELS",
+            label
+        ),
+        Spacer(1, 11 * mm),
+        Paragraph(
+            "AUTHORISED SIGNATORY",
+            label
+        ),
+        Spacer(1, 4 * mm),
+        Paragraph(
+            "____________________________",
+            label
+        ),
+    ]
 
-signature_details = [
-    Paragraph(
-        "FOR P.V.R. TOURS AND TRAVELS",
-        label
-    ),
-    Spacer(1, 11 * mm),
-    Paragraph(
-        "AUTHORISED SIGNATORY",
-        label
-    ),
-    Spacer(1, 4 * mm),
-    Paragraph(
-        "____________________________",
-        label
-    ),
-]
+    bank_table = Table(
+        [[x] for x in bank_details],
+        colWidths=[85 * mm],
+        style=[
+            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
+        ],
+    )
 
-bank_table = Table(
-    [[x] for x in bank_details],
-    colWidths=[85 * mm],
-    style=[
-        ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING", (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
-    ],
-)
+    signature_table = Table(
+        [[x] for x in signature_details],
+        colWidths=[85 * mm],
+        style=[
+            ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
+        ],
+    )
 
-signature_table = Table(
-    [[x] for x in signature_details],
-    colWidths=[85 * mm],
-    style=[
-        ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING", (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
-    ],
-)
     story.append(
         Table(
             [
@@ -1601,6 +1601,7 @@ signature_table = Table(
             ],
         )
     )
+
     # =========================================================
     # BUILD PDF
     # =========================================================
