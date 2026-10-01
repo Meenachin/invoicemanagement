@@ -1500,7 +1500,7 @@ def build_monthly_bill_pdf(bill):
     # =========================================================
     # BANK DETAILS + SIGNATURE
     # =========================================================
-bank_details = [
+    bank_details = [
         Paragraph(
             "BANK DETAILS",
             section_title
@@ -1513,7 +1513,8 @@ bank_details = [
             small,
         ),
     ]
-signature_details = [
+
+    signature_details = [
         Paragraph(
             "FOR P.V.R. TOURS AND TRAVELS",
             label
@@ -1530,7 +1531,7 @@ signature_details = [
         ),
     ]
 
-bank_table = Table(
+    bank_table = Table(
         [[x] for x in bank_details],
         colWidths=[85 * mm],
         style=[
@@ -1542,7 +1543,7 @@ bank_table = Table(
         ],
     )
 
-signature_table = Table(
+    signature_table = Table(
         [[x] for x in signature_details],
         colWidths=[85 * mm],
         style=[
@@ -1554,7 +1555,7 @@ signature_table = Table(
         ],
     )
 
-story.append(
+    story.append(
         Table(
             [
                 [
@@ -1600,6 +1601,7 @@ story.append(
             ],
         )
     )
+
     # =========================================================
     # BUILD PDF
     # =========================================================
