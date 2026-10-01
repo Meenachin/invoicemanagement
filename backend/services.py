@@ -1555,54 +1555,52 @@ signature_table = Table(
         ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
     ],
 )
-
-story.append(
-    Table(
-        [
+    story.append(
+        Table(
             [
-                bank_table,
-                signature_table,
-            ]
-        ],
-        colWidths=[
-            90 * mm,
-            90 * mm,
-        ],
-        style=[
-            (
-                "VALIGN",
-                (0, 0),
-                (-1, -1),
-                "TOP",
-            ),
-            (
-                "LEFTPADDING",
-                (0, 0),
-                (-1, -1),
-                0,
-            ),
-            (
-                "RIGHTPADDING",
-                (0, 0),
-                (-1, -1),
-                0,
-            ),
-            (
-                "TOPPADDING",
-                (0, 0),
-                (-1, -1),
-                0,
-            ),
-            (
-                "BOTTOMPADDING",
-                (0, 0),
-                (-1, -1),
-                0,
-            ),
-        ],
+                [
+                    bank_table,
+                    signature_table,
+                ]
+            ],
+            colWidths=[
+                90 * mm,
+                90 * mm,
+            ],
+            style=[
+                (
+                    "VALIGN",
+                    (0, 0),
+                    (-1, -1),
+                    "TOP",
+                ),
+                (
+                    "LEFTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    0,
+                ),
+                (
+                    "RIGHTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    0,
+                ),
+                (
+                    "TOPPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    0,
+                ),
+                (
+                    "BOTTOMPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    0,
+                ),
+            ],
+        )
     )
-)
-
     # =========================================================
     # BUILD PDF
     # =========================================================
