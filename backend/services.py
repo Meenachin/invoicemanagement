@@ -1513,8 +1513,7 @@ bank_details = [
             small,
         ),
     ]
-
-    signature_details = [
+signature_details = [
         Paragraph(
             "FOR P.V.R. TOURS AND TRAVELS",
             label
