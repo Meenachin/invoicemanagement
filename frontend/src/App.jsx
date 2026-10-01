@@ -2094,14 +2094,26 @@ function MonthlyBillForm() {
 
   const [activeType, setActiveType] = useState('taxable')
 
-  const [taxableItems, setTaxableItems] = useState([
-    {
-      description: '',
-      quantity: 1,
-      rate: 0,
-      amount: 0
-    }
-  ])
+ const [taxableItems, setTaxableItems] = useState([
+  {
+    description: 'Extra Hours Charges @100 per hour',
+    quantity: 1,
+    rate: 100,
+    amount: 100
+  },
+  {
+    description: 'Out Station Driver Batta @500 per day',
+    quantity: 1,
+    rate: 500,
+    amount: 500
+  },
+  {
+    description: 'Holiday Working Allowance @500 per day (Sunday & Public Holiday)',
+    quantity: 1,
+    rate: 500,
+    amount: 500
+  }
+])
 
   const [nonTaxableItems, setNonTaxableItems] = useState([
     {
@@ -2184,15 +2196,29 @@ useEffect(() => {
         }))
 
       setTaxableItems(
-        taxable.length
-          ? taxable
-          : [{
-              description: '',
-              quantity: 1,
-              rate: 0,
-              amount: 0
-            }]
-      )
+  taxable.length
+    ? taxable
+    : [
+        {
+          description: 'Extra Hours Charges @100 per hour',
+          quantity: 1,
+          rate: 100,
+          amount: 100
+        },
+        {
+          description: 'Out Station Driver Batta @500 per day',
+          quantity: 1,
+          rate: 500,
+          amount: 500
+        },
+        {
+          description: 'Holiday Working Allowance @500 per day (Sunday & Public Holiday)',
+          quantity: 1,
+          rate: 500,
+          amount: 500
+        }
+      ]
+)
 
       setNonTaxableItems(
         nonTaxable.length
