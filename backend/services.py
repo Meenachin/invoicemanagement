@@ -724,7 +724,7 @@ def build_monthly_bill_pdf(bill):
         fontName="Helvetica-Bold",
         fontSize=7,
         leading=9,
-        textColor=colors.white,
+        textColor=colors.black,
     )
 
     center = ParagraphStyle(
@@ -1150,18 +1150,13 @@ def build_monthly_bill_pdf(bill):
                 ],
                 repeatRows=1,
                 style=[
-                    (
-                        "BACKGROUND",
-                        (0, 0),
-                        (-1, 0),
-                        colors.HexColor("#102A43"),
-                    ),
+                   
                     (
                         "LINEBELOW",
                         (0, 0),
                         (-1, 0),
                         0.8,
-                        colors.HexColor("#102A43"),
+                        colors.black,
                     ),
                     (
                         "LINEBELOW",
@@ -1259,18 +1254,13 @@ def build_monthly_bill_pdf(bill):
                 ],
                 repeatRows=1,
                 style=[
-                    (
-                        "BACKGROUND",
-                        (0, 0),
-                        (-1, 0),
-                        colors.HexColor("#52606D"),
-                    ),
+                    
                     (
                         "LINEBELOW",
                         (0, 0),
                         (-1, 0),
                         0.8,
-                        colors.HexColor("#52606D"),
+                        colors.black,
                     ),
                     (
                         "LINEBELOW",
@@ -1512,151 +1502,106 @@ def build_monthly_bill_pdf(bill):
     # =========================================================
 
     bank_details = [
-        Paragraph(
-            "BANK DETAILS",
-            section_title,
-        ),
-        Paragraph(
-            "Account Name: PVR Tours & Travels<br/>"
-            "Bank: State Bank of India<br/>"
-            "Account No: 39169597084<br/>"
-            "IFSC: SBIN0000487",
-            small,
-        ),
-    ]
+    Paragraph(
+        "BANK DETAILS",
+        section_title
+    ),
+    Paragraph(
+        "Account Name: PVR Tours & Travels<br/>"
+        "Bank: State Bank of India<br/>"
+        "Account No: 39169597084<br/>"
+        "IFSC: SBIN0000487",
+        small,
+    ),
+]
 
-    signature_details = [
-        Paragraph(
-            "FOR P.V.R. TOURS AND TRAVELS",
-            label,
-        ),
-        Spacer(1, 11 * mm),
-        Paragraph(
-            "AUTHORISED SIGNATORY",
-            label,
-        ),
-    ]
+signature_details = [
+    Paragraph(
+        "FOR P.V.R. TOURS AND TRAVELS",
+        label
+    ),
+    Spacer(1, 11 * mm),
+    Paragraph(
+        "AUTHORISED SIGNATORY",
+        label
+    ),
+    Spacer(1, 4 * mm),
+    Paragraph(
+        "____________________________",
+        label
+    ),
+]
 
-    bank_table = Table(
-        [[x] for x in bank_details],
-        colWidths=[100 * mm],
-        style=[
-            (
-                "ALIGN",
-                (0, 0),
-                (-1, -1),
-                "LEFT",
-            ),
-            (
-                "LEFTPADDING",
-                (0, 0),
-                (-1, -1),
-                0,
-            ),
-            (
-                "RIGHTPADDING",
-                (0, 0),
-                (-1, -1),
-                0,
-            ),
-            (
-                "TOPPADDING",
-                (0, 0),
-                (-1, -1),
-                0,
-            ),
-            (
-                "BOTTOMPADDING",
-                (0, 0),
-                (-1, -1),
-                1,
-            ),
-        ],
-    )
+bank_table = Table(
+    [[x] for x in bank_details],
+    colWidths=[85 * mm],
+    style=[
+        ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
+    ],
+)
 
-    signature_table = Table(
-        [[x] for x in signature_details],
-        colWidths=[80 * mm],
-        style=[
-            (
-                "ALIGN",
-                (0, 0),
-                (-1, -1),
-                "RIGHT",
-            ),
-            (
-                "LEFTPADDING",
-                (0, 0),
-                (-1, -1),
-                0,
-            ),
-            (
-                "RIGHTPADDING",
-                (0, 0),
-                (-1, -1),
-                0,
-            ),
-            (
-                "TOPPADDING",
-                (0, 0),
-                (-1, -1),
-                0,
-            ),
-            (
-                "BOTTOMPADDING",
-                (0, 0),
-                (-1, -1),
-                1,
-            ),
-        ],
-    )
+signature_table = Table(
+    [[x] for x in signature_details],
+    colWidths=[85 * mm],
+    style=[
+        ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
+    ],
+)
 
-    story.append(
-        Table(
+story.append(
+    Table(
+        [
             [
-                [
-                    bank_table,
-                    signature_table,
-                ]
-            ],
-            colWidths=[
-                100 * mm,
-                80 * mm,
-            ],
-            style=[
-                (
-                    "VALIGN",
-                    (0, 0),
-                    (-1, -1),
-                    "TOP",
-                ),
-                (
-                    "LEFTPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    0,
-                ),
-                (
-                    "RIGHTPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    0,
-                ),
-                (
-                    "TOPPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    0,
-                ),
-                (
-                    "BOTTOMPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    0,
-                ),
-            ],
-        )
+                bank_table,
+                signature_table,
+            ]
+        ],
+        colWidths=[
+            90 * mm,
+            90 * mm,
+        ],
+        style=[
+            (
+                "VALIGN",
+                (0, 0),
+                (-1, -1),
+                "TOP",
+            ),
+            (
+                "LEFTPADDING",
+                (0, 0),
+                (-1, -1),
+                0,
+            ),
+            (
+                "RIGHTPADDING",
+                (0, 0),
+                (-1, -1),
+                0,
+            ),
+            (
+                "TOPPADDING",
+                (0, 0),
+                (-1, -1),
+                0,
+            ),
+            (
+                "BOTTOMPADDING",
+                (0, 0),
+                (-1, -1),
+                0,
+            ),
+        ],
     )
+)
 
     # =========================================================
     # BUILD PDF
