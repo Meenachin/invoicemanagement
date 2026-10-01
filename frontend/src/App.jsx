@@ -1770,17 +1770,22 @@ function InvoiceForm() {
 function MonthlyBillHistory() {
   const navigate = useNavigate()
 
-  const [bills, setBills] = useState([])
-  const [search, setSearch] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+ const [bills, setBills] = useState([])
+const [search, setSearch] = useState('')
+const [month, setMonth] = useState('')
+const [year, setYear] = useState('')
+const [loading, setLoading] = useState(true)
+const [error, setError] = useState('')
 
   const loadBills = async () => {
     setLoading(true)
     setError('')
 
     try {
-      const data = await api.listMonthlyBills()
+      const data = await api.listMonthlyBills(
+  month,
+  year
+)
       setBills(data.monthly_bills || [])
     } catch (e) {
       setError(
@@ -1791,9 +1796,9 @@ function MonthlyBillHistory() {
     }
   }
 
-  useEffect(() => {
-    loadBills()
-  }, [])
+ useEffect(() => {
+  loadBills()
+}, [month, year])
 
   const filteredBills = bills.filter(bill => {
     const text = [
@@ -1841,11 +1846,11 @@ function MonthlyBillHistory() {
       </section>
 
       <section className="stats-grid">
-        <Stat
-          title="Saved Monthly Bills"
-          value={bills.length}
-          tone="purple"
-        />
+       <Stat
+  title="Saved Monthly Bills"
+  value={filteredBills.length}
+  tone="purple"
+/>
 
         <Stat
           title="Visible bill value"
@@ -1867,31 +1872,80 @@ function MonthlyBillHistory() {
           </div>
 
           <div className="heading-actions">
-            <button
-              type="button"
-              className="button ghost"
-              onClick={loadBills}
-              disabled={loading}
-            >
-              {loading ? 'Loading…' : '↻ Refresh'}
-            </button>
 
-            <a
-              className="button ghost"
-              href="/api/monthly-bills/export/csv"
-              download
-            >
-              ⇩ CSV
-            </a>
+  <select
+    className="button ghost"
+    value={month}
+    onChange={e => setMonth(e.target.value)}
+  >
+    <option value="">
+      All Months
+    </option>
 
-            <a
-              className="button ghost"
-              href="/api/monthly-bills/export/xlsx"
-              download
-            >
-              ⇩ Excel
-            </a>
-          </div>
+    <option value="1">January</option>
+    <option value="2">February</option>
+    <option value="3">March</option>
+    <option value="4">April</option>
+    <option value="5">May</option>
+    <option value="6">June</option>
+    <option value="7">July</option>
+    <option value="8">August</option>
+    <option value="9">September</option>
+    <option value="10">October</option>
+    <option value="11">November</option>
+    <option value="12">December</option>
+  </select>
+
+  <select
+    className="button ghost"
+    value={year}
+    onChange={e => setYear(e.target.value)}
+  >
+    <option value="">
+      All Years
+    </option>
+
+    {Array.from(
+      { length: 7 },
+      (_, index) => 2025 + index
+    ).map(value => (
+      <option
+        key={value}
+        value={value}
+      >
+        {value}
+      </option>
+    ))}
+  </select>
+
+  <button
+    type="button"
+    className="button ghost"
+    onClick={loadBills}
+    disabled={loading}
+  >
+    {loading
+      ? 'Loading…'
+      : '↻ Refresh'}
+  </button>
+
+  <a
+    className="button ghost"
+    href="/api/monthly-bills/export/csv"
+    download
+  >
+    ⇩ CSV
+  </a>
+
+  <a
+    className="button ghost"
+    href="/api/monthly-bills/export/xlsx"
+    download
+  >
+    ⇩ Excel
+  </a>
+
+</div>
         </div>
 
         <div className="search-row">
