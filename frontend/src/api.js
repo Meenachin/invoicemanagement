@@ -26,8 +26,29 @@ async function request(url, options = {}) {
 export const api = {
   health: () => request('/api/health'),
 
-  listInvoices: (search = '') =>
-    request(`/api/invoices?search=${encodeURIComponent(search)}`),
+  listInvoices: (
+  search = '',
+  month = '',
+  year = ''
+) => {
+  const params = new URLSearchParams()
+
+  if (search) {
+    params.set('search', search)
+  }
+
+  if (month) {
+    params.set('month', month)
+  }
+
+  if (year) {
+    params.set('year', year)
+  }
+
+  return request(
+    `/api/invoices?${params.toString()}`
+  )
+},
 
   getInvoice: (id) =>
     request(`/api/invoices/${id}`),
