@@ -1407,82 +1407,83 @@ def monthly_bill_pdf(bill_id):
 
     finally:
         session.close()
+
 @app.get("/api/monthly-bills")
 def list_monthly_bills():
     session = SessionLocal()
 
     try:
-      month_value = (
-    request.args.get("month") or ""
-).strip()
+        month_value = (
+            request.args.get("month") or ""
+        ).strip()
 
-year_value = (
-    request.args.get("year") or ""
-).strip()
+        year_value = (
+            request.args.get("year") or ""
+        ).strip()
 
-query = (
-    select(MonthlyBill)
-    .order_by(
-        MonthlyBill.invoice_date.desc(),
-        MonthlyBill.id.desc()
-    )
-)
-
-if month_value and year_value:
-    try:
-        selected_month = int(month_value)
-        selected_year = int(year_value)
-
-        if selected_month < 1 or selected_month > 12:
-            return error_response(
-                "Month must be between 1 and 12",
-                400,
-                "INVALID_MONTH"
+        query = (
+            select(MonthlyBill)
+            .order_by(
+                MonthlyBill.invoice_date.desc(),
+                MonthlyBill.id.desc()
             )
-
-        if selected_year < 2000 or selected_year > 2100:
-            return error_response(
-                "Invalid year",
-                400,
-                "INVALID_YEAR"
-            )
-
-        start_date = date(
-            selected_year,
-            selected_month,
-            1
         )
 
-        if selected_month == 12:
-            next_month_date = date(
-                selected_year + 1,
-                1,
-                1
-            )
-        else:
-            next_month_date = date(
-                selected_year,
-                selected_month + 1,
-                1
-            )
+        if month_value and year_value:
+            try:
+                selected_month = int(month_value)
+                selected_year = int(year_value)
 
-        query = query.where(
-            MonthlyBill.invoice_date >= start_date,
-            MonthlyBill.invoice_date < next_month_date
+                if selected_month < 1 or selected_month > 12:
+                    return error_response(
+                        "Month must be between 1 and 12",
+                        400,
+                        "INVALID_MONTH"
+                    )
+
+                if selected_year < 2000 or selected_year > 2100:
+                    return error_response(
+                        "Invalid year",
+                        400,
+                        "INVALID_YEAR"
+                    )
+
+                start_date = date(
+                    selected_year,
+                    selected_month,
+                    1
+                )
+
+                if selected_month == 12:
+                    next_month_date = date(
+                        selected_year + 1,
+                        1,
+                        1
+                    )
+                else:
+                    next_month_date = date(
+                        selected_year,
+                        selected_month + 1,
+                        1
+                    )
+
+                query = query.where(
+                    MonthlyBill.invoice_date >= start_date,
+                    MonthlyBill.invoice_date < next_month_date
+                )
+
+            except ValueError:
+                return error_response(
+                    "Month and year must be valid numbers",
+                    400,
+                    "INVALID_MONTH_YEAR"
+                )
+
+        bills = (
+            session.execute(query)
+            .scalars()
+            .all()
         )
-
-    except ValueError:
-        return error_response(
-            "Month and year must be valid numbers",
-            400,
-            "INVALID_MONTH_YEAR"
-        )
-
-bills = (
-    session.execute(query)
-    .scalars()
-    .all()
-)
 
         result = []
 
@@ -1530,49 +1531,6 @@ bills = (
 
     finally:
         session.close()
-@app.get("/api/monthly-bills/<int:bill_id>")
-def get_monthly_bill(bill_id):
-    session = SessionLocal()
-
-    try:
-        bill = (
-            session.execute(
-                select(MonthlyBill)
-                .options(
-                    joinedload(MonthlyBill.items)
-                )
-                .where(MonthlyBill.id == bill_id)
-            )
-            .unique()
-            .scalar_one_or_none()
-        )
-
-        if not bill:
-            return error_response(
-                "Monthly Bill not found",
-                404,
-                "NOT_FOUND"
-            )
-
-        return jsonify({
-            "success": True,
-            "monthly_bill": serialize_monthly_bill(bill)
-        })
-
-    except Exception as exc:
-        session.rollback()
-        traceback.print_exc()
-
-        return error_response(
-            "Unable to load Monthly Bill",
-            500,
-            "MONTHLY_BILL_GET_ERROR",
-            str(exc)
-        )
-
-    finally:
-        session.close()
-
 
 @app.put("/api/monthly-bills/<int:bill_id>")
 def update_monthly_bill(bill_id):
