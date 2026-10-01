@@ -1531,7 +1531,50 @@ def list_monthly_bills():
 
     finally:
         session.close()
+@app.get("/api/monthly-bills/<int:bill_id>")
+def get_monthly_bill(bill_id):
+    session = SessionLocal()
 
+    try:
+        bill = (
+            session.execute(
+                select(MonthlyBill)
+                .options(
+                    joinedload(MonthlyBill.items)
+                )
+                .where(
+                    MonthlyBill.id == bill_id
+                )
+            )
+            .unique()
+            .scalar_one_or_none()
+        )
+
+        if not bill:
+            return error_response(
+                "Monthly Bill not found",
+                404,
+                "NOT_FOUND"
+            )
+
+        return jsonify({
+            "success": True,
+            "monthly_bill": serialize_monthly_bill(bill)
+        })
+
+    except Exception as exc:
+        session.rollback()
+        traceback.print_exc()
+
+        return error_response(
+            "Unable to load Monthly Bill",
+            500,
+            "MONTHLY_BILL_GET_ERROR",
+            str(exc)
+        )
+
+    finally:
+        session.close()
 @app.put("/api/monthly-bills/<int:bill_id>")
 def update_monthly_bill(bill_id):
     session = SessionLocal()
