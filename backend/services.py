@@ -1331,14 +1331,44 @@ def build_monthly_bill_pdf(bill):
     # =========================================================
     # TOTALS
     # =========================================================
+    taxable_subtotal = float(
+        bill.taxable_subtotal or 0
+    )
 
-    round_off_value = float(
-        bill.round_off or 0
+    non_taxable_total = float(
+        bill.non_taxable_total or 0
+    )
+
+    cgst_value = float(
+        bill.cgst or 0
+    )
+
+    sgst_value = float(
+        bill.sgst or 0
+    )
+
+    total_gst = (
+        cgst_value
+        + sgst_value
+    )
+
+    subtotal_before_round = (
+        taxable_subtotal
+        + non_taxable_total
+    )
+
+    calculated_grand_total = round(
+        subtotal_before_round
+    )
+
+    calculated_round_off = (
+        calculated_grand_total
+        - subtotal_before_round
     )
 
     round_off_text = (
         "+"
-        if round_off_value >= 0
+        if calculated_round_off >= 0
         else ""
     )
 
@@ -1349,7 +1379,7 @@ def build_monthly_bill_pdf(bill):
                 normal,
             ),
             Paragraph(
-                f"Rs. {float(bill.taxable_subtotal or 0):,.2f}",
+                f"Rs. {taxable_subtotal:,.2f}",
                 total_value,
             ),
         ],
@@ -1359,20 +1389,27 @@ def build_monthly_bill_pdf(bill):
                 normal,
             ),
             Paragraph(
-                f"Rs. {float(bill.cgst or 0):,.2f}",
+                f"Rs. {cgst_value:,.2f}",
                 total_value,
             ),
         ],
         [
             Paragraph(
-                "Total Gst", 
-                normal, 
+                f"SGST @ {float(bill.sgst_rate or 0):g}%",
+                normal,
             ),
             Paragraph(
-                "Rs. {:.2f}".format(
-                    float(bill.cgst or 0)
-                    +float(bill.sgst or 0)
-                ),
+                f"Rs. {sgst_value:,.2f}",
+                total_value,
+            ),
+        ],
+        [
+            Paragraph(
+                "Total GST",
+                normal,
+            ),
+            Paragraph(
+                f"Rs. {total_gst:,.2f}",
                 total_value,
             ),
         ],
@@ -1382,7 +1419,7 @@ def build_monthly_bill_pdf(bill):
                 normal,
             ),
             Paragraph(
-                f"Rs. {float(bill.non_taxable_total or 0):,.2f}",
+                f"Rs. {non_taxable_total:,.2f}",
                 total_value,
             ),
         ],
@@ -1392,7 +1429,7 @@ def build_monthly_bill_pdf(bill):
                 normal,
             ),
             Paragraph(
-                f"{round_off_text}Rs. {round_off_value:,.2f}",
+                f"{round_off_text}Rs. {calculated_round_off:,.2f}",
                 total_value,
             ),
         ],
@@ -1402,7 +1439,7 @@ def build_monthly_bill_pdf(bill):
                 grand_label,
             ),
             Paragraph(
-                f"Rs. {float(bill.grand_total or 0):,.2f}",
+                f"Rs. {calculated_grand_total:,.2f}",
                 grand_value,
             ),
         ],
