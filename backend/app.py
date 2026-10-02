@@ -1715,8 +1715,6 @@ def update_monthly_bill(bill_id):
 
         subtotal_before_round = (
             taxable_subtotal
-            + cgst
-            + sgst
             + non_taxable_total
         )
 
