@@ -4068,3 +4068,586 @@ def invoice_to_excel(invoices):
     output.seek(0)
 
     return output.getvalue()
+
+
+
+# ============================================================
+# E-INVOICE EXCEL EXPORT
+# ============================================================
+
+def invoice_to_einvoice_excel(invoices):
+    """
+    Create separate E-Invoice Excel workbook.
+
+    Each invoice gets two rows:
+
+    Row 1:
+        Normal invoice values.
+
+    Row 2:
+        Only Parking and Toll values are retained.
+        All other numeric values are zero.
+    """
+
+    workbook = Workbook()
+
+    sheet = workbook.active
+
+    sheet.title = "Invoices"
+
+    # ========================================================
+    # STYLES
+    # ========================================================
+
+    header_fill = PatternFill(
+        fill_type="solid",
+        fgColor="1F4E78"
+    )
+
+    header_font = Font(
+        bold=True,
+        color="FFFFFF"
+    )
+
+    thin_side = Side(
+        style="thin",
+        color="D9E1F2"
+    )
+
+    border = Border(
+        left=thin_side,
+        right=thin_side,
+        top=thin_side,
+        bottom=thin_side
+    )
+
+    center = Alignment(
+        horizontal="center",
+        vertical="center",
+        wrap_text=True
+    )
+
+    left = Alignment(
+        horizontal="left",
+        vertical="center",
+        wrap_text=True
+    )
+
+    # ========================================================
+    # HEADERS
+    # ========================================================
+
+    headers = [
+        "Invoice Number",
+        "Invoice Date",
+        "Customer Name",
+        "Customer Address",
+        "Customer GSTIN",
+        "Booked By",
+        "Used By",
+        "Reference / PO",
+        "Vehicle Number",
+        "Trip Count",
+        "Base Amount",
+        "Extra Hours Amount",
+        "Extra KM Amount",
+        "Driver Bata",
+        "Parking",
+        "Toll",
+        "Other Charges",
+        "Parking + Toll + Other",
+        "Taxable Amount",
+        "CGST %",
+        "CGST",
+        "SGST %",
+        "SGST",
+        "IGST %",
+        "IGST",
+        "Round Off",
+        "Grand Total",
+    ]
+
+    sheet.append(headers)
+
+    for cell in sheet[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = center
+        cell.border = border
+
+    # ========================================================
+    # INVOICE DATA
+    # ========================================================
+
+    for inv in invoices:
+
+        trips = _get_trips(inv)
+
+        invoice_number = _get_value(
+            inv,
+            "invoice_number",
+            ""
+        )
+
+        invoice_date = _get_value(
+            inv,
+            "invoice_date",
+            ""
+        )
+
+        customer_name = _get_value(
+            inv,
+            "customer_name",
+            ""
+        )
+
+        customer_address = _get_value(
+            inv,
+            "customer_address",
+            ""
+        )
+
+        customer_gstin = _get_value(
+            inv,
+            "customer_gstin",
+            ""
+        )
+
+        booked_by = _get_value(
+            inv,
+            "booked_by",
+            ""
+        )
+
+        used_by = _get_value(
+            inv,
+            "used_by",
+            ""
+        )
+
+        reference_number = _get_value(
+            inv,
+            "reference_number",
+            ""
+        )
+
+        cgst_rate = Decimal(
+            str(
+                _get_value(
+                    inv,
+                    "cgst_rate",
+                    0
+                ) or 0
+            )
+        )
+
+        sgst_rate = Decimal(
+            str(
+                _get_value(
+                    inv,
+                    "sgst_rate",
+                    0
+                ) or 0
+            )
+        )
+
+        igst_rate = Decimal(
+            str(
+                _get_value(
+                    inv,
+                    "igst_rate",
+                    0
+                ) or 0
+            )
+        )
+
+        # ====================================================
+        # TRIP TOTALS
+        # ====================================================
+
+        base_amount = Decimal("0")
+        extra_hours = Decimal("0")
+        extra_km = Decimal("0")
+        driver_bata = Decimal("0")
+        parking = Decimal("0")
+        toll = Decimal("0")
+        other_charges = Decimal("0")
+
+        vehicle_numbers = []
+
+        for trip in trips:
+
+            vehicle_number = _get_value(
+                trip,
+                "vehicle_number",
+                ""
+            )
+
+            if vehicle_number:
+                vehicle_numbers.append(
+                    str(vehicle_number)
+                )
+
+            base_amount += Decimal(
+                str(
+                    _get_value(
+                        trip,
+                        "base_amount",
+                        0
+                    ) or 0
+                )
+            )
+
+            extra_hour_charge = _get_value(
+                trip,
+                "extra_hours_charge",
+                None
+            )
+
+            if extra_hour_charge is None:
+                extra_hour_charge = _get_value(
+                    trip,
+                    "extra_hour_amount",
+                    0
+                )
+
+            extra_hours += Decimal(
+                str(
+                    extra_hour_charge or 0
+                )
+            )
+
+            extra_km_charge = _get_value(
+                trip,
+                "extra_km_charge",
+                None
+            )
+
+            if extra_km_charge is None:
+                extra_km_charge = _get_value(
+                    trip,
+                    "extra_km_amount",
+                    0
+                )
+
+            extra_km += Decimal(
+                str(
+                    extra_km_charge or 0
+                )
+            )
+
+            driver_bata += Decimal(
+                str(
+                    _get_value(
+                        trip,
+                        "driver_bata",
+                        0
+                    ) or 0
+                )
+            )
+
+            parking += Decimal(
+                str(
+                    _get_value(
+                        trip,
+                        "parking",
+                        0
+                    ) or 0
+                )
+            )
+
+            toll += Decimal(
+                str(
+                    _get_value(
+                        trip,
+                        "toll",
+                        0
+                    ) or 0
+                )
+            )
+
+            other_charges += Decimal(
+                str(
+                    _get_value(
+                        trip,
+                        "other_charges",
+                        0
+                    ) or 0
+                )
+            )
+
+        # ====================================================
+        # CALCULATIONS
+        # ====================================================
+
+        non_taxable_total = (
+            parking
+            + toll
+            + other_charges
+        )
+
+        subtotal = (
+            base_amount
+            + extra_hours
+            + extra_km
+            + driver_bata
+            + parking
+            + toll
+            + other_charges
+        )
+
+        taxable_amount = (
+            subtotal
+            - non_taxable_total
+        )
+
+        if taxable_amount < Decimal("0"):
+            taxable_amount = Decimal("0")
+
+        cgst = (
+            taxable_amount
+            * cgst_rate
+            / Decimal("100")
+        )
+
+        sgst = (
+            taxable_amount
+            * sgst_rate
+            / Decimal("100")
+        )
+
+        igst = (
+            taxable_amount
+            * igst_rate
+            / Decimal("100")
+        )
+
+        rounded_total = subtotal.quantize(
+            Decimal("1"),
+            rounding=ROUND_HALF_UP
+        )
+
+        round_off = (
+            rounded_total
+            - subtotal
+        )
+
+        vehicle_text = ", ".join(
+            vehicle_numbers
+        )
+
+        # ====================================================
+        # ROW 1 - NORMAL PVR INVOICE
+        # ====================================================
+
+        sheet.append(
+            [
+                invoice_number,
+                invoice_date,
+                customer_name,
+                customer_address,
+                customer_gstin,
+                booked_by,
+                used_by,
+                reference_number,
+                vehicle_text,
+                len(trips),
+                float(base_amount),
+                float(extra_hours),
+                float(extra_km),
+                float(driver_bata),
+                float(parking),
+                float(toll),
+                float(other_charges),
+                float(non_taxable_total),
+                float(taxable_amount),
+                float(cgst_rate),
+                float(cgst),
+                float(sgst_rate),
+                float(sgst),
+                float(igst_rate),
+                float(igst),
+                float(round_off),
+                float(rounded_total),
+            ]
+        )
+
+        # ====================================================
+        # ROW 2 - PARKING + TOLL ONLY
+        # ====================================================
+
+        sheet.append(
+            [
+                invoice_number,
+                invoice_date,
+                customer_name,
+                customer_address,
+                customer_gstin,
+                booked_by,
+                used_by,
+                reference_number,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                float(parking),
+                float(toll),
+                0,
+                float(parking + toll),
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ]
+        )
+
+    # ========================================================
+    # FORMAT DATA
+    # ========================================================
+
+    for row in sheet.iter_rows(
+        min_row=2,
+        max_row=sheet.max_row
+    ):
+
+        for cell in row:
+            cell.border = border
+            cell.alignment = left
+
+    # ========================================================
+    # DATE FORMAT
+    # ========================================================
+
+    for row in range(
+        2,
+        sheet.max_row + 1
+    ):
+
+        sheet.cell(
+            row,
+            2
+        ).number_format = "DD-MM-YYYY"
+
+    # ========================================================
+    # CURRENCY FORMAT
+    # ========================================================
+
+    currency_columns = [
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        21,
+        23,
+        25,
+        26,
+        27,
+    ]
+
+    for row in range(
+        2,
+        sheet.max_row + 1
+    ):
+
+        for col in currency_columns:
+
+            sheet.cell(
+                row,
+                col
+            ).number_format = "#,##0.00"
+
+    # ========================================================
+    # PERCENTAGE FORMAT
+    # ========================================================
+
+    percentage_columns = [
+        20,
+        22,
+        24,
+    ]
+
+    for row in range(
+        2,
+        sheet.max_row + 1
+    ):
+
+        for col in percentage_columns:
+
+            sheet.cell(
+                row,
+                col
+            ).number_format = "0.00"
+
+    # ========================================================
+    # FREEZE + FILTER
+    # ========================================================
+
+    sheet.freeze_panes = "A2"
+
+    sheet.auto_filter.ref = sheet.dimensions
+
+    # ========================================================
+    # COLUMN WIDTHS
+    # ========================================================
+
+    widths = {
+        1: 22,
+        2: 14,
+        3: 45,
+        4: 35,
+        5: 20,
+        6: 28,
+        7: 40,
+        8: 18,
+        9: 35,
+        10: 10,
+        11: 15,
+        12: 18,
+        13: 16,
+        14: 15,
+        15: 12,
+        16: 12,
+        17: 15,
+        18: 22,
+        19: 18,
+        20: 10,
+        21: 14,
+        22: 10,
+        23: 14,
+        24: 10,
+        25: 14,
+        26: 14,
+        27: 16,
+    }
+
+    for column, width in widths.items():
+
+        sheet.column_dimensions[
+            get_column_letter(column)
+        ].width = width
+
+    # ========================================================
+    # RETURN FILE
+    # ========================================================
+
+    output = BytesIO()
+
+    workbook.save(
+        output
+    )
+
+    output.seek(0)
+
+    return output.getvalue()
