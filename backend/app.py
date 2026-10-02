@@ -686,7 +686,59 @@ def export_excel():
 
     finally:
         session.close()
+# =========================================================
+# E-INVOICE EXCEL EXPORT
+# =========================================================
 
+@app.get("/api/invoices/export/einvoice-xlsx")
+def export_einvoice_excel():
+    session = SessionLocal()
+
+    try:
+        invoices = (
+            session.execute(
+                select(Invoice)
+                .options(
+                    joinedload(Invoice.trips)
+                )
+                .order_by(
+                    Invoice.invoice_date.desc(),
+                    Invoice.id.desc()
+                )
+            )
+            .unique()
+            .scalars()
+            .all()
+        )
+
+        excel_bytes = invoice_to_einvoice_excel(
+            invoices
+        )
+
+        return send_file(
+            __import__("io").BytesIO(
+                excel_bytes
+            ),
+            mimetype=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
+            as_attachment=True,
+            download_name="PVR_E_Invoice.xlsx"
+        )
+
+    except Exception as exc:
+        traceback.print_exc()
+
+        return error_response(
+            "Unable to export E-Invoice Excel",
+            500,
+            "EINVOICE_EXCEL_EXPORT_ERROR",
+            str(exc)
+        )
+
+    finally:
+        session.close()
 # =========================================================
 # MONTHLY BILL CSV EXPORT
 # =========================================================
