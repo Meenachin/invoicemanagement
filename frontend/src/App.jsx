@@ -392,7 +392,30 @@ function Dashboard() {
             Monthly Bill History →
           </button>
         </div>
+        <div className="panel">
+          <div className="panel-heading">
+            <div>
+              <h2>E-Invoice Excel</h2>
+              <p>
+                Download the E-Invoice Excel
+                workbook for all invoices.
+              </p>
+            </div>
+          </div>
 
+          <button
+            type="button"
+            className="button primary big"
+            onClick={() =>
+              window.open(
+                '/api/invoices/export/einvoice-xlsx',
+                '_blank'
+              )
+            }
+          >
+            E-Invoice Excel →
+          </button>
+        </div>
       </section>
     </Layout>
   )
