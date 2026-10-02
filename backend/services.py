@@ -1370,7 +1370,7 @@ def build_monthly_bill_pdf(bill):
                 normal, 
             ),
             Paragraph(
-                f"Rs. {float((bill.cgst or 0)+ (bill.sgst Or 0)):,.2f}",
+                f"Rs. {float((bill.cgst or 0) + (bill.sgst or 0)):,.2f}",
                 total_value,
             ),
         ],
