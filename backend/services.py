@@ -1366,11 +1366,11 @@ def build_monthly_bill_pdf(bill):
         ],
         [
             Paragraph(
-                f"SGST @ {float(bill.sgst_rate or 0):g}%",
-                normal,
+                "Total Gst", 
+                normal, 
             ),
             Paragraph(
-                f"Rs. {float(bill.sgst or 0):,.2f}",
+                f"Rs. {float((bill.cgst or 0)+ (bill.sgst Or 0)):,.2f}",
                 total_value,
             ),
         ],
