@@ -1371,7 +1371,7 @@ def build_monthly_bill_pdf(bill):
             Paragraph(
                 "Rs. {:.2f}".format(
                     float(bill.cgst or 0)
-                    + float(bill.sgst or 0)
+                    +float(bill.sgst or 0)
                 ),
                 total_value,
             ),
