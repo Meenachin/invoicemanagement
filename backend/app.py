@@ -24,6 +24,7 @@ from services import (
     build_invoice_pdf,
     invoice_to_csv,
     invoice_to_excel,
+    invoice_to_einvoice_excel,
 )
 
 BASE_DIR = Path(__file__).resolve().parent
