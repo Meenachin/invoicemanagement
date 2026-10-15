@@ -157,8 +157,12 @@ def serialize_monthly_bill(bill):
         "customer_address": bill.customer_address or "",
         "customer_gstin": bill.customer_gstin or "",
         "booked_by": bill.booked_by or "",
-"position": getattr(bill, "position", None) or "",
-"vehicle_number": bill.vehicle_number or "",
+        "position": getattr(bill, "position", None) or "",
+        "vehicle_number": bill.vehicle_number or "",
+        
+        "total_km_driven": bill.total_km_driven or 0,
+        "km_per_liter": bill.km_per_liter or 0,
+
         "reference_number": bill.reference_number or "",
 
         "taxable_subtotal": bill.taxable_subtotal or 0,
@@ -1348,14 +1352,22 @@ def create_monthly_bill():
                 data.get("booked_by") or ""
             ).strip(),
             position=str(
-    data.get("position") or ""
-).strip() or None,
+                data.get("position") or ""
+            ).strip() or None,
+            
             vehicle_number=str(
                 data.get("vehicle_number") or ""
             ).strip(),
             reference_number=str(
                 data.get("reference_number") or ""
             ).strip(),
+            total_km_driven=float(
+                data.get("total_km_driven") or 0
+            ),
+            km_per_liter=float(
+                data.get("km_per_liter") or 0
+            ),
+
 
             taxable_subtotal=taxable_subtotal,
             cgst_rate=cgst_rate,
@@ -1815,12 +1827,20 @@ def update_monthly_bill(bill_id):
         bill.position = str(
             data.get("position") or ""
         ).strip() or None
+        
         bill.vehicle_number = str(
             data.get("vehicle_number") or ""
         ).strip()
         bill.reference_number = str(
             data.get("reference_number") or ""
         ).strip()
+        bill.total_km_driven = float(
+            data.get("total_km_driven") or 0
+        )
+        bill.km_per_liter = float(
+            data.get("km_per_liter") or 0
+        )
+
 
 
         bill.taxable_subtotal = taxable_subtotal
