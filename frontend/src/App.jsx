@@ -2345,7 +2345,7 @@ useEffect(() => {
       setBookedBy(
         bill.booked_by || ''
       )
-
+setPosition(bill.position || '')
       setVehicleNumber(
          bill.vehicle_number || ''
       )
