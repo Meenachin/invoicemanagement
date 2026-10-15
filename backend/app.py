@@ -153,6 +153,7 @@ def serialize_monthly_bill(bill):
             else ""
         ),
         "customer_name": bill.customer_name or "",
+        "customer_profile": getattr(bill, "customer_profile", None) or "",
         "customer_address": bill.customer_address or "",
         "customer_gstin": bill.customer_gstin or "",
         "booked_by": bill.booked_by or "",
@@ -1331,6 +1332,9 @@ def create_monthly_bill():
             invoice_number=invoice_number,
             invoice_date=invoice_date,
             customer_name=customer_name,
+            customer_profile=str(
+                data.get("customer_profile") or ""
+            ).strip() or None,
             customer_address=str(
                 data.get("customer_address") or ""
             ).strip(),
@@ -1785,6 +1789,9 @@ def update_monthly_bill(bill_id):
         bill.invoice_number = invoice_number
         bill.invoice_date = invoice_date
         bill.customer_name = customer_name
+        bill.customer_profile = str(
+            data.get("customer_profile") or ""
+        ).strip() or None
         bill.customer_address = str(
             data.get("customer_address") or ""
         ).strip()
