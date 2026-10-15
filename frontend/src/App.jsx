@@ -2330,6 +2330,10 @@ useEffect(() => {
       setCustomerProfile(
         bill.customer_profile || ''
       )
+      
+setTotalKmDriven(bill.total_km_driven || 0)
+setKmPerLiter(bill.km_per_liter || 0)
+
       setCustomerName(
         bill.customer_name || ''
       )
@@ -2449,7 +2453,8 @@ setPosition(bill.position || '')
         
 updated.amount =
   type === 'non-taxable' &&
-  updated.description === 'Petrol Charges'
+updated.description === 'Petrol Charges' &&
+customerProfile !== 'SAMRO_HYDERABAD'
     ? (
         Number(kmPerLiter) > 0
           ? (
