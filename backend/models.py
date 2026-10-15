@@ -88,9 +88,12 @@ class MonthlyBill(Base):
     invoice_number = Column(String(120), nullable=False, unique=True)
     invoice_date = Column(Date, nullable=False)
 
+    
     customer_name = Column(String(255), nullable=False)
+    customer_profile = Column(String(80), nullable=True)
     customer_address = Column(Text)
     customer_gstin = Column(String(30))
+
     booked_by = Column(String(255))
     vehicle_number = Column(String(255))
     reference_number = Column(String(255))
