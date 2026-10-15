@@ -2614,9 +2614,9 @@ useEffect(() => {
           ).trim(),
           quantity: Number(item.quantity) || 0,
           rate: Number(item.rate) || 0,
-          amount:
-            (Number(item.quantity) || 0) *
-            (Number(item.rate) || 0)
+         
+          amount: Number(item.amount) || 0
+
         }))
       }
 
