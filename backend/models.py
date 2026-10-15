@@ -90,7 +90,8 @@ class MonthlyBill(Base):
 
     
     customer_name = Column(String(255), nullable=False)
-    
+    customer_profile = Column(String(80), nullable=True)
+
     customer_address = Column(Text)
     customer_gstin = Column(String(30))
 
