@@ -1312,8 +1312,6 @@ def create_monthly_bill():
 
         subtotal_before_round = (
             taxable_subtotal
-            + cgst
-            + sgst
             + non_taxable_total
         )
 
