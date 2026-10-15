@@ -2283,12 +2283,14 @@ setPosition(
     ])
 
     setNonTaxableItems([
-      {
-        description: 'Petrol Charges',
-        quantity: 0,
-        rate: 0,
-        amount: 0
-      },
+      
+{
+  description: 'Petrol Charges',
+  quantity: 0,
+  rate: 0,
+  amount: 0
+},
+
       {
         description: 'Parking & Toll',
         quantity: 0,
@@ -2464,6 +2466,35 @@ updated.amount =
     )
   }
 
+useEffect(() => {
+  if (customerProfile === 'SAMRO_HYDERABAD') {
+    return
+  }
+
+  setNonTaxableItems(items =>
+    items.map(item => {
+      if (item.description !== 'Petrol Charges') {
+        return item
+      }
+
+      const km = Number(totalKmDriven) || 0
+      const mileage = Number(kmPerLiter) || 0
+      const rate = Number(item.rate) || 0
+
+      const amount =
+        mileage > 0
+          ? (km / mileage) * rate
+          : 0
+
+      return {
+        ...item,
+        quantity: km,
+        amount
+      }
+    })
+  )
+}, [totalKmDriven, kmPerLiter, customerProfile])
+
   const addItem = type => {
     const setter =
       type === 'taxable'
@@ -2567,6 +2598,9 @@ updated.amount =
         customer_address: customerAddress.trim(),
         customer_gstin: customerGstin.trim(),
         booked_by: bookedBy.trim(),
+        
+        position: position.trim(),
+
         vehicle_number: vehicleNumber.trim(),
         reference_number: referenceNumber.trim(),
 
