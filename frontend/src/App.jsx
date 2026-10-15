@@ -2101,7 +2101,7 @@ function MonthlyBillForm() {
 
   const [invoiceNumber, setInvoiceNumber] = useState('')
   const [invoiceDate, setInvoiceDate] = useState(todayISO())
-
+  const [customerProfile, setCustomerProfile] = useState('')
   const [customerName, setCustomerName] = useState(CUSTOMER_NAMES[0])
   const [customerAddress, setCustomerAddress] = useState(
     CUSTOMER_ADDRESSES[0]
@@ -2146,6 +2146,109 @@ function MonthlyBillForm() {
       amount: 0
     }
   ])
+  
+  const CUSTOMER_PROFILE_RATES = {
+    SAMRO_HYDERABAD: {
+      monthlyHiring: 63000,
+      extraHours: 100,
+      driverBatta: 500,
+      holidayAllowance: 500
+    },
+    LIAISON_DGM: {
+      monthlyHiring: 54899,
+      extraHours: 100,
+      driverBatta: 500,
+      holidayAllowance: 500
+    },
+    LIAISON_GM: {
+      monthlyHiring: 63000,
+      extraHours: 100,
+      driverBatta: 500,
+      holidayAllowance: 500
+    },
+    LIAISON_CGM: {
+      monthlyHiring: 145899,
+      extraHours: 250,
+      driverBatta: 1000,
+      holidayAllowance: 1200
+    },
+    LIAISON_AGM: {
+      monthlyHiring: 38899,
+      extraHours: 100,
+      driverBatta: 500,
+      holidayAllowance: 500
+    },
+    LIAISON_GM1: {
+      monthlyHiring: 61899,
+      extraHours: 100,
+      driverBatta: 500,
+      holidayAllowance: 500
+    },
+    GTFC: {
+      monthlyHiring: 54899,
+      extraHours: 100,
+      driverBatta: 500,
+      holidayAllowance: 500
+    },
+    AO_CYBERABAD: {
+      monthlyHiring: 36700,
+      extraHours: 130,
+      driverBatta: 500,
+      holidayAllowance: 500
+    }
+  }
+
+  const handleCustomerProfileChange = profile => {
+    setCustomerProfile(profile)
+
+    const rates = CUSTOMER_PROFILE_RATES[profile]
+
+    if (!rates) {
+      return
+    }
+
+    setTaxableItems([
+      {
+        description: 'Monthly Hiring Charges',
+        quantity: 1,
+        rate: rates.monthlyHiring,
+        amount: rates.monthlyHiring
+      },
+      {
+        description: 'Extra Hours Charges',
+        quantity: 0,
+        rate: rates.extraHours,
+        amount: 0
+      },
+      {
+        description: 'Outstation Driver Batta',
+        quantity: 0,
+        rate: rates.driverBatta,
+        amount: 0
+      },
+      {
+        description: 'Holiday Working Allowance',
+        quantity: 0,
+        rate: rates.holidayAllowance,
+        amount: 0
+      }
+    ])
+
+    setNonTaxableItems([
+      {
+        description: 'Petrol Charges',
+        quantity: 0,
+        rate: 0,
+        amount: 0
+      },
+      {
+        description: 'Parking & Toll',
+        quantity: 0,
+        rate: 0,
+        amount: 0
+      }
+    ])
+  }
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -2173,7 +2276,9 @@ useEffect(() => {
       setInvoiceDate(
         bill.invoice_date || todayISO()
       )
-
+      setCustomerProfile(
+        bill.customer_profile || ''
+      )
       setCustomerName(
         bill.customer_name || ''
       )
@@ -2330,11 +2435,8 @@ useEffect(() => {
   const cgst = taxableSubtotal * 0.025
   const sgst = taxableSubtotal * 0.025
 
-  const totalBeforeRoundOff =
-    taxableSubtotal +
-    cgst +
-    sgst +
-    nonTaxableSubtotal
+    const totalBeforeRoundOff =
+    taxableSubtotal + nonTaxableSubtotal
 
   const roundedTotal = Math.round(
     totalBeforeRoundOff
@@ -2399,6 +2501,7 @@ useEffect(() => {
         invoice_date: invoiceDate,
 
         customer_name: customerName.trim(),
+        customer_profile: customerProfile,
         customer_address: customerAddress.trim(),
         customer_gstin: customerGstin.trim(),
         booked_by: bookedBy.trim(),
@@ -2521,7 +2624,25 @@ const data = editing
             type="date"
             required
           />
-
+          <label>
+            Customer Profile
+            <select
+              value={customerProfile}
+              onChange={e =>
+  handleCustomerProfileChange(e.target.value)
+}
+            >
+              <option value="">Select customer profile</option>
+              <option value="SAMRO HYDERABAD">SAMRO HYDERABAD</option>
+              <option value="LIAISON_DGM">Liaison Department — DGM</option>
+              <option value="LIAISON_GM">Liaison Department — GM</option>
+              <option value="LIAISON_CGM">Liaison Department — CGM</option>
+              <option value="LIAISON_AGM">Liaison Department — AGM</option>
+              <option value="LIAISON_GM1">Liaison Department — GM-1</option>
+              <option value="GTFC">GTFC</option>
+              <option value="AO_CYBERABAD">A/O CYBERABAD</option>
+            </select>
+          </label>
           <EditableSelect
             label="Customer Name"
             value={customerName}
