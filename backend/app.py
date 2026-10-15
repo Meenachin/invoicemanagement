@@ -1808,18 +1808,20 @@ def update_monthly_bill(bill_id):
         bill.customer_gstin = str(
             data.get("customer_gstin") or ""
         ).strip()
-       bill.booked_by = str(
-    data.get("booked_by") or ""
-).strip()
-bill.position = str(
-    data.get("position") or ""
-).strip() or None
-bill.vehicle_number = str(
-    data.get("vehicle_number") or ""
-).strip()
+       
+        bill.booked_by = str(
+            data.get("booked_by") or ""
+        ).strip()
+        bill.position = str(
+            data.get("position") or ""
+        ).strip() or None
+        bill.vehicle_number = str(
+            data.get("vehicle_number") or ""
+        ).strip()
         bill.reference_number = str(
             data.get("reference_number") or ""
         ).strip()
+
 
         bill.taxable_subtotal = taxable_subtotal
         bill.cgst_rate = cgst_rate
