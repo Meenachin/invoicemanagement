@@ -1280,7 +1280,11 @@ def create_monthly_bill():
                 item.get("rate") or 0
             )
 
-            amount = quantity * rate
+            amount = float(
+    item.get("amount")
+    if item.get("amount") is not None
+    else quantity * rate
+)
 
             cleaned_items.append({
                 "item_type": item_type,
