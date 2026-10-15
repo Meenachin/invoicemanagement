@@ -2729,25 +2729,28 @@ const data = editing
             type="date"
             required
           />
-          <label>
-            Customer Profile
-            <select
-              value={customerProfile}
-              onChange={e =>
-  handleCustomerProfileChange(e.target.value)
-}
-            >
-              <option value="">Select customer profile</option>
-              <option value="SAMRO_HYDERABAD">SAMRO HYDERABAD</option>
-              <option value="LIAISON_DGM">Liaison Department — DGM</option>
-              <option value="LIAISON_GM">Liaison Department — GM</option>
-              <option value="LIAISON_CGM">Liaison Department — CGM</option>
-              <option value="LIAISON_AGM">Liaison Department — AGM</option>
-              <option value="LIAISON_GM1">Liaison Department — GM-1</option>
-              <option value="GTFC">GTFC</option>
-              <option value="AO_CYBERABAD">A/O CYBERABAD</option>
-            </select>
-          </label>
+        
+<label className="field">
+  <span>Customer Profile</span>
+  <select
+    value={customerProfile}
+    onChange={e =>
+      handleCustomerProfileChange(e.target.value)
+    }
+    required
+  >
+    <option value="">Select customer profile</option>
+    <option value="SAMRO_HYDERABAD">SAMRO HYDERABAD</option>
+    <option value="LIAISON_DGM">Liaison Department — DGM</option>
+    <option value="LIAISON_GM">Liaison Department — GM</option>
+    <option value="LIAISON_CGM">Liaison Department — CGM</option>
+    <option value="LIAISON_AGM">Liaison Department — AGM</option>
+    <option value="LIAISON_GM1">Liaison Department — GM-1</option>
+    <option value="GTFC">GTFC</option>
+    <option value="AO_CYBERABAD">A/O CYBERABAD</option>
+  </select>
+</label>
+
           <EditableSelect
             label="Customer Name"
             value={customerName}
@@ -2785,15 +2788,16 @@ const data = editing
           
         </div>
 
-<div className="form-group">
-  <label>Position</label>
-  <input
-    type="text"
+
+<div className="form-grid three">
+  <Input
+    label="Position"
     value={position}
-    onChange={e => setPosition(e.target.value)}
-    placeholder="Enter position"
+    onChange={setPosition}
+    placeholder="Position"
   />
 </div>
+
 
 {customerProfile !== 'SAMRO_HYDERABAD' && (
   <div className="form-grid three">
