@@ -100,6 +100,9 @@ class MonthlyBill(Base):
     position = Column(String(120), nullable=True)
     vehicle_number = Column(String(255))
     reference_number = Column(String(255))
+    
+    total_km_driven = Column(Float, default=0)
+    km_per_liter = Column(Float, default=0)
 
 
     taxable_subtotal = Column(Float, default=0)
