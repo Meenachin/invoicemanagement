@@ -95,9 +95,12 @@ class MonthlyBill(Base):
     customer_address = Column(Text)
     customer_gstin = Column(String(30))
 
+    
     booked_by = Column(String(255))
+    position = Column(String(120), nullable=True)
     vehicle_number = Column(String(255))
     reference_number = Column(String(255))
+
 
     taxable_subtotal = Column(Float, default=0)
     cgst_rate = Column(Float, default=2.5)
