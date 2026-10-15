@@ -2198,14 +2198,46 @@ function MonthlyBillForm() {
     }
   }
 
+  
   const handleCustomerProfileChange = profile => {
     setCustomerProfile(profile)
 
+    const profiles = {
+      SAMRO_HYDERABAD: {
+        name: 'SAMRO HYDERABAD'
+      },
+      LIAISON_DGM: {
+        name: 'THE LIAISON DEPARTMENT, LHO, KOTI, HYDERABAD'
+      },
+      LIAISON_GM: {
+        name: 'THE LIAISON DEPARTMENT, LHO, KOTI, HYDERABAD'
+      },
+      LIAISON_CGM: {
+        name: 'THE LIAISON DEPARTMENT, LHO, KOTI, HYDERABAD'
+      },
+      LIAISON_AGM: {
+        name: 'THE LIAISON DEPARTMENT, LHO, KOTI, HYDERABAD'
+      },
+      LIAISON_GM1: {
+        name: 'THE LIAISON DEPARTMENT, LHO, KOTI, HYDERABAD'
+      },
+      GTFC: {
+        name: 'GTFC'
+      },
+      AO_CYBERABAD: {
+        name: 'A/O CYBERABAD'
+      }
+    }
+
+    const selectedProfile = profiles[profile]
     const rates = CUSTOMER_PROFILE_RATES[profile]
 
-    if (!rates) {
+    if (!selectedProfile || !rates) {
       return
     }
+
+    setCustomerName(selectedProfile.name)
+    setCustomerGstin('36AAACS8577K1ZQ')
 
     setTaxableItems([
       {
@@ -2249,6 +2281,7 @@ function MonthlyBillForm() {
       }
     ])
   }
+
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -2633,7 +2666,7 @@ const data = editing
 }
             >
               <option value="">Select customer profile</option>
-              <option value="SAMRO HYDERABAD">SAMRO HYDERABAD</option>
+              <option value="SAMRO_HYDERABAD">SAMRO HYDERABAD</option>
               <option value="LIAISON_DGM">Liaison Department — DGM</option>
               <option value="LIAISON_GM">Liaison Department — GM</option>
               <option value="LIAISON_CGM">Liaison Department — CGM</option>
