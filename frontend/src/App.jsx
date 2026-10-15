@@ -2110,6 +2110,9 @@ function MonthlyBillForm() {
     CUSTOMER_GSTINS[0]
   )
   const [bookedBy, setBookedBy] = useState(BOOKED_BY[0])
+  
+const [position, setPosition] = useState('')
+
   const [vehicleNumber, setVehicleNumber] = useState('')
   const [referenceNumber, setReferenceNumber] = useState(
     REFERENCE_NUMBERS[0]
@@ -2201,6 +2204,15 @@ function MonthlyBillForm() {
   
   const handleCustomerProfileChange = profile => {
     setCustomerProfile(profile)
+
+setPosition(
+  profile === 'LIAISON_DGM' ? 'DGM' :
+  profile === 'LIAISON_GM' ? 'GM' :
+  profile === 'LIAISON_CGM' ? 'CGM' :
+  profile === 'LIAISON_AGM' ? 'Liaison Department (AGM)' :
+  profile === 'LIAISON_GM1' ? 'GM - 1' :
+  ''
+)
 
     const profiles = {
       SAMRO_HYDERABAD: {
@@ -2710,7 +2722,18 @@ const data = editing
             options={BOOKED_BY}
             placeholder="Enter booked by"
           />
+          
         </div>
+
+<div className="form-group">
+  <label>Position</label>
+  <input
+    type="text"
+    value={position}
+    onChange={e => setPosition(e.target.value)}
+    placeholder="Enter position"
+  />
+</div>
 
         <div className="form-grid three">
           <Input
