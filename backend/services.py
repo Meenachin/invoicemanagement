@@ -863,29 +863,47 @@ def build_monthly_bill_pdf(bill):
         else ""
     )
 
+    
     left_information = [
         [
-            Paragraph("BILLED TO", label),
+            Paragraph("CUSTOMER PROFILE", label),
             Paragraph(
-                bill.customer_name or "",
+                getattr(bill, "customer_profile", "") or "",
                 value,
             ),
+        ],
+        [
+            Paragraph("BILLED TO", label),
+            Paragraph(bill.customer_name or "", value),
+        ],
+        [
+            Paragraph("POSITION", label),
+            Paragraph(getattr(bill, "position", "") or "", value),
         ],
         [
             Paragraph("ADDRESS", label),
+            Paragraph(bill.customer_address or "", value),
+        ],
+        [
+            Paragraph("CUSTOMER GSTIN", label),
+            Paragraph(bill.customer_gstin or "", value),
+        ],
+        [
+            Paragraph("TOTAL KM DRIVEN", label),
             Paragraph(
-                bill.customer_address or "",
+                f"{float(getattr(bill, 'total_km_driven', 0) or 0):,.2f}",
                 value,
             ),
         ],
         [
-            Paragraph("CUSTOMER GSTIN", label),
+            Paragraph("KM PER LITER", label),
             Paragraph(
-                bill.customer_gstin or "",
+                f"{float(getattr(bill, 'km_per_liter', 0) or 0):,.2f}",
                 value,
             ),
         ],
     ]
+
 
     right_information = [
         [
