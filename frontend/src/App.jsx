@@ -2114,6 +2114,10 @@ function MonthlyBillForm() {
 const [position, setPosition] = useState('')
 
   const [vehicleNumber, setVehicleNumber] = useState('')
+  
+const [totalKmDriven, setTotalKmDriven] = useState(0)
+const [kmPerLiter, setKmPerLiter] = useState(0)
+
   const [referenceNumber, setReferenceNumber] = useState(
     REFERENCE_NUMBERS[0]
   )
@@ -2440,7 +2444,20 @@ useEffect(() => {
         const rate =
           Number(updated.rate) || 0
 
-        updated.amount = quantity * rate
+        
+updated.amount =
+  type === 'non-taxable' &&
+  updated.description === 'Petrol Charges'
+    ? (
+        Number(kmPerLiter) > 0
+          ? (
+              (Number(totalKmDriven) || 0) /
+              Number(kmPerLiter)
+            ) * rate
+          : 0
+      )
+    : quantity * rate
+
 
         return updated
       })
@@ -2734,6 +2751,28 @@ const data = editing
     placeholder="Enter position"
   />
 </div>
+
+{customerProfile !== 'SAMRO_HYDERABAD' && (
+  <div className="form-grid three">
+    <Input
+      label="Total KM Driven"
+      value={totalKmDriven}
+      onChange={setTotalKmDriven}
+      type="number"
+      min="0"
+      step="0.01"
+    />
+
+    <Input
+      label="KM per Liter"
+      value={kmPerLiter}
+      onChange={setKmPerLiter}
+      type="number"
+      min="0"
+      step="0.01"
+    />
+  </div>
+)}
 
         <div className="form-grid three">
           <Input
