@@ -2595,6 +2595,10 @@ useEffect(() => {
 
         customer_name: customerName.trim(),
         customer_profile: customerProfile,
+        
+total_km_driven: Number(totalKmDriven) || 0,
+km_per_liter: Number(kmPerLiter) || 0,
+
         customer_address: customerAddress.trim(),
         customer_gstin: customerGstin.trim(),
         booked_by: bookedBy.trim(),
