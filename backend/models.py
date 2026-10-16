@@ -94,7 +94,10 @@ class MonthlyBill(Base):
 
     customer_address = Column(Text)
     customer_gstin = Column(String(30))
-
+    # Monthly bill customer and billing period inputs
+    used_by = Column(String(255), nullable=True)
+    start_date = Column(Date, nullable=True)
+    end_date = Column(Date, nullable=True)
     
     booked_by = Column(String(255))
     position = Column(String(120), nullable=True)
@@ -103,7 +106,14 @@ class MonthlyBill(Base):
     
     total_km_driven = Column(Float, default=0)
     km_per_liter = Column(Float, default=0)
+    # Fuel inputs
+    fuel_quantity = Column(Float, default=0)
+    fuel_rate = Column(Float, default=0)
 
+    # Monthly usage inputs
+    outstation_duties = Column(Float, default=0)
+    extra_hours = Column(Float, default=0)
+    holidays_worked = Column(Float, default=0)
 
     taxable_subtotal = Column(Float, default=0)
     cgst_rate = Column(Float, default=2.5)
@@ -112,7 +122,10 @@ class MonthlyBill(Base):
     sgst = Column(Float, default=0)
 
     non_taxable_total = Column(Float, default=0)
-
+    # Additional monthly bill charges
+    engine_oil_amount = Column(Float, default=0)
+    parking_toll_amount = Column(Float, default=0)
+    telephone_charges_amount = Column(Float, default=0)
     round_off = Column(Float, default=0)
     grand_total = Column(Float, default=0)
 
