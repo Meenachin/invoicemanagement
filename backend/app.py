@@ -156,13 +156,28 @@ def serialize_monthly_bill(bill):
         "customer_profile": getattr(bill, "customer_profile", None) or "",
         "customer_address": bill.customer_address or "",
         "customer_gstin": bill.customer_gstin or "",
+        "used_by": getattr(bill, "used_by", None) or "",
+        "start_date": (
+            bill.start_date.isoformat()
+            if getattr(bill, "start_date", None)
+            else ""
+        ),
+        "end_date": (
+            bill.end_date.isoformat()
+            if getattr(bill, "end_date", None)
+            else ""
+        ),
         "booked_by": bill.booked_by or "",
         "position": getattr(bill, "position", None) or "",
         "vehicle_number": bill.vehicle_number or "",
         
         "total_km_driven": bill.total_km_driven or 0,
         "km_per_liter": bill.km_per_liter or 0,
-
+        "fuel_quantity": getattr(bill, "fuel_quantity", 0) or 0,
+        "fuel_rate": getattr(bill, "fuel_rate", 0) or 0,
+        "outstation_duties": getattr(bill, "outstation_duties", 0) or 0,
+        "extra_hours": getattr(bill, "extra_hours", 0) or 0,
+        "holidays_worked": getattr(bill, "holidays_worked", 0) or 0,
         "reference_number": bill.reference_number or "",
 
         "taxable_subtotal": bill.taxable_subtotal or 0,
@@ -171,6 +186,9 @@ def serialize_monthly_bill(bill):
         "sgst_rate": bill.sgst_rate or 0,
         "sgst": bill.sgst or 0,
         "non_taxable_total": bill.non_taxable_total or 0,
+        "engine_oil_amount": getattr(bill, "engine_oil_amount", 0) or 0,
+        "parking_toll_amount": getattr(bill, "parking_toll_amount", 0) or 0,
+        "telephone_charges_amount": getattr(bill, "telephone_charges_amount", 0) or 0,
         "round_off": bill.round_off or 0,
         "grand_total": bill.grand_total or 0,
 
