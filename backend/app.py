@@ -970,26 +970,44 @@ def export_monthly_bills_excel():
         # =====================================================
 
         sheet = workbook.active
-        sheet.title = "Monthly Bill Register"
+        sheet.title = "PVR Monthly Bill"
 
+       
         headers = [
             "Invoice Number",
             "Invoice Date",
             "Customer Name",
+            "Customer Profile",
             "Customer Address",
             "Customer GSTIN",
+            "Used By",
+            "Position",
             "Booked By",
+            "Start Date",
+            "End Date",
             "Vehicle Number",
             "Reference / PO",
+            "Total KM Driven",
+            "KM Per Litre",
+            "Fuel Quantity",
+            "Fuel Rate",
+            "Monthly Hiring",
+            "Outstation Duties",
+            "Extra Hours",
+            "Holidays Worked",
             "Taxable Subtotal",
             "CGST %",
             "CGST",
             "SGST %",
             "SGST",
             "Non-Taxable Total",
+            "Engine Oil",
+            "Parking & Toll",
+            "Telephone Charges",
             "Round Off",
             "Grand Total",
         ]
+
 
         sheet.append(headers)
 
@@ -1001,74 +1019,63 @@ def export_monthly_bills_excel():
 
         for bill in bills:
 
+           
             sheet.append([
                 bill.invoice_number or "",
-                (
-                    bill.invoice_date
-                    if bill.invoice_date
-                    else ""
-                ),
+                bill.invoice_date if bill.invoice_date else "",
                 bill.customer_name or "",
+                bill.customer_profile or "",
                 bill.customer_address or "",
                 bill.customer_gstin or "",
+                bill.used_by or "",
+                bill.position or "",
                 bill.booked_by or "",
-                getattr(
-                    bill,
-                    "vehicle_number",
-                    ""
-                ) or "",
+                bill.start_date if bill.start_date else "",
+                bill.end_date if bill.end_date else "",
+                bill.vehicle_number or "",
                 bill.reference_number or "",
-                float(
-                    bill.taxable_subtotal or 0
+                float(bill.total_km_driven or 0),
+                float(bill.km_per_liter or 0),
+                float(bill.fuel_quantity or 0),
+                float(bill.fuel_rate or 0),
+                sum(
+                    float(item.amount or 0)
+                    for item in bill.items
+                    if "monthly hiring" in (item.description or "").lower()
                 ),
-                float(
-                    bill.cgst_rate or 0
-                ),
-                float(
-                    bill.cgst or 0
-                ),
-                float(
-                    bill.sgst_rate or 0
-                ),
-                float(
-                    bill.sgst or 0
-                ),
-                float(
-                    bill.non_taxable_total or 0
-                ),
-                float(
-                    bill.round_off or 0
-                ),
-                float(
-                    bill.grand_total or 0
-                ),
+                float(bill.outstation_duties or 0),
+                float(bill.extra_hours or 0),
+                float(bill.holidays_worked or 0),
+                float(bill.taxable_subtotal or 0),
+                float(bill.cgst_rate or 0),
+                float(bill.cgst or 0),
+                float(bill.sgst_rate or 0),
+                float(bill.sgst or 0),
+                float(bill.non_taxable_total or 0),
+                float(bill.engine_oil_amount or 0),
+                float(bill.parking_toll_amount or 0),
+                float(bill.telephone_charges_amount or 0),
+                float(bill.round_off or 0),
+                float(bill.grand_total or 0),
             ])
+
 
         # =====================================================
         # FORMAT REGISTER
         # =====================================================
 
-        for row in sheet.iter_rows(
-            min_row=2
-        ):
+        for row in sheet.iter_rows(min_row=2):
             for cell in row:
                 cell.border = border
                 cell.alignment = left
 
-            for index in [
-                9,
-                10,
-                11,
-                12,
-                13,
-                14,
-                15,
-                16,
-            ]:
+            for index in range(14, 33):
                 row[index - 1].alignment = right
-                row[index - 1].number_format = (
-                    '#,##0.00'
-                )
+                row[index - 1].number_format = '#,##0.00'
+
+            for index in [23, 25]:
+                row[index - 1].number_format = '0.00"%"'
+
 
         sheet.freeze_panes = "A2"
         sheet.auto_filter.ref = sheet.dimensions
@@ -1089,8 +1096,26 @@ def export_monthly_bills_excel():
             "M": 15,
             "N": 20,
             "O": 14,
+           
             "P": 18,
+            "Q": 14,
+            "R": 18,
+            "S": 18,
+            "T": 14,
+            "U": 16,
+            "V": 18,
+            "W": 12,
+            "X": 15,
+            "Y": 12,
+            "Z": 15,
+            "AA": 20,
+            "AB": 16,
+            "AC": 18,
+            "AD": 20,
+            "AE": 14,
+            "AF": 18,
         }
+
 
         for column, width in column_widths.items():
             sheet.column_dimensions[column].width = width
@@ -1608,20 +1633,17 @@ def monthly_bill_pdf(bill_id):
         session.close()
 
 @app.get("/api/monthly-bills")
+
 def list_monthly_bills():
     session = SessionLocal()
 
     try:
-        month_value = (
-            request.args.get("month") or ""
-        ).strip()
-
-        year_value = (
-            request.args.get("year") or ""
-        ).strip()
+        month_value = (request.args.get("month") or "").strip()
+        year_value = (request.args.get("year") or "").strip()
 
         query = (
             select(MonthlyBill)
+            .options(joinedload(MonthlyBill.items))
             .order_by(
                 MonthlyBill.invoice_date.desc(),
                 MonthlyBill.id.desc()
@@ -1647,18 +1669,10 @@ def list_monthly_bills():
                         "INVALID_YEAR"
                     )
 
-                start_date = date(
-                    selected_year,
-                    selected_month,
-                    1
-                )
+                start_date = date(selected_year, selected_month, 1)
 
                 if selected_month == 12:
-                    next_month_date = date(
-                        selected_year + 1,
-                        1,
-                        1
-                    )
+                    next_month_date = date(selected_year + 1, 1, 1)
                 else:
                     next_month_date = date(
                         selected_year,
@@ -1680,41 +1694,17 @@ def list_monthly_bills():
 
         bills = (
             session.execute(query)
+            .unique()
             .scalars()
             .all()
         )
 
-        result = []
-
-        for bill in bills:
-            result.append({
-                "id": bill.id,
-                "invoice_number": bill.invoice_number,
-                "invoice_date": (
-                    bill.invoice_date.isoformat()
-                    if bill.invoice_date
-                    else ""
-                ),
-                "customer_name": bill.customer_name or "",
-                "customer_address": bill.customer_address or "",
-                "customer_gstin": bill.customer_gstin or "",
-                "booked_by": bill.booked_by or "",
-                "vehicle_number": bill.vehicle_number or "",
-                "reference_number": bill.reference_number or "",
-                "taxable_subtotal": bill.taxable_subtotal or 0,
-                "cgst_rate": bill.cgst_rate or 0,
-                "cgst": bill.cgst or 0,
-                "sgst_rate": bill.sgst_rate or 0,
-                "sgst": bill.sgst or 0,
-                "non_taxable_total": bill.non_taxable_total or 0,
-                "round_off": bill.round_off or 0,
-                "grand_total": bill.grand_total or 0,
-                "items": []
-            })
-
         return jsonify({
             "success": True,
-            "monthly_bills": result
+            "monthly_bills": [
+                serialize_monthly_bill(bill)
+                for bill in bills
+            ]
         })
 
     except Exception as exc:
@@ -1730,6 +1720,7 @@ def list_monthly_bills():
 
     finally:
         session.close()
+
 @app.get("/api/monthly-bills/<int:bill_id>")
 def get_monthly_bill(bill_id):
     session = SessionLocal()
