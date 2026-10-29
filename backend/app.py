@@ -767,6 +767,7 @@ def export_einvoice_excel():
 # MONTHLY BILL CSV EXPORT
 # =========================================================
 
+
 @app.get("/api/monthly-bills/export/csv")
 def export_monthly_bills_csv():
     session = SessionLocal()
@@ -775,12 +776,10 @@ def export_monthly_bills_csv():
         bills = (
             session.execute(
                 select(MonthlyBill)
-                .options(
-                    joinedload(MonthlyBill.items)
-                )
+                .options(joinedload(MonthlyBill.items))
                 .order_by(
                     MonthlyBill.invoice_date.desc(),
-                    MonthlyBill.id.desc()
+                    MonthlyBill.id.desc(),
                 )
             )
             .unique()
@@ -789,101 +788,105 @@ def export_monthly_bills_csv():
         )
 
         output = StringIO()
-
         writer = csv.writer(output)
 
         writer.writerow([
             "Invoice Number",
             "Invoice Date",
             "Customer Name",
+            "Customer Profile",
             "Customer Address",
             "Customer GSTIN",
+            "Used By",
             "Booked By",
+            "Position",
+            "Start Date",
+            "End Date",
             "Vehicle Number",
             "Reference / PO",
-            "Taxable Subtotal",
+            "Total KM Driven",
+            "KM Per Litre",
+            "Fuel Quantity",
+            "Fuel Rate",
+            "Outstation Duties",
+            "Extra Hours",
+            "Holidays Worked",
+            "Charges Before GST",
             "CGST Rate",
             "CGST",
             "SGST Rate",
             "SGST",
-            "Non-Taxable Total",
             "Round Off",
             "Grand Total",
-            "Taxable Items",
-            "Non-Taxable Items",
+            "Items",
         ])
 
         for bill in bills:
-
-            taxable_items = []
-            non_taxable_items = []
+            item_descriptions = []
 
             for item in bill.items:
-
-                item_text = (
+                item_descriptions.append(
                     f"{item.description or ''} "
                     f"(Qty: {float(item.quantity or 0):g}, "
                     f"Rate: {float(item.rate or 0):,.2f}, "
                     f"Amount: {float(item.amount or 0):,.2f})"
-                ).strip()
+                )
 
-                if item.item_type == "taxable":
-                    taxable_items.append(
-                        item_text
-                    )
-                else:
-                    non_taxable_items.append(
-                        item_text
-                    )
+            charges_before_gst = (
+                 float(bill.taxable_subtotal or 0)
+                   + float(bill.non_taxable_total or 0)
+            )
 
             writer.writerow([
                 bill.invoice_number or "",
-                (
-                    bill.invoice_date.isoformat()
-                    if bill.invoice_date
-                    else ""
-                ),
+                bill.invoice_date.isoformat()
+                if bill.invoice_date else "",
                 bill.customer_name or "",
+                getattr(bill, "customer_profile", None) or "",
                 bill.customer_address or "",
                 bill.customer_gstin or "",
+                getattr(bill, "used_by", None) or "",
                 bill.booked_by or "",
-                getattr(
-                    bill,
-                    "vehicle_number",
-                    ""
-                ) or "",
+                getattr(bill, "position", None) or "",
+                bill.start_date.isoformat()
+                if getattr(bill, "start_date", None) else "",
+                bill.end_date.isoformat()
+                if getattr(bill, "end_date", None) else "",
+                bill.vehicle_number or "",
                 bill.reference_number or "",
-                f"{float(bill.taxable_subtotal or 0):.2f}",
+                f"{float(bill.total_km_driven or 0):.2f}",
+                f"{float(bill.km_per_liter or 0):.2f}",
+                f"{float(bill.fuel_quantity or 0):.2f}",
+                f"{float(bill.fuel_rate or 0):.2f}",
+                f"{float(bill.outstation_duties or 0):.2f}",
+                f"{float(bill.extra_hours or 0):.2f}",
+                f"{float(bill.holidays_worked or 0):.2f}",
+                f"{charges_before_gst:.2f}",
                 f"{float(bill.cgst_rate or 0):.2f}",
                 f"{float(bill.cgst or 0):.2f}",
                 f"{float(bill.sgst_rate or 0):.2f}",
                 f"{float(bill.sgst or 0):.2f}",
-                f"{float(bill.non_taxable_total or 0):.2f}",
                 f"{float(bill.round_off or 0):.2f}",
                 f"{float(bill.grand_total or 0):.2f}",
-                " | ".join(taxable_items),
-                " | ".join(non_taxable_items),
+                " | ".join(item_descriptions),
             ])
 
-        csv_bytes = output.getvalue().encode(
-            "utf-8-sig"
-        )
+        csv_bytes = output.getvalue().encode("utf-8-sig")
 
         return send_file(
             BytesIO(csv_bytes),
             mimetype="text/csv; charset=utf-8",
             as_attachment=True,
-            download_name="PVR_Monthly_Bills.csv"
+            download_name="PVR_Monthly_Bills.csv",
         )
 
     except Exception as exc:
         traceback.print_exc()
-
         return error_response(
             "Unable to export Monthly Bills to CSV",
             500,
             "MONTHLY_CSV_EXPORT_ERROR",
-            str(exc)
+            str(exc),
         )
 
     finally:
@@ -894,6 +897,7 @@ def export_monthly_bills_csv():
 # MONTHLY BILL EXCEL EXPORT
 # =========================================================
 
+
 @app.get("/api/monthly-bills/export/xlsx")
 def export_monthly_bills_excel():
     session = SessionLocal()
@@ -902,12 +906,10 @@ def export_monthly_bills_excel():
         bills = (
             session.execute(
                 select(MonthlyBill)
-                .options(
-                    joinedload(MonthlyBill.items)
-                )
+                .options(joinedload(MonthlyBill.items))
                 .order_by(
                     MonthlyBill.invoice_date.desc(),
-                    MonthlyBill.id.desc()
+                    MonthlyBill.id.desc(),
                 )
             )
             .unique()
@@ -916,63 +918,9 @@ def export_monthly_bills_excel():
         )
 
         workbook = Workbook()
-
-        # =====================================================
-        # STYLES
-        # =====================================================
-
-        header_fill = PatternFill(
-            fill_type="solid",
-            fgColor="102A43"
-        )
-
-        header_font = Font(
-            bold=True,
-            color="FFFFFF"
-        )
-
-        title_font = Font(
-            bold=True,
-            size=14
-        )
-
-        thin_side = Side(
-            style="thin",
-            color="D9E2EC"
-        )
-
-        border = Border(
-            left=thin_side,
-            right=thin_side,
-            top=thin_side,
-            bottom=thin_side
-        )
-
-        center = Alignment(
-            horizontal="center",
-            vertical="center",
-            wrap_text=True
-        )
-
-        left = Alignment(
-            horizontal="left",
-            vertical="top",
-            wrap_text=True
-        )
-
-        right = Alignment(
-            horizontal="right",
-            vertical="top"
-        )
-
-        # =====================================================
-        # SHEET 1 - MONTHLY BILL REGISTER
-        # =====================================================
-
         sheet = workbook.active
         sheet.title = "PVR Monthly Bill"
 
-       
         headers = [
             "Invoice Number",
             "Invoice Date",
@@ -981,8 +929,8 @@ def export_monthly_bills_excel():
             "Customer Address",
             "Customer GSTIN",
             "Used By",
-            "Position",
             "Booked By",
+            "Position",
             "Start Date",
             "End Date",
             "Vehicle Number",
@@ -995,237 +943,154 @@ def export_monthly_bills_excel():
             "Outstation Duties",
             "Extra Hours",
             "Holidays Worked",
-            "Taxable Subtotal",
+            "Charges Before GST",
             "CGST %",
             "CGST",
             "SGST %",
             "SGST",
-            "Non-Taxable Total",
             "Engine Oil",
             "Parking & Toll",
             "Telephone Charges",
             "Round Off",
             "Grand Total",
         ]
-
-
         sheet.append(headers)
 
-        for cell in sheet[1]:
-            cell.fill = header_fill
-            cell.font = header_font
-            cell.alignment = center
-            cell.border = border
+        item_sheet = workbook.create_sheet("Monthly Bill Items")
+        item_sheet.append([
+            "Invoice Number",
+            "Invoice Date",
+            "Customer Name",
+            "Description",
+            "Quantity",
+            "Rate",
+            "Amount",
+        ])
 
         for bill in bills:
+            charges_before_gst = (
+                 float(bill.taxable_subtotal or 0)
+                    + float(bill.non_taxable_total or 0)
+            )
 
-           
+            monthly_hiring = sum(
+                float(item.amount or 0)
+                for item in bill.items
+                if "monthly hiring" in (item.description or "").lower()
+            )
+
             sheet.append([
                 bill.invoice_number or "",
-                bill.invoice_date if bill.invoice_date else "",
+                bill.invoice_date or "",
                 bill.customer_name or "",
-                bill.customer_profile or "",
+                getattr(bill, "customer_profile", None) or "",
                 bill.customer_address or "",
                 bill.customer_gstin or "",
-                bill.used_by or "",
-                bill.position or "",
+                getattr(bill, "used_by", None) or "",
                 bill.booked_by or "",
-                bill.start_date if bill.start_date else "",
-                bill.end_date if bill.end_date else "",
+                getattr(bill, "position", None) or "",
+                getattr(bill, "start_date", None) or "",
+                getattr(bill, "end_date", None) or "",
                 bill.vehicle_number or "",
                 bill.reference_number or "",
                 float(bill.total_km_driven or 0),
                 float(bill.km_per_liter or 0),
                 float(bill.fuel_quantity or 0),
                 float(bill.fuel_rate or 0),
-                sum(
-                    float(item.amount or 0)
-                    for item in bill.items
-                    if "monthly hiring" in (item.description or "").lower()
-                ),
+                monthly_hiring,
                 float(bill.outstation_duties or 0),
                 float(bill.extra_hours or 0),
                 float(bill.holidays_worked or 0),
-                float(bill.taxable_subtotal or 0),
+                charges_before_gst,
                 float(bill.cgst_rate or 0),
                 float(bill.cgst or 0),
                 float(bill.sgst_rate or 0),
                 float(bill.sgst or 0),
-                float(bill.non_taxable_total or 0),
-                float(bill.engine_oil_amount or 0),
-                float(bill.parking_toll_amount or 0),
-                float(bill.telephone_charges_amount or 0),
+                float(getattr(bill, "engine_oil_amount", 0) or 0),
+                float(getattr(bill, "parking_toll_amount", 0) or 0),
+                float(getattr(bill, "telephone_charges_amount", 0) or 0),
                 float(bill.round_off or 0),
                 float(bill.grand_total or 0),
             ])
 
-
-        # =====================================================
-        # FORMAT REGISTER
-        # =====================================================
-
-        for row in sheet.iter_rows(min_row=2):
-            for cell in row:
-                cell.border = border
-                cell.alignment = left
-
-            for index in range(14, 33):
-                row[index - 1].alignment = right
-                row[index - 1].number_format = '#,##0.00'
-
-            for index in [23, 25]:
-                row[index - 1].number_format = '0.00"%"'
-
-
-        sheet.freeze_panes = "A2"
-        sheet.auto_filter.ref = sheet.dimensions
-
-        column_widths = {
-            "A": 18,
-            "B": 14,
-            "C": 34,
-            "D": 30,
-            "E": 22,
-            "F": 32,
-            "G": 18,
-            "H": 20,
-            "I": 18,
-            "J": 12,
-            "K": 15,
-            "L": 12,
-            "M": 15,
-            "N": 20,
-            "O": 14,
-           
-            "P": 18,
-            "Q": 14,
-            "R": 18,
-            "S": 18,
-            "T": 14,
-            "U": 16,
-            "V": 18,
-            "W": 12,
-            "X": 15,
-            "Y": 12,
-            "Z": 15,
-            "AA": 20,
-            "AB": 16,
-            "AC": 18,
-            "AD": 20,
-            "AE": 14,
-            "AF": 18,
-        }
-
-
-        for column, width in column_widths.items():
-            sheet.column_dimensions[column].width = width
-
-        sheet.row_dimensions[1].height = 30
-
-        # =====================================================
-        # SHEET 2 - ITEM DETAILS
-        # =====================================================
-
-        item_sheet = workbook.create_sheet(
-            "Monthly Bill Items"
-        )
-
-        item_headers = [
-            "Invoice Number",
-            "Invoice Date",
-            "Customer Name",
-            "Item Type",
-            "Description",
-            "Quantity",
-            "Rate",
-            "Amount",
-        ]
-
-        item_sheet.append(item_headers)
-
-        for cell in item_sheet[1]:
-            cell.fill = header_fill
-            cell.font = header_font
-            cell.alignment = center
-            cell.border = border
-
-        for bill in bills:
-
             for item in bill.items:
-
                 item_sheet.append([
                     bill.invoice_number or "",
-                    (
-                        bill.invoice_date
-                        if bill.invoice_date
-                        else ""
-                    ),
+                    bill.invoice_date or "",
                     bill.customer_name or "",
-                    (
-                        "Taxable"
-                        if item.item_type == "taxable"
-                        else "Non-Taxable"
-                    ),
                     item.description or "",
-                    float(
-                        item.quantity or 0
-                    ),
-                    float(
-                        item.rate or 0
-                    ),
-                    float(
-                        item.amount or 0
-                    ),
+                    float(item.quantity or 0),
+                    float(item.rate or 0),
+                    float(item.amount or 0),
                 ])
 
-        for row in item_sheet.iter_rows(
-            min_row=2
-        ):
-            for cell in row:
-                cell.border = border
-                cell.alignment = left
-
-            row[5].alignment = right
-            row[6].alignment = right
-            row[7].alignment = right
-
-            row[5].number_format = '#,##0.00'
-            row[6].number_format = '#,##0.00'
-            row[7].number_format = '#,##0.00'
-
-        item_sheet.freeze_panes = "A2"
-        item_sheet.auto_filter.ref = (
-            item_sheet.dimensions
+        header_fill = PatternFill(
+            fill_type="solid",
+            fgColor="102A43",
+        )
+        header_font = Font(bold=True, color="FFFFFF")
+        thin_side = Side(style="thin", color="D9E2EC")
+        border = Border(
+            left=thin_side,
+            right=thin_side,
+            top=thin_side,
+            bottom=thin_side,
+        )
+        header_alignment = Alignment(
+            horizontal="center",
+            vertical="center",
+            wrap_text=True,
         )
 
-        item_widths = {
-            "A": 18,
-            "B": 14,
-            "C": 34,
-            "D": 16,
-            "E": 45,
-            "F": 14,
-            "G": 16,
-            "H": 18,
-        }
+        for ws in (sheet, item_sheet):
+            for cell in ws[1]:
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = header_alignment
+                cell.border = border
 
-        for column, width in item_widths.items():
-            item_sheet.column_dimensions[
-                column
-            ].width = width
+            for row in ws.iter_rows(min_row=2):
+                for cell in row:
+                    cell.border = border
+                    cell.alignment = Alignment(
+                        vertical="top",
+                        wrap_text=True,
+                    )
 
-        item_sheet.row_dimensions[1].height = 30
+            ws.freeze_panes = "A2"
+            ws.auto_filter.ref = ws.dimensions
+            ws.row_dimensions[1].height = 32
 
-        # =====================================================
-        # SAVE EXCEL TO MEMORY
-        # =====================================================
+        for row in sheet.iter_rows(min_row=2):
+            for index in range(14, 32):
+                row[index - 1].number_format = "#,##0.00"
+
+        for row in item_sheet.iter_rows(min_row=2):
+            for index in (5, 6, 7):
+                row[index - 1].number_format = "#,##0.00"
+
+        for column_cells in sheet.columns:
+            column_letter = column_cells[0].column_letter
+            max_length = max(
+                len(str(cell.value or ""))
+                for cell in column_cells
+            )
+            sheet.column_dimensions[column_letter].width = min(
+                max(max_length + 2, 12), 35
+            )
+
+        for column_cells in item_sheet.columns:
+            column_letter = column_cells[0].column_letter
+            max_length = max(
+                len(str(cell.value or ""))
+                for cell in column_cells
+            )
+            item_sheet.column_dimensions[column_letter].width = min(
+                max(max_length + 2, 12), 40
+            )
 
         excel_buffer = BytesIO()
-
-        workbook.save(
-            excel_buffer
-        )
-
+        workbook.save(excel_buffer)
         excel_buffer.seek(0)
 
         return send_file(
@@ -1235,25 +1100,25 @@ def export_monthly_bills_excel():
                 "spreadsheetml.sheet"
             ),
             as_attachment=True,
-            download_name="PVR_Monthly_Bills.xlsx"
+            download_name="PVR_Monthly_Bills.xlsx",
         )
 
     except Exception as exc:
         traceback.print_exc()
-
         return error_response(
             "Unable to export Monthly Bills to Excel",
             500,
             "MONTHLY_EXCEL_EXPORT_ERROR",
-            str(exc)
+            str(exc),
         )
 
     finally:
         session.close()
 
 
-@app.post("/api/monthly-bills")
 
+
+@app.post("/api/monthly-bills")
 def create_monthly_bill():
     session = SessionLocal()
 
@@ -1264,14 +1129,17 @@ def create_monthly_bill():
         invoice_number = str(data.get("invoice_number") or "").strip()
 
         if not customer_name:
-            return error_response("Customer Name is required", 400, "VALIDATION_ERROR")
+            return error_response(
+                "Customer Name is required", 400, "VALIDATION_ERROR"
+            )
 
         if not invoice_number:
-            return error_response("Invoice Number is required", 400, "VALIDATION_ERROR")
+            return error_response(
+                "Invoice Number is required", 400, "VALIDATION_ERROR"
+            )
 
         invoice_date = parse_date(data.get("invoice_date"), "Invoice Date")
 
-        # Prevent duplicate invoice numbers.
         existing = session.execute(
             select(MonthlyBill.id).where(
                 MonthlyBill.invoice_number == invoice_number
@@ -1282,7 +1150,7 @@ def create_monthly_bill():
             return error_response(
                 "Monthly Bill invoice number already exists",
                 409,
-                "DUPLICATE_MONTHLY_BILL_NUMBER"
+                "DUPLICATE_MONTHLY_BILL_NUMBER",
             )
 
         def get_number(key, default=0):
@@ -1296,7 +1164,11 @@ def create_monthly_bill():
 
         def get_date(key):
             value = data.get(key)
-            return parse_date(value, key.replace("_", " ").title()) if value else None
+            return (
+                parse_date(value, key.replace("_", " ").title())
+                if value
+                else None
+            )
 
         profile = str(data.get("customer_profile") or "").strip()
         profile_key = "".join(
@@ -1310,7 +1182,7 @@ def create_monthly_bill():
             batta_rate = 500
             holiday_rate = 500
             is_samro = True
-        elif "CYBERABAD" in profile_key or "AO" == profile_key:
+        elif "CYBERABAD" in profile_key or profile_key == "AO":
             monthly_hiring = 36700
             extra_rate = 130
             batta_rate = 500
@@ -1328,7 +1200,7 @@ def create_monthly_bill():
             batta_rate = 500
             holiday_rate = 500
             is_samro = False
-        elif "GM1" in profile_key or "GM-1" in profile.upper():
+        elif "GM1" in profile_key:
             monthly_hiring = 61899
             extra_rate = 100
             batta_rate = 500
@@ -1353,15 +1225,13 @@ def create_monthly_bill():
             holiday_rate = 500
             is_samro = False
         else:
-            # Keep the existing item-based form usable until the frontend
-            # switches to the new monthly form.
             monthly_hiring = 0
             extra_rate = 0
             batta_rate = 0
             holiday_rate = 0
             is_samro = False
 
-        # New Excel-style form fields.
+        # Monthly Bill input fields.
         total_km = get_number("total_km_driven")
         km_per_liter = get_number("km_per_liter")
         fuel_quantity = get_number("fuel_quantity")
@@ -1382,25 +1252,32 @@ def create_monthly_bill():
             fuel_quantity = total_km
             fuel_amount = (
                 (total_km / km_per_liter) * fuel_rate
-                if km_per_liter > 0 else 0
+                if km_per_liter > 0
+                else 0
             )
 
-        # Engine oil = Total KM / 250 x Rs. 300.
+        # Engine oil = Total KM / 250 x Rs. 300, where applicable.
         engine_oil = get_number("engine_oil_amount")
         if not engine_oil and not is_samro:
             engine_oil = (total_km / 250) * 300
 
-        # Keep compatibility with the old frontend's `items` array.
+        # Support the previous items payload without requiring the
+        # new Monthly Bill form to ask for item classifications.
         items = data.get("items")
         use_legacy_items = (
             isinstance(items, list)
             and not any(
                 key in data
                 for key in (
-                    "used_by", "start_date", "end_date",
-                    "fuel_quantity", "outstation_duties",
-                    "extra_hours", "holidays_worked",
-                    "parking_toll_amount", "telephone_charges_amount"
+                    "used_by",
+                    "start_date",
+                    "end_date",
+                    "fuel_quantity",
+                    "outstation_duties",
+                    "extra_hours",
+                    "holidays_worked",
+                    "parking_toll_amount",
+                    "telephone_charges_amount",
                 )
             )
         )
@@ -1411,28 +1288,34 @@ def create_monthly_bill():
 
         if use_legacy_items:
             for item in items:
-                item_type = str(item.get("item_type") or "").strip().lower()
+                item_type = (
+                    str(item.get("item_type") or "taxable")
+                    .strip()
+                    .lower()
+                )
 
                 if item_type not in ("taxable", "non-taxable"):
-                    return error_response(
-                        "Item type must be taxable or non-taxable",
-                        400,
-                        "VALIDATION_ERROR"
-                    )
+                    item_type = "taxable"
 
-                quantity = get_number_from_item = float(item.get("quantity") or 0)
+                quantity = float(item.get("quantity") or 0)
                 rate = float(item.get("rate") or 0)
                 amount_value = item.get("amount")
                 amount = float(
-                    quantity * rate if amount_value in (None, "") else amount_value
+                    quantity * rate
+                    if amount_value in (None, "")
+                    else amount_value
                 )
 
                 if quantity < 0 or rate < 0 or amount < 0:
-                    raise ValueError("Item quantity, rate and amount cannot be negative")
+                    raise ValueError(
+                        "Item quantity, rate and amount cannot be negative"
+                    )
 
                 cleaned_items.append({
                     "item_type": item_type,
-                    "description": str(item.get("description") or "").strip(),
+                    "description": str(
+                        item.get("description") or ""
+                    ).strip(),
                     "quantity": quantity,
                     "rate": rate,
                     "amount": amount,
@@ -1444,11 +1327,12 @@ def create_monthly_bill():
                     non_taxable_total += amount
 
         else:
-            # Taxable charges.
+            # Calculate the charges using the selected customer profile.
             extra_amount = extra_hours * extra_rate
             batta_amount = outstation_days * batta_rate
             holiday_amount = holidays_worked * holiday_rate
 
+            # Internal tax handling is retained for compatibility.
             taxable_items = [
                 ("Monthly Hiring Charges", 1, monthly_hiring, monthly_hiring),
                 ("Extra Hours Charges", extra_hours, extra_rate, extra_amount),
@@ -1467,10 +1351,14 @@ def create_monthly_bill():
                     })
                     taxable_subtotal += amount
 
-            # Non-taxable charges.
             non_taxable_items = [
                 ("Petrol Charges", fuel_quantity, fuel_rate, fuel_amount),
-                ("Engine Oil", total_km / 250 if not is_samro else 0, 300, engine_oil),
+                (
+                    "Engine Oil",
+                    total_km / 250 if not is_samro else 0,
+                    300,
+                    engine_oil,
+                ),
                 ("Parking & Toll", 1, parking_toll, parking_toll),
             ]
 
@@ -1485,8 +1373,6 @@ def create_monthly_bill():
                     })
                     non_taxable_total += amount
 
-            # Preserve telephone charges if supplied; classified as non-taxable
-            # until the applicable customer billing rule is confirmed.
             if telephone_charges:
                 cleaned_items.append({
                     "item_type": "non-taxable",
@@ -1497,13 +1383,14 @@ def create_monthly_bill():
                 })
                 non_taxable_total += telephone_charges
 
+        # Display GST separately. Do not add GST to Grand Total.
         cgst_rate = get_number("cgst_rate", 2.5)
         sgst_rate = get_number("sgst_rate", 2.5)
 
         cgst = taxable_subtotal * cgst_rate / 100
         sgst = taxable_subtotal * sgst_rate / 100
 
-        # Grand Total excludes GST, as requested.
+        # Grand Total = all charges before GST, rounded.
         subtotal_before_round = taxable_subtotal + non_taxable_total
         rounded_total = round(subtotal_before_round)
         round_off = rounded_total - subtotal_before_round
@@ -1557,7 +1444,7 @@ def create_monthly_bill():
         return jsonify({
             "success": True,
             "message": "Monthly Bill created successfully",
-            "monthly_bill": serialize_monthly_bill(refreshed)
+            "monthly_bill": serialize_monthly_bill(refreshed),
         }), 201
 
     except ValueError as exc:
@@ -1569,7 +1456,7 @@ def create_monthly_bill():
         return error_response(
             "Monthly Bill invoice number already exists",
             409,
-            "DUPLICATE_MONTHLY_BILL_NUMBER"
+            "DUPLICATE_MONTHLY_BILL_NUMBER",
         )
 
     except Exception as exc:
@@ -1579,12 +1466,11 @@ def create_monthly_bill():
             "Unable to save Monthly Bill",
             500,
             "SERVER_ERROR",
-            str(exc)
+            str(exc),
         )
 
     finally:
         session.close()
-
 @app.get("/api/monthly-bills/<int:bill_id>/pdf")
 def monthly_bill_pdf(bill_id):
     session = SessionLocal()
@@ -1766,8 +1652,6 @@ def get_monthly_bill(bill_id):
     finally:
         session.close()
 @app.put("/api/monthly-bills/<int:bill_id>")
-
-
 def update_monthly_bill(bill_id):
     session = SessionLocal()
 
@@ -1791,17 +1675,21 @@ def update_monthly_bill(bill_id):
         invoice_number = str(data.get("invoice_number") or "").strip()
 
         if not customer_name:
-            return error_response("Customer Name is required", 400, "VALIDATION_ERROR")
+            return error_response(
+                "Customer Name is required", 400, "VALIDATION_ERROR"
+            )
 
         if not invoice_number:
-            return error_response("Invoice Number is required", 400, "VALIDATION_ERROR")
+            return error_response(
+                "Invoice Number is required", 400, "VALIDATION_ERROR"
+            )
 
         invoice_date = parse_date(data.get("invoice_date"), "Invoice Date")
 
         existing = session.execute(
             select(MonthlyBill.id).where(
                 MonthlyBill.invoice_number == invoice_number,
-                MonthlyBill.id != bill_id
+                MonthlyBill.id != bill_id,
             )
         ).scalar_one_or_none()
 
@@ -1809,7 +1697,7 @@ def update_monthly_bill(bill_id):
             return error_response(
                 "Monthly Bill invoice number already exists",
                 409,
-                "DUPLICATE_MONTHLY_BILL_NUMBER"
+                "DUPLICATE_MONTHLY_BILL_NUMBER",
             )
 
         def get_number(key, default=0):
@@ -1823,14 +1711,18 @@ def update_monthly_bill(bill_id):
 
         def get_date(key):
             value = data.get(key)
-            return parse_date(value, key.replace("_", " ").title()) if value else None
+            return (
+                parse_date(value, key.replace("_", " ").title())
+                if value
+                else None
+            )
 
         profile = str(data.get("customer_profile") or "").strip()
         profile_key = "".join(
             ch for ch in profile.upper() if ch.isalnum()
         )
 
-        # Customer-specific fixed monthly rates.
+        # Customer-specific fixed rates.
         if "SAMRO" in profile_key:
             monthly_hiring = 63000
             extra_rate = 100
@@ -1896,6 +1788,8 @@ def update_monthly_bill(bill_id):
         parking_toll = get_number("parking_toll_amount")
         telephone_charges = get_number("telephone_charges_amount")
 
+        # SAMRO fuel is entered manually.
+        # Other profiles calculate fuel using KM / mileage x fuel rate.
         if is_samro:
             fuel_amount = get_number(
                 "fuel_amount", fuel_quantity * fuel_rate
@@ -1904,23 +1798,32 @@ def update_monthly_bill(bill_id):
             fuel_quantity = total_km
             fuel_amount = (
                 (total_km / km_per_liter) * fuel_rate
-                if km_per_liter > 0 else 0
+                if km_per_liter > 0
+                else 0
             )
 
+        # Engine oil = Total KM / 250 x Rs. 300, where applicable.
         engine_oil = get_number("engine_oil_amount")
         if not engine_oil and not is_samro:
             engine_oil = (total_km / 250) * 300
 
+        # Support the previous items payload without requiring the
+        # new Monthly Bill form to ask for item classifications.
         items = data.get("items")
         use_legacy_items = (
             isinstance(items, list)
             and not any(
                 key in data
                 for key in (
-                    "used_by", "start_date", "end_date",
-                    "fuel_quantity", "outstation_duties",
-                    "extra_hours", "holidays_worked",
-                    "parking_toll_amount", "telephone_charges_amount"
+                    "used_by",
+                    "start_date",
+                    "end_date",
+                    "fuel_quantity",
+                    "outstation_duties",
+                    "extra_hours",
+                    "holidays_worked",
+                    "parking_toll_amount",
+                    "telephone_charges_amount",
                 )
             )
         )
@@ -1931,14 +1834,14 @@ def update_monthly_bill(bill_id):
 
         if use_legacy_items:
             for item in items:
-                item_type = str(item.get("item_type") or "").strip().lower()
+                item_type = (
+                    str(item.get("item_type") or "taxable")
+                    .strip()
+                    .lower()
+                )
 
                 if item_type not in ("taxable", "non-taxable"):
-                    return error_response(
-                        "Item type must be taxable or non-taxable",
-                        400,
-                        "VALIDATION_ERROR"
-                    )
+                    item_type = "taxable"
 
                 quantity = float(item.get("quantity") or 0)
                 rate = float(item.get("rate") or 0)
@@ -1956,7 +1859,9 @@ def update_monthly_bill(bill_id):
 
                 cleaned_items.append({
                     "item_type": item_type,
-                    "description": str(item.get("description") or "").strip(),
+                    "description": str(
+                        item.get("description") or ""
+                    ).strip(),
                     "quantity": quantity,
                     "rate": rate,
                     "amount": amount,
@@ -1972,6 +1877,7 @@ def update_monthly_bill(bill_id):
             batta_amount = outstation_days * batta_rate
             holiday_amount = holidays_worked * holiday_rate
 
+            # Internal tax handling is retained for compatibility.
             taxable_items = [
                 ("Monthly Hiring Charges", 1, monthly_hiring, monthly_hiring),
                 ("Extra Hours Charges", extra_hours, extra_rate, extra_amount),
@@ -1996,7 +1902,7 @@ def update_monthly_bill(bill_id):
                     "Engine Oil",
                     total_km / 250 if not is_samro else 0,
                     300,
-                    engine_oil
+                    engine_oil,
                 ),
                 ("Parking & Toll", 1, parking_toll, parking_toll),
             ]
@@ -2022,12 +1928,14 @@ def update_monthly_bill(bill_id):
                 })
                 non_taxable_total += telephone_charges
 
+        # Display GST separately. Do not add GST to Grand Total.
         cgst_rate = get_number("cgst_rate", 2.5)
         sgst_rate = get_number("sgst_rate", 2.5)
 
         cgst = taxable_subtotal * cgst_rate / 100
         sgst = taxable_subtotal * sgst_rate / 100
 
+        # Grand Total = all charges before GST, rounded.
         subtotal_before_round = taxable_subtotal + non_taxable_total
         rounded_total = round(subtotal_before_round)
         round_off = rounded_total - subtotal_before_round
@@ -2036,7 +1944,9 @@ def update_monthly_bill(bill_id):
         bill.invoice_date = invoice_date
         bill.customer_name = customer_name
         bill.customer_profile = profile or None
-        bill.customer_address = str(data.get("customer_address") or "").strip()
+        bill.customer_address = str(
+            data.get("customer_address") or ""
+        ).strip()
         bill.customer_gstin = str(data.get("customer_gstin") or "").strip()
         bill.used_by = str(data.get("used_by") or "").strip() or None
         bill.start_date = get_date("start_date")
@@ -2044,7 +1954,9 @@ def update_monthly_bill(bill_id):
         bill.booked_by = str(data.get("booked_by") or "").strip()
         bill.position = str(data.get("position") or "").strip() or None
         bill.vehicle_number = str(data.get("vehicle_number") or "").strip()
-        bill.reference_number = str(data.get("reference_number") or "").strip()
+        bill.reference_number = str(
+            data.get("reference_number") or ""
+        ).strip()
         bill.total_km_driven = total_km
         bill.km_per_liter = km_per_liter
         bill.fuel_quantity = fuel_quantity
@@ -2085,7 +1997,7 @@ def update_monthly_bill(bill_id):
         return jsonify({
             "success": True,
             "message": "Monthly Bill updated successfully",
-            "monthly_bill": serialize_monthly_bill(refreshed)
+            "monthly_bill": serialize_monthly_bill(refreshed),
         })
 
     except ValueError as exc:
@@ -2097,7 +2009,7 @@ def update_monthly_bill(bill_id):
         return error_response(
             "Monthly Bill invoice number already exists",
             409,
-            "DUPLICATE_MONTHLY_BILL_NUMBER"
+            "DUPLICATE_MONTHLY_BILL_NUMBER",
         )
 
     except Exception as exc:
@@ -2107,9 +2019,8 @@ def update_monthly_bill(bill_id):
             "Unable to update Monthly Bill",
             500,
             "MONTHLY_BILL_UPDATE_ERROR",
-            str(exc)
+            str(exc),
         )
 
     finally:
         session.close()
-
