@@ -621,180 +621,332 @@ def amount_to_words_indian(amount):
     )
 
 def build_monthly_bill_pdf(bill):
+    from decimal import Decimal, ROUND_HALF_UP
+    from xml.sax.saxutils import escape
+
     buffer = BytesIO()
 
     doc = SimpleDocTemplate(
         buffer,
         pagesize=portrait(A4),
-        rightMargin=14 * mm,
-        leftMargin=14 * mm,
-        topMargin=11 * mm,
-        bottomMargin=11 * mm,
+        rightMargin=10 * mm,
+        leftMargin=10 * mm,
+        topMargin=8 * mm,
+        bottomMargin=8 * mm,
         title=f"PVR Monthly Bill {bill.invoice_number}",
         author="PVR Tours & Travels",
     )
 
     styles = getSampleStyleSheet()
 
-    # =========================================================
+    # ---------------------------------------------------------
     # STYLES
-    # =========================================================
+    # ---------------------------------------------------------
 
-    company = ParagraphStyle(
-        "monthly_company",
+    company_style = ParagraphStyle(
+        "MonthlyCompany",
         parent=styles["Normal"],
         fontName="Helvetica-Bold",
-        fontSize=17,
-        leading=20,
+        fontSize=25,
+        leading=29,
         alignment=TA_CENTER,
-        textColor=colors.HexColor("#102A43"),
-        spaceAfter=2,
+        textColor=colors.red,
     )
 
-    address = ParagraphStyle(
-        "monthly_address",
+    address_style = ParagraphStyle(
+        "MonthlyAddress",
         parent=styles["Normal"],
         fontName="Helvetica",
-        fontSize=7.5,
-        leading=10,
+        fontSize=8,
+        leading=11,
         alignment=TA_CENTER,
-        textColor=colors.HexColor("#52606D"),
     )
 
-    invoice_title = ParagraphStyle(
-        "monthly_invoice_title",
+    title_style = ParagraphStyle(
+        "MonthlyTitle",
         parent=styles["Normal"],
         fontName="Helvetica-Bold",
-        fontSize=11,
-        leading=13,
+        fontSize=12,
+        leading=15,
         alignment=TA_CENTER,
-        textColor=colors.HexColor("#102A43"),
-        spaceBefore=4,
-        spaceAfter=4,
     )
 
     normal = ParagraphStyle(
-        "monthly_normal",
+        "MonthlyNormal",
         parent=styles["Normal"],
         fontName="Helvetica",
-        fontSize=7.5,
-        leading=10,
-        textColor=colors.HexColor("#243B53"),
-    )
-
-    small = ParagraphStyle(
-        "monthly_small",
-        parent=normal,
-        fontSize=7,
-        leading=9,
-    )
-
-    label = ParagraphStyle(
-        "monthly_label",
-        parent=normal,
-        fontName="Helvetica-Bold",
-        fontSize=7,
-        leading=9,
-        textColor=colors.HexColor("#52606D"),
-    )
-
-    value = ParagraphStyle(
-        "monthly_value",
-        parent=normal,
-        fontSize=7.5,
-        leading=10,
-        textColor=colors.HexColor("#102A43"),
-    )
-
-    section_title = ParagraphStyle(
-        "monthly_section_title",
-        parent=styles["Normal"],
-        fontName="Helvetica-Bold",
         fontSize=8,
-        leading=10,
-        textColor=colors.HexColor("#102A43"),
-        spaceBefore=1,
-        spaceAfter=3,
+        leading=11,
     )
 
-    table_header = ParagraphStyle(
-        "monthly_table_header",
+    bold = ParagraphStyle(
+        "MonthlyBold",
         parent=normal,
         fontName="Helvetica-Bold",
-        fontSize=7,
-        leading=9,
-        textColor=colors.black,
     )
 
     center = ParagraphStyle(
-        "monthly_center",
+        "MonthlyCenter",
         parent=normal,
         alignment=TA_CENTER,
     )
 
     right = ParagraphStyle(
-        "monthly_right",
+        "MonthlyRight",
         parent=normal,
         alignment=TA_RIGHT,
     )
 
-    total_value = ParagraphStyle(
-        "monthly_total_value",
-        parent=normal,
-        fontName="Helvetica-Bold",
-        fontSize=8,
-        leading=10,
+    right_bold = ParagraphStyle(
+        "MonthlyRightBold",
+        parent=bold,
         alignment=TA_RIGHT,
-        textColor=colors.HexColor("#102A43"),
     )
 
-    grand_label = ParagraphStyle(
-        "monthly_grand_label",
-        parent=normal,
-        fontName="Helvetica-Bold",
-        fontSize=10,
-        leading=12,
-        textColor=colors.HexColor("#102A43"),
-    )
-
-    grand_value = ParagraphStyle(
-        "monthly_grand_value",
-        parent=normal,
-        fontName="Helvetica-Bold",
-        fontSize=11,
-        leading=13,
-        alignment=TA_RIGHT,
-        textColor=colors.HexColor("#102A43"),
-    )
-
-    amount_words = ParagraphStyle(
-        "monthly_amount_words",
-        parent=normal,
+    amount_words_style = ParagraphStyle(
+        "MonthlyAmountWords",
+        parent=styles["Normal"],
         fontName="Helvetica-Bold",
         fontSize=8.5,
-        leading=12,
-        textColor=colors.HexColor("#102A43"),
+        leading=11,
     )
 
-    footer_note = ParagraphStyle(
-        "monthly_footer_note",
-        parent=normal,
-        fontSize=6.5,
-        leading=8,
-        alignment=TA_CENTER,
-        textColor=colors.HexColor("#7B8794"),
+    # ---------------------------------------------------------
+    # HELPERS
+    # ---------------------------------------------------------
+
+    def get_value(field, default=None):
+        return getattr(bill, field, default)
+
+    def decimal_value(value):
+        return Decimal(str(value or 0))
+
+    def money(value):
+        value = decimal_value(value)
+        return f"{value:,.2f}"
+
+    def safe_text(value):
+        return escape(str(value or ""))
+
+    def number(value):
+        try:
+            return float(value or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    # ---------------------------------------------------------
+    # BILL DETAILS
+    # ---------------------------------------------------------
+
+    invoice_date = get_value("invoice_date", "")
+    start_date = get_value("start_date", "")
+    end_date = get_value("end_date", "")
+
+    total_km = number(get_value("total_km"))
+    fuel_quantity = number(get_value("fuel_quantity"))
+    fuel_rate = number(get_value("fuel_rate"))
+    km_per_liter = number(get_value("km_per_liter"))
+
+    outstation_duties = number(get_value("outstation_duties"))
+    extra_hours = number(get_value("extra_hours"))
+    holidays_worked = number(get_value("holidays_worked"))
+
+    # ---------------------------------------------------------
+    # READ SAVED MONTHLY BILL ITEMS
+    # ---------------------------------------------------------
+
+    items = list(get_value("items", []) or [])
+
+    charges = {
+        "monthly": [],
+        "diesel": [],
+        "batta": [],
+        "extra": [],
+        "holiday": [],
+        "engine_oil": [],
+        "parking": [],
+        "telephone": [],
+        "other": [],
+    }
+
+    def classify_item(description):
+        text = str(description or "").strip().lower()
+
+        if "monthly hiring" in text or "monthly rent" in text:
+            return "monthly"
+
+        if "diesel" in text or "petrol" in text or "fuel" in text:
+            return "diesel"
+
+        if "outstation" in text or "batta" in text:
+            return "batta"
+
+        if "extra hour" in text:
+            return "extra"
+
+        if "holiday" in text:
+            return "holiday"
+
+        if "engine oil" in text:
+            return "engine_oil"
+
+        if "parking" in text or "toll" in text:
+            return "parking"
+
+        if "telephone" in text or "mobile" in text:
+            return "telephone"
+
+        return "other"
+
+    for item in items:
+        description = getattr(item, "description", "") or ""
+        quantity = decimal_value(getattr(item, "quantity", 0))
+        rate = decimal_value(getattr(item, "rate", 0))
+        amount = decimal_value(getattr(item, "amount", 0))
+
+        category = classify_item(description)
+
+        charges[category].append({
+            "description": description,
+            "quantity": quantity,
+            "rate": rate,
+            "amount": amount,
+            "item_type": getattr(item, "item_type", "taxable"),
+        })
+
+    # ---------------------------------------------------------
+    # FALLBACK FOR BILLS WITHOUT SAVED ITEM ROWS
+    # ---------------------------------------------------------
+
+    if not items:
+        charges["diesel"].append({
+            "description": "Diesel Charges",
+            "quantity": decimal_value(fuel_quantity),
+            "rate": decimal_value(fuel_rate),
+            "amount": (
+                decimal_value(fuel_quantity)
+                * decimal_value(fuel_rate)
+            ),
+            "item_type": "non-taxable",
+        })
+
+        engine_oil = decimal_value(
+            get_value("engine_oil_amount")
+        )
+
+        parking = decimal_value(
+            get_value("parking_toll_amount")
+        )
+
+        telephone = decimal_value(
+            get_value("telephone_charges_amount")
+        )
+
+        if engine_oil:
+            charges["engine_oil"].append({
+                "description": "Engine Oil Amount",
+                "quantity": Decimal("1"),
+                "rate": engine_oil,
+                "amount": engine_oil,
+                "item_type": "non-taxable",
+            })
+
+        if parking:
+            charges["parking"].append({
+                "description": "Parking & Toll Charges",
+                "quantity": Decimal("1"),
+                "rate": parking,
+                "amount": parking,
+                "item_type": "non-taxable",
+            })
+
+        if telephone:
+            charges["telephone"].append({
+                "description": "Driver Telephone Charges",
+                "quantity": Decimal("1"),
+                "rate": telephone,
+                "amount": telephone,
+                "item_type": "non-taxable",
+            })
+
+    # ---------------------------------------------------------
+    # CHARGE TOTALS
+    # ---------------------------------------------------------
+
+    def category_total(category):
+        return sum(
+            (row["amount"] for row in charges[category]),
+            Decimal("0.00"),
+        )
+
+    monthly_amount = category_total("monthly")
+    diesel_amount = category_total("diesel")
+    batta_amount = category_total("batta")
+    extra_amount = category_total("extra")
+    holiday_amount = category_total("holiday")
+    engine_oil_amount = category_total("engine_oil")
+    parking_amount = category_total("parking")
+    telephone_amount = category_total("telephone")
+    other_amount = category_total("other")
+
+    # ---------------------------------------------------------
+    # TAXABLE AND NON-TAXABLE CALCULATION
+    # ---------------------------------------------------------
+
+    taxable_amount = (
+        monthly_amount
+        + batta_amount
+        + extra_amount
+        + holiday_amount
     )
+
+    non_taxable_amount = (
+        diesel_amount
+        + engine_oil_amount
+        + parking_amount
+        + telephone_amount
+    )
+
+    for row in charges["other"]:
+        if str(row["item_type"]).lower() == "non-taxable":
+            non_taxable_amount += row["amount"]
+        else:
+            taxable_amount += row["amount"]
+
+    subtotal = taxable_amount + non_taxable_amount
+
+    cgst_rate = decimal_value(get_value("cgst_rate", 2.5))
+    sgst_rate = decimal_value(get_value("sgst_rate", 2.5))
+
+    cgst = (
+        taxable_amount * cgst_rate / Decimal("100")
+    ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    sgst = (
+        taxable_amount * sgst_rate / Decimal("100")
+    ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    # Grand Total is based on subtotal before GST.
+    # CGST and SGST are displayed separately.
+    total_before_round = subtotal
+
+    grand_total = total_before_round.quantize(
+        Decimal("1"),
+        rounding=ROUND_HALF_UP,
+    )
+
+    round_off = grand_total - total_before_round
+
+    # ---------------------------------------------------------
+    # COMPANY HEADER
+    # ---------------------------------------------------------
 
     story = []
-
-    # =========================================================
-    # COMPANY HEADER
-    # =========================================================
 
     story.append(
         Paragraph(
             "P.V.R. TOURS AND TRAVELS",
-            company,
+            company_style,
         )
     )
 
@@ -803,296 +955,476 @@ def build_monthly_bill_pdf(bill):
             "H. No. 4-1-756, Tuljaguda, Troop Bazar, Hyderabad, "
             "Telangana State - 500 001. "
             "Ph: 9030588882 / 9963578399",
-            address,
+            address_style,
         )
     )
 
     story.append(Spacer(1, 3 * mm))
 
     story.append(
-        Table(
-            [
-                [
-                    Paragraph(
-                        "MONTHLY TAX INVOICE",
-                        invoice_title,
-                    )
-                ]
-            ],
-            colWidths=[doc.width],
-            style=[
-                (
-                    "LINEABOVE",
-                    (0, 0),
-                    (-1, 0),
-                    1.2,
-                    colors.HexColor("#102A43"),
-                ),
-                (
-                    "LINEBELOW",
-                    (0, 0),
-                    (-1, 0),
-                    1.2,
-                    colors.HexColor("#102A43"),
-                ),
-                (
-                    "TOPPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    3,
-                ),
-                (
-                    "BOTTOMPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    2,
-                ),
-            ],
+        Paragraph(
+            "TAXABLE INVOICE",
+            title_style,
         )
     )
 
-    story.append(Spacer(1, 4 * mm))
+    story.append(Spacer(1, 3 * mm))
 
-    # =========================================================
-    # CUSTOMER / INVOICE INFORMATION
-    # =========================================================
+    # ---------------------------------------------------------
+    # CUSTOMER / INVOICE DETAILS
+    # ---------------------------------------------------------
 
-    invoice_date = (
-        bill.invoice_date.strftime("%d-%m-%Y")
-        if bill.invoice_date
-        else ""
-    )
-
-    
-    left_information = [
+    customer_rows = [
         [
-            Paragraph("CUSTOMER PROFILE", label),
+            Paragraph(safe_text(get_value("customer_name")), bold),
+            Paragraph(f"Invoice Date: {invoice_date}", right),
+        ],
+        [
             Paragraph(
-                getattr(bill, "customer_profile", "") or "",
-                value,
+                f"GST NO: {safe_text(get_value('customer_gstin'))}",
+                normal,
+            ),
+            Paragraph(
+                f"Invoice No: {safe_text(get_value('invoice_number'))}",
+                right,
             ),
         ],
         [
-            Paragraph("BILLED TO", label),
-            Paragraph(bill.customer_name or "", value),
-        ],
-        [
-            Paragraph("POSITION", label),
-            Paragraph(getattr(bill, "position", "") or "", value),
-        ],
-        [
-            Paragraph("ADDRESS", label),
-            Paragraph(bill.customer_address or "", value),
-        ],
-        [
-            Paragraph("CUSTOMER GSTIN", label),
-            Paragraph(bill.customer_gstin or "", value),
-        ],
-        [
-            Paragraph("TOTAL KM DRIVEN", label),
             Paragraph(
-                f"{float(getattr(bill, 'total_km_driven', 0) or 0):,.2f}",
-                value,
+                f"Used By: {safe_text(get_value('used_by'))}",
+                normal,
+            ),
+            Paragraph(
+                f"Booked By: {safe_text(get_value('booked_by'))}",
+                right,
             ),
         ],
         [
-            Paragraph("KM PER LITER", label),
             Paragraph(
-                f"{float(getattr(bill, 'km_per_liter', 0) or 0):,.2f}",
-                value,
+                f"Vehicle No: {safe_text(get_value('vehicle_number'))}",
+                normal,
             ),
+            Paragraph(
+                f"Reference No: {safe_text(get_value('reference_number'))}",
+                right,
+            ),
+        ],
+        [
+            Paragraph(f"Start Date: {start_date}", bold),
+            Paragraph(f"End Date: {end_date}", right_bold),
         ],
     ]
 
+    customer_table = Table(
+        customer_rows,
+        colWidths=[
+            doc.width * 0.50,
+            doc.width * 0.50,
+        ],
+    )
 
-    right_information = [
+    customer_table.setStyle(
+        TableStyle([
+            ("BOX", (0, 0), (-1, -1), 0.8, colors.black),
+            ("INNERGRID", (0, 0), (-1, -1), 0.4, colors.black),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 5),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ])
+    )
+
+    story.append(customer_table)
+    story.append(Spacer(1, 3 * mm))
+
+    # ---------------------------------------------------------
+    # LEFT SIDE: USAGE DETAILS
+    # ---------------------------------------------------------
+
+    left_rows = [
         [
-            Paragraph("INVOICE NO", label),
             Paragraph(
-                bill.invoice_number or "",
-                value,
-            ),
+                f"Total No. of KMs during the Month: "
+                f"<font color='red'><b>{total_km:g}</b></font>",
+                center,
+            )
         ],
         [
-            Paragraph("INVOICE DATE", label),
             Paragraph(
-                invoice_date,
-                value,
-            ),
+                f"Diesel Rate: "
+                f"<font color='red'><b>Rs. {money(fuel_rate)}</b></font>",
+                center,
+            )
         ],
         [
-            Paragraph("BOOKED BY", label),
             Paragraph(
-                bill.booked_by or "",
-                value,
-            ),
+                f"No. of Outstation Duties: "
+                f"<font color='red'><b>{outstation_duties:g}</b></font>",
+                center,
+            )
         ],
         [
-            Paragraph("VEHICLE NUMBER", label),
             Paragraph(
-                bill.vehicle_number or "",
-                value,
-            ),
+                f"No. of Extra Hours: "
+                f"<font color='red'><b>{extra_hours:g}</b></font>",
+                center,
+            )
         ],
         [
-            Paragraph("REFERENCE / PO", label),
             Paragraph(
-                bill.reference_number or "",
-                value,
-            ),
+                f"No. of Holidays Worked: "
+                f"<font color='red'><b>{holidays_worked:g}</b></font>",
+                center,
+            )
         ],
     ]
 
     left_table = Table(
-        left_information,
-        colWidths=[35 * mm, 55 * mm],
-        style=[
-            (
-                "LINEBELOW",
-                (0, 0),
-                (-1, -1),
-                0.35,
-                colors.HexColor("#D9E2EC"),
-            ),
-            (
-                "VALIGN",
-                (0, 0),
-                (-1, -1),
-                "TOP",
-            ),
-            (
-                "LEFTPADDING",
-                (0, 0),
-                (-1, -1),
-                0,
-            ),
-            (
-                "RIGHTPADDING",
-                (0, 0),
-                (-1, -1),
-                3,
-            ),
-            (
-                "TOPPADDING",
-                (0, 0),
-                (-1, -1),
-                3,
-            ),
-            (
-                "BOTTOMPADDING",
-                (0, 0),
-                (-1, -1),
-                3,
-            ),
+        left_rows,
+        colWidths=[doc.width * 0.49],
+        rowHeights=[
+            18 * mm,
+            18 * mm,
+            18 * mm,
+            18 * mm,
+            18 * mm,
         ],
     )
+
+    left_table.setStyle(
+        TableStyle([
+            ("BOX", (0, 0), (-1, -1), 0.8, colors.black),
+            ("INNERGRID", (0, 0), (-1, -1), 0.4, colors.black),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+        ])
+    )
+
+    # ---------------------------------------------------------
+    # RIGHT SIDE: CHARGES
+    # ---------------------------------------------------------
+
+    def charge_amount(category):
+        return money(category_total(category))
+
+    right_rows = [
+        [
+            Paragraph("Monthly Hiring Charges:", right),
+            Paragraph(charge_amount("monthly"), right_bold),
+        ],
+        [
+            Paragraph(
+                f"Diesel Charges:<br/>"
+                f"(@ {km_per_liter:g} kms per liter mileage)",
+                right,
+            ),
+            Paragraph(charge_amount("diesel"), right_bold),
+        ],
+        [
+            Paragraph(
+                "Outstation Driver Batta:<br/>"
+                "(@ applicable rate per day)",
+                right,
+            ),
+            Paragraph(charge_amount("batta"), right_bold),
+        ],
+        [
+            Paragraph(
+                "Extra Hours Charges:<br/>"
+                "(@ applicable rate per hour)",
+                right,
+            ),
+            Paragraph(charge_amount("extra"), right_bold),
+        ],
+        [
+            Paragraph(
+                "Holiday Working Allowance:<br/>"
+                "(@ applicable rate per day)",
+                right,
+            ),
+            Paragraph(charge_amount("holiday"), right_bold),
+        ],
+        [
+            Paragraph("Engine Oil Amount:", right),
+            Paragraph(charge_amount("engine_oil"), right_bold),
+        ],
+        [
+            Paragraph("Parking & Toll Charges:", right),
+            Paragraph(charge_amount("parking"), right_bold),
+        ],
+        [
+            Paragraph("Driver Telephone Charges:", right),
+            Paragraph(charge_amount("telephone"), right_bold),
+        ],
+    ]
+
+    if charges["other"]:
+        right_rows.append([
+            Paragraph("Other Charges:", right),
+            Paragraph(money(other_amount), right_bold),
+        ])
 
     right_table = Table(
-        right_information,
-        colWidths=[35 * mm, 55 * mm],
-        style=[
-            (
-                "LINEBELOW",
-                (0, 0),
-                (-1, -1),
-                0.35,
-                colors.HexColor("#D9E2EC"),
-            ),
-            (
-                "VALIGN",
-                (0, 0),
-                (-1, -1),
-                "TOP",
-            ),
-            (
-                "LEFTPADDING",
-                (0, 0),
-                (-1, -1),
-                0,
-            ),
-            (
-                "RIGHTPADDING",
-                (0, 0),
-                (-1, -1),
-                0,
-            ),
-            (
-                "TOPPADDING",
-                (0, 0),
-                (-1, -1),
-                3,
-            ),
-            (
-                "BOTTOMPADDING",
-                (0, 0),
-                (-1, -1),
-                3,
-            ),
+        right_rows,
+        colWidths=[
+            doc.width * 0.37,
+            doc.width * 0.14,
         ],
     )
 
-    story.append(
-        Table(
-            [
-                [
-                    left_table,
-                    right_table,
-                ]
-            ],
-            colWidths=[90 * mm, 90 * mm],
-            style=[
-                (
-                    "VALIGN",
-                    (0, 0),
-                    (-1, -1),
-                    "TOP",
-                ),
-                (
-                    "LEFTPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    0,
-                ),
-                (
-                    "RIGHTPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    0,
-                ),
-                (
-                    "TOPPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    0,
-                ),
-                (
-                    "BOTTOMPADDING",
-                    (0, 0),
-                    (-1, -1),
-                    0,
-                ),
-            ],
-        )
+    right_table.setStyle(
+        TableStyle([
+            ("BOX", (0, 0), (-1, -1), 0.8, colors.black),
+            ("INNERGRID", (0, 0), (-1, -1), 0.4, colors.black),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ])
     )
 
-    story.append(Spacer(1, 5 * mm))
+    details_table = Table(
+        [[left_table, right_table]],
+        colWidths=[
+            doc.width * 0.49,
+            doc.width * 0.51,
+        ],
+    )
 
-    # =========================================================
-    # SEPARATE TAXABLE / NON-TAXABLE ITEMS
-    # =========================================================
+    details_table.setStyle(
+        TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ])
+    )
 
-    taxable_items = [
-        item
-        for item in bill.items
-        if item.item_type == "taxable"
+    story.append(details_table)
+    story.append(Spacer(1, 2 * mm))
+
+    # ---------------------------------------------------------
+    # HSN AND COMPANY GST NUMBER
+    # ---------------------------------------------------------
+
+    hsn_table = Table(
+        [[
+            Paragraph("<b>HSN No: 996412</b>", normal),
+            Paragraph("<b>GST NO: 36AYPPR7981L1Z8</b>", center),
+            Paragraph(f"<b>{money(subtotal)}</b>", right_bold),
+        ]],
+        colWidths=[
+            doc.width * 0.34,
+            doc.width * 0.40,
+            doc.width * 0.26,
+        ],
+    )
+
+    hsn_table.setStyle(
+        TableStyle([
+            ("BOX", (0, 0), (-1, -1), 0.8, colors.black),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ])
+    )
+
+    story.append(hsn_table)
+    story.append(Spacer(1, 4 * mm))
+
+    # ---------------------------------------------------------
+    # BANK DETAILS
+    # ---------------------------------------------------------
+
+    bank_details = [
+        Paragraph(
+            "<u>Please make payment by Bank Transfer</u>",
+            center,
+        ),
+        Paragraph(
+            "<u>to the below account:</u>",
+            center,
+        ),
+        Paragraph(
+            "<b>Account Name: PVR Tours &amp; Travels</b>",
+            normal,
+        ),
+        Paragraph(
+            "<b>SBI Account No: 39169597084</b>",
+            normal,
+        ),
+        Paragraph(
+            "<b>IFSC: SBIN0000487</b>",
+            normal,
+        ),
     ]
 
-    non_taxable_items = [
-        item
-        for item in bill.items
-        if item.item_type == "non-taxable"
+    bank_table = Table(
+        [[item] for item in bank_details],
+        colWidths=[doc.width * 0.50],
+    )
+
+    bank_table.setStyle(
+        TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 2),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ])
+    )
+
+    # ---------------------------------------------------------
+    # TAX SUMMARY
+    # ---------------------------------------------------------
+
+    tax_rows = [
+        [
+            Paragraph("Taxable Amount:", right),
+            Paragraph(money(taxable_amount), right),
+        ],
+        [
+            Paragraph(f"SGST @ {sgst_rate:g}%", right),
+            Paragraph(money(sgst), right),
+        ],
+        [
+            Paragraph(f"CGST @ {cgst_rate:g}%", right),
+            Paragraph(money(cgst), right),
+        ],
+        [
+            Paragraph("Non-Taxable Charges:", right),
+            Paragraph(money(non_taxable_amount), right),
+        ],
+        [
+            Paragraph("Round Off:", right),
+            Paragraph(
+                f"{'+' if round_off >= 0 else ''}{money(round_off)}",
+                right,
+            ),
+        ],
     ]
 
+    tax_table = Table(
+        tax_rows,
+        colWidths=[
+            doc.width * 0.25,
+            doc.width * 0.17,
+        ],
+    )
+
+    tax_table.setStyle(
+        TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ])
+    )
+
+    bottom_table = Table(
+        [[bank_table, tax_table]],
+        colWidths=[
+            doc.width * 0.53,
+            doc.width * 0.47,
+        ],
+    )
+
+    bottom_table.setStyle(
+        TableStyle([
+            ("BOX", (0, 0), (-1, -1), 0.8, colors.black),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ])
+    )
+
+    story.append(bottom_table)
+
+    # ---------------------------------------------------------
+    # AMOUNT IN WORDS AND FINAL TOTAL
+    # ---------------------------------------------------------
+
+    amount_words = amount_to_words_indian(
+        float(grand_total)
+    )
+
+    final_table = Table(
+        [[
+            Paragraph(
+                safe_text(amount_words),
+                amount_words_style,
+            ),
+            Paragraph("Total Amount:", right_bold),
+            Paragraph(money(grand_total), right_bold),
+        ]],
+        colWidths=[
+            doc.width * 0.62,
+            doc.width * 0.20,
+            doc.width * 0.18,
+        ],
+    )
+
+    final_table.setStyle(
+        TableStyle([
+            ("BOX", (0, 0), (-1, -1), 0.9, colors.black),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ])
+    )
+
+    story.append(final_table)
+    story.append(Spacer(1, 22 * mm))
+
+    # ---------------------------------------------------------
+    # SIGNATURE
+    # ---------------------------------------------------------
+
+    signature_table = Table(
+        [[
+            "",
+            Paragraph(
+                "<b>For PVR TOURS &amp; TRAVELS</b>",
+                right,
+            ),
+        ]],
+        colWidths=[
+            doc.width * 0.55,
+            doc.width * 0.45,
+        ],
+    )
+
+    signature_table.setStyle(
+        TableStyle([
+            ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+            ("VALIGN", (0, 0), (-1, -1), "BOTTOM"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+        ])
+    )
+
+    story.append(signature_table)
+
+    # ---------------------------------------------------------
+    # GENERATE PDF
+    # ---------------------------------------------------------
+
+    doc.build(story)
+
+    buffer.seek(0)
+    return buffer.getvalue()
     # =========================================================
     # ITEM TABLE BUILDER
     # =========================================================
