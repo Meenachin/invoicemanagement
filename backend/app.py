@@ -1120,8 +1120,13 @@ def export_monthly_bills_excel():
 
 
 
+
 def calculate_monthly_bill_data(data):
-    """Calculate Monthly Bill charges from the selected customer profile."""
+    """Calculate Monthly Bill charges using the selected customer profile."""
+
+    # ---------------------------------------------------------
+    # 1. COMMON VALIDATION HELPERS
+    # ---------------------------------------------------------
 
     def number(key, default=0):
         value = data.get(key)
@@ -1148,17 +1153,22 @@ def calculate_monthly_bill_data(data):
 
     def optional_date(key):
         value = data.get(key)
+
         return (
             parse_date(value, key.replace("_", " ").title())
             if value else None
         )
 
+    # ---------------------------------------------------------
+    # 2. CUSTOMER PROFILE AND FIXED RATES
+    # ---------------------------------------------------------
+
     profile = str(data.get("customer_profile") or "").strip()
+
     profile_key = "".join(
         ch for ch in profile.upper() if ch.isalnum()
     )
 
-    # Match exact customer profiles and their fixed rates.
     profiles = {
         "SAMRO": {
             "monthly": 63000,
@@ -1211,22 +1221,31 @@ def calculate_monthly_bill_data(data):
         },
     }
 
+    # Identify the selected profile.
     if "SAMRO" in profile_key:
         config = profiles["SAMRO"]
+
     elif "CYBERABAD" in profile_key:
         config = profiles["AOCYBERABAD"]
+
     elif "CGM" in profile_key:
         config = profiles["CGM"]
+
     elif "AGM" in profile_key:
         config = profiles["AGM"]
+
     elif "GM1" in profile_key:
         config = profiles["GM1"]
+
     elif "DGM" in profile_key:
         config = profiles["DGM"]
+
     elif "GTFC" in profile_key:
         config = profiles["GTFC"]
+
     elif profile_key.endswith("GM"):
         config = profiles["GM"]
+
     else:
         raise ValueError("Please select a valid Customer Profile")
 
@@ -1234,24 +1253,41 @@ def calculate_monthly_bill_data(data):
     extra_rate = config["extra"]
     batta_rate = config["batta"]
     holiday_rate = config["holiday"]
+
     is_samro = config.get("samro", False)
+
+    # ---------------------------------------------------------
+    # 3. MONTHLY USAGE INPUTS
+    # ---------------------------------------------------------
 
     total_km = number("total_km_driven")
     km_per_liter = number("km_per_liter")
     fuel_rate = number("fuel_rate")
-    outstation_days = number("outstation_duties")
+
+    outstation_duties = number("outstation_duties")
     extra_hours = number("extra_hours")
     holidays_worked = number("holidays_worked")
 
+    engine_oil = number("engine_oil_amount")
     parking_toll = number("parking_toll_amount")
     telephone_charges = number("telephone_charges_amount")
 
-    # SAMRO: fuel quantity and rate are entered manually.
+    # ---------------------------------------------------------
+    # 4. FUEL CALCULATION
+    # ---------------------------------------------------------
+
     if is_samro:
+        # SAMRO:
+        # Fuel quantity and fuel rate are entered manually.
+
         fuel_quantity = number("fuel_quantity")
+
         fuel_amount = fuel_quantity * fuel_rate
+
     else:
-        # Other profiles: litres = total KM / KM per litre.
+        # Other profiles:
+        # Fuel quantity = Total KM / KM per Litre.
+
         if total_km > 0 and km_per_liter <= 0:
             raise ValueError(
                 "KM per Liter is required when Total KM Driven is entered"
@@ -1264,30 +1300,51 @@ def calculate_monthly_bill_data(data):
 
         fuel_amount = fuel_quantity * fuel_rate
 
-    # Engine oil: existing rule for non-SAMRO profiles.
-    engine_oil = number("engine_oil_amount")
+    # ---------------------------------------------------------
+    # 5. ENGINE OIL CALCULATION
+    # ---------------------------------------------------------
+
+    # If the user enters an engine oil amount, use that amount.
+    # Otherwise, for non-SAMRO profiles:
+    # Engine oil = (Total KM / 250) * 300.
 
     if not engine_oil and not is_samro:
         engine_oil = (total_km / 250) * 300
 
-    # Profile-based calculations.
+    # ---------------------------------------------------------
+    # 6. PROFILE-BASED CHARGE CALCULATIONS
+    # ---------------------------------------------------------
+
+    # Outstation Batta = Number of Duties * Profile Batta Rate.
+    batta_amount = outstation_duties * batta_rate
+
+    # Extra Hours = Number of Extra Hours * Profile Extra Rate.
     extra_amount = extra_hours * extra_rate
-    batta_amount = outstation_days * batta_rate
+
+    # Holiday Allowance = Holidays Worked * Profile Holiday Rate.
     holiday_amount = holidays_worked * holiday_rate
 
-    # Internal classification. The form does not ask the user for this.
+    # Monthly Hiring is the fixed profile amount.
+    monthly_hiring_amount = monthly_hiring
+
+    # ---------------------------------------------------------
+    # 7. CREATE BILL LINE ITEMS
+    # ---------------------------------------------------------
+    # item_type is maintained internally for accounting.
+    # The user does not enter or select this classification.
+
     items = [
         {
             "item_type": "taxable",
             "description": "Monthly Hiring Charges",
             "quantity": 1,
             "rate": monthly_hiring,
-            "amount": monthly_hiring,
+            "amount": monthly_hiring_amount,
         },
         {
             "item_type": "taxable",
             "description": "Outstation Driver Batta",
-            "quantity": outstation_days,
+            "quantity": outstation_duties,
             "rate": batta_rate,
             "amount": batta_amount,
         },
@@ -1307,50 +1364,71 @@ def calculate_monthly_bill_data(data):
         },
     ]
 
-    # Non-taxable charges.
-    non_taxable_items = [
-        (
-            "Petrol Charges" if is_samro else "Diesel Charges",
-            fuel_quantity,
-            fuel_rate,
-            fuel_amount,
-        ),
-        (
-            "Engine Oil",
-            total_km / 250 if not is_samro else 0,
-            300,
-            engine_oil,
-        ),
-        (
-            "Parking & Toll Charges",
-            1,
-            parking_toll,
-            parking_toll,
-        ),
-        (
-            "Driver Telephone Charges",
-            1,
-            telephone_charges,
-            telephone_charges,
-        ),
-    ]
+    # Fuel line item.
+    # SAMRO uses Petrol; other profiles use Diesel.
 
-    for description, quantity, rate, amount in non_taxable_items:
-        if amount:
-            items.append({
-                "item_type": "non-taxable",
-                "description": description,
-                "quantity": quantity,
-                "rate": rate,
-                "amount": amount,
-            })
+    fuel_description = (
+        "Petrol Charges" if is_samro else "Diesel Charges"
+    )
+
+    if fuel_amount:
+        items.append({
+            "item_type": "non-taxable",
+            "description": fuel_description,
+            "quantity": fuel_quantity,
+            "rate": fuel_rate,
+            "amount": fuel_amount,
+        })
+
+    # Engine Oil line item.
+    if engine_oil:
+        items.append({
+            "item_type": "non-taxable",
+            "description": "Engine Oil",
+            "quantity": (
+                total_km / 250 if not is_samro else 0
+            ),
+            "rate": 300,
+            "amount": engine_oil,
+        })
+
+    # Parking and Toll line item.
+    if parking_toll:
+        items.append({
+            "item_type": "non-taxable",
+            "description": "Parking & Toll Charges",
+            "quantity": 1,
+            "rate": parking_toll,
+            "amount": parking_toll,
+        })
+
+    # Driver Telephone Charges line item.
+    if telephone_charges:
+        items.append({
+            "item_type": "non-taxable",
+            "description": "Driver Telephone Charges",
+            "quantity": 1,
+            "rate": telephone_charges,
+            "amount": telephone_charges,
+        })
+
+    # ---------------------------------------------------------
+    # 8. TAXABLE AND NON-TAXABLE TOTALS
+    # ---------------------------------------------------------
+
+    # Taxable components:
+    # Monthly Hiring + Outstation Batta
+    # + Extra Hours + Holiday Allowance.
 
     taxable_subtotal = (
-        monthly_hiring
+        monthly_hiring_amount
         + batta_amount
         + extra_amount
         + holiday_amount
     )
+
+    # Non-taxable components:
+    # Fuel + Engine Oil + Parking/Toll + Telephone.
 
     non_taxable_total = (
         fuel_amount
@@ -1359,17 +1437,30 @@ def calculate_monthly_bill_data(data):
         + telephone_charges
     )
 
+    # ---------------------------------------------------------
+    # 9. GST CALCULATION
+    # ---------------------------------------------------------
+
     cgst_rate = number("cgst_rate", 2.5)
     sgst_rate = number("sgst_rate", 2.5)
+
+    # GST is calculated only on the taxable subtotal.
 
     cgst = taxable_subtotal * cgst_rate / 100
     sgst = taxable_subtotal * sgst_rate / 100
 
-    # GST is shown separately.
-    # Grand Total includes charges before GST, not CGST/SGST.
+    # ---------------------------------------------------------
+    # 10. GRAND TOTAL AND ROUND OFF
+    # ---------------------------------------------------------
+
+    # Grand Total is calculated before GST:
+    # Taxable Subtotal + Non-Taxable Total.
+
     amount_before_rounding = (
         taxable_subtotal + non_taxable_total
     )
+
+    # Round to the nearest whole rupee.
 
     grand_total = float(
         Decimal(str(amount_before_rounding)).quantize(
@@ -1380,7 +1471,10 @@ def calculate_monthly_bill_data(data):
 
     round_off = grand_total - amount_before_rounding
 
-    # Validate start date and end date.
+    # ---------------------------------------------------------
+    # 11. DATE VALIDATION
+    # ---------------------------------------------------------
+
     start_date = optional_date("start_date")
     end_date = optional_date("end_date")
 
@@ -1388,6 +1482,10 @@ def calculate_monthly_bill_data(data):
         raise ValueError(
             "End Date cannot be earlier than Start Date"
         )
+
+    # ---------------------------------------------------------
+    # 12. RETURN DATA TO THE MONTHLY BILL API
+    # ---------------------------------------------------------
 
     return {
         "invoice_number": str(
@@ -1436,14 +1534,17 @@ def calculate_monthly_bill_data(data):
             data.get("reference_number") or ""
         ).strip(),
 
+        # Monthly usage and fuel details.
         "total_km_driven": total_km,
         "km_per_liter": km_per_liter,
         "fuel_quantity": fuel_quantity,
         "fuel_rate": fuel_rate,
-        "outstation_duties": outstation_days,
+
+        "outstation_duties": outstation_duties,
         "extra_hours": extra_hours,
         "holidays_worked": holidays_worked,
 
+        # Accounting totals.
         "taxable_subtotal": taxable_subtotal,
 
         "cgst_rate": cgst_rate,
@@ -1454,6 +1555,7 @@ def calculate_monthly_bill_data(data):
 
         "non_taxable_total": non_taxable_total,
 
+        # Other charges.
         "engine_oil_amount": engine_oil,
         "parking_toll_amount": parking_toll,
         "telephone_charges_amount": telephone_charges,
@@ -1461,8 +1563,10 @@ def calculate_monthly_bill_data(data):
         "round_off": round_off,
         "grand_total": grand_total,
 
+        # Internal line items for PDF and accounting.
         "items": items,
     }
+
 
 
 
