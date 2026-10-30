@@ -2089,9 +2089,10 @@ const [error, setError] = useState('')
     </Layout>
   )
 }
+
 function MonthlyBillForm() {
   const navigate = useNavigate()
-   const location = useLocation()
+  const location = useLocation()
 
   const editId = location.pathname.startsWith('/monthly-edit/')
     ? location.pathname.split('/')[2]
@@ -2101,103 +2102,91 @@ function MonthlyBillForm() {
 
   const [invoiceNumber, setInvoiceNumber] = useState('')
   const [invoiceDate, setInvoiceDate] = useState(todayISO())
+
   const [customerProfile, setCustomerProfile] = useState('')
-  const [customerName, setCustomerName] = useState(CUSTOMER_NAMES[0])
-  const [customerAddress, setCustomerAddress] = useState(
-    CUSTOMER_ADDRESSES[0]
-  )
-  const [customerGstin, setCustomerGstin] = useState(
-    CUSTOMER_GSTINS[0]
-  )
-  const [bookedBy, setBookedBy] = useState(BOOKED_BY[0])
-  
-const [position, setPosition] = useState('')
+  const [customerName, setCustomerName] = useState('')
+  const [customerGstin, setCustomerGstin] = useState('')
+  const [customerAddress, setCustomerAddress] = useState('')
+  const [usedBy, setUsedBy] = useState('')
 
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+
+  const [bookedBy, setBookedBy] = useState('')
+  const [position, setPosition] = useState('')
   const [vehicleNumber, setVehicleNumber] = useState('')
-  
-const [totalKmDriven, setTotalKmDriven] = useState(0)
-const [kmPerLiter, setKmPerLiter] = useState(0)
+  const [referenceNumber, setReferenceNumber] = useState('')
 
-  const [referenceNumber, setReferenceNumber] = useState(
-    REFERENCE_NUMBERS[0]
-  )
+  // Monthly usage inputs
+  const [totalKmDriven, setTotalKmDriven] = useState(0)
+  const [kmPerLiter, setKmPerLiter] = useState(0)
+  const [fuelQuantity, setFuelQuantity] = useState(0)
+  const [fuelRate, setFuelRate] = useState(0)
 
-  const [activeType, setActiveType] = useState('taxable')
+  const [outstationDuties, setOutstationDuties] = useState(0)
+  const [extraHours, setExtraHours] = useState(0)
+  const [holidaysWorked, setHolidaysWorked] = useState(0)
 
- const [taxableItems, setTaxableItems] = useState([
-  {
-    description: 'Extra Hours Charges @100 per hour',
-    quantity: 1,
-    rate: 100,
-    amount: 100
-  },
-  {
-    description: 'Out Station Driver Batta @500 per day',
-    quantity: 1,
-    rate: 500,
-    amount: 500
-  },
-  {
-    description: 'Holiday Working Allowance @500 per day (Sunday & Public Holiday)',
-    quantity: 1,
-    rate: 500,
-    amount: 500
-  }
-])
+  const [engineOilAmount, setEngineOilAmount] = useState(0)
+  const [parkingTollAmount, setParkingTollAmount] = useState(0)
+  const [telephoneChargesAmount, setTelephoneChargesAmount] = useState(0)
 
-  const [nonTaxableItems, setNonTaxableItems] = useState([
-    {
-      description: '',
-      quantity: 1,
-      rate: 0,
-      amount: 0
-    }
-  ])
-  
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+
   const CUSTOMER_PROFILE_RATES = {
     SAMRO_HYDERABAD: {
+      name: 'SAMRO HYDERABAD',
       monthlyHiring: 63000,
       extraHours: 100,
       driverBatta: 500,
       holidayAllowance: 500
     },
     LIAISON_DGM: {
+      name: 'THE LIAISON DEPARTMENT, LHO, KOTI, HYDERABAD',
       monthlyHiring: 54899,
       extraHours: 100,
       driverBatta: 500,
       holidayAllowance: 500
     },
     LIAISON_GM: {
+      name: 'THE LIAISON DEPARTMENT, LHO, KOTI, HYDERABAD',
       monthlyHiring: 63000,
       extraHours: 100,
       driverBatta: 500,
       holidayAllowance: 500
     },
     LIAISON_CGM: {
+      name: 'THE LIAISON DEPARTMENT, LHO, KOTI, HYDERABAD',
       monthlyHiring: 145899,
       extraHours: 250,
       driverBatta: 1000,
       holidayAllowance: 1200
     },
     LIAISON_AGM: {
+      name: 'THE LIAISON DEPARTMENT, LHO, KOTI, HYDERABAD',
       monthlyHiring: 38899,
       extraHours: 100,
       driverBatta: 500,
       holidayAllowance: 500
     },
     LIAISON_GM1: {
+      name: 'THE LIAISON DEPARTMENT, LHO, KOTI, HYDERABAD',
       monthlyHiring: 61899,
       extraHours: 100,
       driverBatta: 500,
       holidayAllowance: 500
     },
     GTFC: {
+      name: 'GTFC',
       monthlyHiring: 54899,
       extraHours: 100,
       driverBatta: 500,
       holidayAllowance: 500
     },
     AO_CYBERABAD: {
+      name: 'A/O CYBERABAD',
       monthlyHiring: 36700,
       extraHours: 130,
       driverBatta: 500,
@@ -2205,356 +2194,165 @@ const [kmPerLiter, setKmPerLiter] = useState(0)
     }
   }
 
-  
+  const selectedRates = CUSTOMER_PROFILE_RATES[customerProfile]
+  const isSamro = customerProfile === 'SAMRO_HYDERABAD'
+
   const handleCustomerProfileChange = profile => {
     setCustomerProfile(profile)
 
-setPosition(
-  profile === 'LIAISON_DGM' ? 'DGM' :
-  profile === 'LIAISON_GM' ? 'GM' :
-  profile === 'LIAISON_CGM' ? 'CGM' :
-  profile === 'LIAISON_AGM' ? 'Liaison Department (AGM)' :
-  profile === 'LIAISON_GM1' ? 'GM - 1' :
-  ''
-)
+    const selected = CUSTOMER_PROFILE_RATES[profile]
 
-    const profiles = {
-      SAMRO_HYDERABAD: {
-        name: 'SAMRO HYDERABAD'
-      },
-      LIAISON_DGM: {
-        name: 'THE LIAISON DEPARTMENT, LHO, KOTI, HYDERABAD'
-      },
-      LIAISON_GM: {
-        name: 'THE LIAISON DEPARTMENT, LHO, KOTI, HYDERABAD'
-      },
-      LIAISON_CGM: {
-        name: 'THE LIAISON DEPARTMENT, LHO, KOTI, HYDERABAD'
-      },
-      LIAISON_AGM: {
-        name: 'THE LIAISON DEPARTMENT, LHO, KOTI, HYDERABAD'
-      },
-      LIAISON_GM1: {
-        name: 'THE LIAISON DEPARTMENT, LHO, KOTI, HYDERABAD'
-      },
-      GTFC: {
-        name: 'GTFC'
-      },
-      AO_CYBERABAD: {
-        name: 'A/O CYBERABAD'
-      }
-    }
+    if (!selected) return
 
-    const selectedProfile = profiles[profile]
-    const rates = CUSTOMER_PROFILE_RATES[profile]
-
-    if (!selectedProfile || !rates) {
-      return
-    }
-
-    setCustomerName(selectedProfile.name)
+    setCustomerName(selected.name)
     setCustomerGstin('36AAACS8577K1ZQ')
 
-    setTaxableItems([
-      {
-        description: 'Monthly Hiring Charges',
-        quantity: 1,
-        rate: rates.monthlyHiring,
-        amount: rates.monthlyHiring
-      },
-      {
-        description: 'Extra Hours Charges',
-        quantity: 0,
-        rate: rates.extraHours,
-        amount: 0
-      },
-      {
-        description: 'Outstation Driver Batta',
-        quantity: 0,
-        rate: rates.driverBatta,
-        amount: 0
-      },
-      {
-        description: 'Holiday Working Allowance',
-        quantity: 0,
-        rate: rates.holidayAllowance,
-        amount: 0
-      }
-    ])
-
-    setNonTaxableItems([
-      
-{
-  description: 'Petrol Charges',
-  quantity: 0,
-  rate: 0,
-  amount: 0
-},
-
-      {
-        description: 'Parking & Toll',
-        quantity: 0,
-        rate: 0,
-        amount: 0
-      }
-    ])
+    setPosition(
+      profile === 'LIAISON_DGM' ? 'DGM' :
+      profile === 'LIAISON_GM' ? 'GM' :
+      profile === 'LIAISON_CGM' ? 'CGM' :
+      profile === 'LIAISON_AGM' ? 'Liaison Department (AGM)' :
+      profile === 'LIAISON_GM1' ? 'GM - 1' :
+      ''
+    )
   }
 
+  // Load an existing Monthly Bill for editing
+  useEffect(() => {
+    if (!editing) return
 
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
-useEffect(() => {
-  if (!editing) {
-    return
-  }
+    let mounted = true
 
-  let mounted = true
+    api.getMonthlyBill(editId)
+      .then(data => {
+        if (!mounted) return
 
-  setError('')
-  setSuccess('')
+        const bill = data.monthly_bill
 
-  api.getMonthlyBill(editId)
-    .then(data => {
-      if (!mounted) return
+        setInvoiceNumber(bill.invoice_number || '')
+        setInvoiceDate(bill.invoice_date || todayISO())
 
-      const bill = data.monthly_bill
+        setCustomerProfile(bill.customer_profile || '')
+        setCustomerName(bill.customer_name || '')
+        setCustomerGstin(bill.customer_gstin || '')
+        setCustomerAddress(bill.customer_address || '')
+        setUsedBy(bill.used_by || '')
 
-      setInvoiceNumber(
-        bill.invoice_number || ''
-      )
+        setStartDate(bill.start_date || '')
+        setEndDate(bill.end_date || '')
 
-      setInvoiceDate(
-        bill.invoice_date || todayISO()
-      )
-      setCustomerProfile(
-        bill.customer_profile || ''
-      )
-      
-setTotalKmDriven(bill.total_km_driven || 0)
-setKmPerLiter(bill.km_per_liter || 0)
+        setBookedBy(bill.booked_by || '')
+        setPosition(bill.position || '')
+        setVehicleNumber(bill.vehicle_number || '')
+        setReferenceNumber(bill.reference_number || '')
 
-      setCustomerName(
-        bill.customer_name || ''
-      )
+        setTotalKmDriven(bill.total_km_driven || 0)
+        setKmPerLiter(bill.km_per_liter || 0)
+        setFuelQuantity(bill.fuel_quantity || 0)
+        setFuelRate(bill.fuel_rate || 0)
 
-      setCustomerAddress(
-        bill.customer_address || ''
-      )
+        setOutstationDuties(bill.outstation_duties || 0)
+        setExtraHours(bill.extra_hours || 0)
+        setHolidaysWorked(bill.holidays_worked || 0)
 
-      setCustomerGstin(
-        bill.customer_gstin || ''
-      )
-
-      setBookedBy(
-        bill.booked_by || ''
-      )
-setPosition(bill.position || '')
-      setVehicleNumber(
-         bill.vehicle_number || ''
-      )
-
-      setReferenceNumber(
-        bill.reference_number || ''
-      )
-
-      const items = bill.items || []
-
-      const taxable = items
-        .filter(item => item.item_type === 'taxable')
-        .map(item => ({
-          description: item.description || '',
-          quantity: item.quantity || 0,
-          rate: item.rate || 0,
-          amount: item.amount || 0
-        }))
-
-      const nonTaxable = items
-        .filter(item => item.item_type === 'non-taxable')
-        .map(item => ({
-          description: item.description || '',
-          quantity: item.quantity || 0,
-          rate: item.rate || 0,
-          amount: item.amount || 0
-        }))
-
-      setTaxableItems(
-  taxable.length
-    ? taxable
-    : [
-        {
-          description: 'Extra Hours Charges @100 per hour',
-          quantity: 1,
-          rate: 100,
-          amount: 100
-        },
-        {
-          description: 'Out Station Driver Batta @500 per day',
-          quantity: 1,
-          rate: 500,
-          amount: 500
-        },
-        {
-          description: 'Holiday Working Allowance @500 per day (Sunday & Public Holiday)',
-          quantity: 1,
-          rate: 500,
-          amount: 500
-        }
-      ]
-)
-
-      setNonTaxableItems(
-        nonTaxable.length
-          ? nonTaxable
-          : [{
-              description: '',
-              quantity: 1,
-              rate: 0,
-              amount: 0
-            }]
-      )
-    })
-    .catch(e => {
-      if (mounted) {
-        setError(
-          e.message ||
-          'Unable to load Monthly Bill.'
-        )
-      }
-    })
-
-  return () => {
-    mounted = false
-  }
-}, [editId, editing])
-  const updateItem = (type, index, key, value) => {
-    const setter =
-      type === 'taxable'
-        ? setTaxableItems
-        : setNonTaxableItems
-
-    setter(items =>
-      items.map((item, i) => {
-        if (i !== index) {
-          return item
-        }
-
-        const updated = {
-          ...item,
-          [key]: value
-        }
-
-        const quantity =
-          Number(updated.quantity) || 0
-
-        const rate =
-          Number(updated.rate) || 0
-
-        
-updated.amount =
-  type === 'non-taxable' &&
-updated.description === 'Petrol Charges' &&
-customerProfile !== 'SAMRO_HYDERABAD'
-    ? (
-        Number(kmPerLiter) > 0
-          ? (
-              (Number(totalKmDriven) || 0) /
-              Number(kmPerLiter)
-            ) * rate
-          : 0
-      )
-    : quantity * rate
-
-
-        return updated
+        setEngineOilAmount(bill.engine_oil_amount || 0)
+        setParkingTollAmount(bill.parking_toll_amount || 0)
+        setTelephoneChargesAmount(bill.telephone_charges_amount || 0)
       })
-    )
-  }
+      .catch(e => {
+        if (mounted) {
+          setError(e.message || 'Unable to load Monthly Bill.')
+        }
+      })
 
-useEffect(() => {
-  if (customerProfile === 'SAMRO_HYDERABAD') {
-    return
-  }
+    return () => {
+      mounted = false
+    }
+  }, [editId, editing])
 
-  setNonTaxableItems(items =>
-    items.map(item => {
-      if (item.description !== 'Petrol Charges') {
-        return item
-      }
+  // Live preview of the amounts
+  const calculated = useMemo(() => {
+    const rates = selectedRates || {
+      monthlyHiring: 0,
+      extraHours: 0,
+      driverBatta: 0,
+      holidayAllowance: 0
+    }
 
-      const km = Number(totalKmDriven) || 0
-      const mileage = Number(kmPerLiter) || 0
-      const rate = Number(item.rate) || 0
+    const km = Number(totalKmDriven) || 0
+    const mileage = Number(kmPerLiter) || 0
+    const manualFuelQty = Number(fuelQuantity) || 0
+    const rate = Number(fuelRate) || 0
 
-      const amount =
-        mileage > 0
-          ? (km / mileage) * rate
-          : 0
+    const calculatedFuelQty = isSamro
+      ? manualFuelQty
+      : mileage > 0 ? km / mileage : 0
 
-      return {
-        ...item,
-        quantity: km,
-        amount
-      }
-    })
-  )
-}, [totalKmDriven, kmPerLiter, customerProfile])
+    const fuelAmount = calculatedFuelQty * rate
 
-  const addItem = type => {
-    const setter =
-      type === 'taxable'
-        ? setTaxableItems
-        : setNonTaxableItems
+    const oilAmount = Number(engineOilAmount) > 0
+      ? Number(engineOilAmount)
+      : (!isSamro && km > 0 ? (km / 250) * 300 : 0)
 
-    setter(items => [
-      ...items,
-      {
-        description: '',
-        quantity: 1,
-        rate: 0,
-        amount: 0
-      }
-    ])
-  }
+    const monthlyAmount = rates.monthlyHiring
+    const extraAmount = (Number(extraHours) || 0) * rates.extraHours
+    const battaAmount = (Number(outstationDuties) || 0) * rates.driverBatta
+    const holidayAmount = (Number(holidaysWorked) || 0) * rates.holidayAllowance
 
-  const taxableSubtotal = taxableItems.reduce(
-    (sum, item) =>
-      sum + (Number(item.amount) || 0),
-    0
-  )
+    const taxableAmount =
+      monthlyAmount + extraAmount + battaAmount + holidayAmount
 
-  const nonTaxableSubtotal =
-    nonTaxableItems.reduce(
-      (sum, item) =>
-        sum + (Number(item.amount) || 0),
-      0
-    )
+    const otherAmount =
+      fuelAmount +
+      oilAmount +
+      (Number(parkingTollAmount) || 0) +
+      (Number(telephoneChargesAmount) || 0)
 
-  const cgst = taxableSubtotal * 0.025
-  const sgst = taxableSubtotal * 0.025
+    const cgst = taxableAmount * 0.025
+    const sgst = taxableAmount * 0.025
 
-    const totalBeforeRoundOff =
-    taxableSubtotal + nonTaxableSubtotal
+    const beforeRoundOff = taxableAmount + otherAmount
+    const grandTotal = Math.round(beforeRoundOff)
+    const roundOff = grandTotal - beforeRoundOff
 
-  const roundedTotal = Math.round(
-    totalBeforeRoundOff
-  )
-
-  const roundOff =
-    roundedTotal - totalBeforeRoundOff
-
-  const grandTotal = roundedTotal
+    return {
+      calculatedFuelQty,
+      fuelAmount,
+      oilAmount,
+      monthlyAmount,
+      extraAmount,
+      battaAmount,
+      holidayAmount,
+      taxableAmount,
+      otherAmount,
+      cgst,
+      sgst,
+      roundOff,
+      grandTotal
+    }
+  }, [
+    selectedRates,
+    totalKmDriven,
+    kmPerLiter,
+    fuelQuantity,
+    fuelRate,
+    outstationDuties,
+    extraHours,
+    holidaysWorked,
+    engineOilAmount,
+    parkingTollAmount,
+    telephoneChargesAmount,
+    isSamro
+  ])
 
   const saveMonthlyBill = async () => {
-    if (saving) {
-      return
-    }
+    if (saving) return
 
     setError('')
     setSuccess('')
 
-    if (!invoiceNumber.trim()) {
-      setError('Invoice Number is required.')
+    if (!customerProfile) {
+      setError('Please select Customer Profile.')
       return
     }
 
@@ -2563,91 +2361,79 @@ useEffect(() => {
       return
     }
 
+    if (!invoiceNumber.trim()) {
+      setError('Invoice Number is required.')
+      return
+    }
+
     if (!invoiceDate) {
       setError('Invoice Date is required.')
       return
     }
 
-    const allItems = [
-      ...taxableItems.map(item => ({
-        ...item,
-        item_type: 'taxable'
-      })),
-      ...nonTaxableItems.map(item => ({
-        ...item,
-        item_type: 'non-taxable'
-      }))
-    ]
-
-    const validItems = allItems.filter(
-      item =>
-        String(item.description || '').trim() ||
-        Number(item.quantity) ||
-        Number(item.rate)
-    )
-
-    if (!validItems.length) {
-      setError('Add at least one Monthly Bill item.')
+    if (!startDate || !endDate) {
+      setError('Please enter Start Date and End Date.')
       return
+    }
+
+    if (endDate < startDate) {
+      setError('End Date cannot be earlier than Start Date.')
+      return
+    }
+
+    if (!isSamro && Number(totalKmDriven) > 0 && Number(kmPerLiter) <= 0) {
+      setError('KM per Litre must be greater than zero when Total KM is entered.')
+      return
+    }
+
+    const payload = {
+      invoice_number: invoiceNumber.trim(),
+      invoice_date: invoiceDate,
+
+      customer_profile: customerProfile,
+      customer_name: customerName.trim(),
+      customer_address: customerAddress.trim(),
+      customer_gstin: customerGstin.trim(),
+      used_by: usedBy.trim(),
+
+      start_date: startDate,
+      end_date: endDate,
+
+      booked_by: bookedBy.trim(),
+      position: position.trim(),
+      vehicle_number: vehicleNumber.trim(),
+      reference_number: referenceNumber.trim(),
+
+      total_km_driven: Number(totalKmDriven) || 0,
+      km_per_liter: isSamro ? 0 : Number(kmPerLiter) || 0,
+
+      fuel_quantity: isSamro ? Number(fuelQuantity) || 0 : 0,
+      fuel_rate: Number(fuelRate) || 0,
+
+      outstation_duties: Number(outstationDuties) || 0,
+      extra_hours: Number(extraHours) || 0,
+      holidays_worked: Number(holidaysWorked) || 0,
+
+      engine_oil_amount: Number(engineOilAmount) || 0,
+      parking_toll_amount: Number(parkingTollAmount) || 0,
+      telephone_charges_amount: Number(telephoneChargesAmount) || 0
     }
 
     setSaving(true)
 
     try {
-      const payload = {
-        invoice_number: invoiceNumber.trim(),
-        invoice_date: invoiceDate,
+      const data = editing
+        ? await api.updateMonthlyBill(editId, payload)
+        : await api.createMonthlyBill(payload)
 
-        customer_name: customerName.trim(),
-        customer_profile: customerProfile,
-        
-total_km_driven: Number(totalKmDriven) || 0,
-km_per_liter: Number(kmPerLiter) || 0,
+      setSuccess(
+        editing
+          ? 'Monthly Bill updated successfully.'
+          : 'Monthly Bill saved successfully.'
+      )
 
-        customer_address: customerAddress.trim(),
-        customer_gstin: customerGstin.trim(),
-        booked_by: bookedBy.trim(),
-        
-        position: position.trim(),
-
-        vehicle_number: vehicleNumber.trim(),
-        reference_number: referenceNumber.trim(),
-
-        cgst_rate: 2.5,
-        sgst_rate: 2.5,
-
-        items: validItems.map(item => ({
-          item_type: item.item_type,
-          description: String(
-            item.description || ''
-          ).trim(),
-          quantity: Number(item.quantity) || 0,
-          rate: Number(item.rate) || 0,
-         
-          amount: Number(item.amount) || 0
-
-        }))
-      }
-
-const data = editing
-  ? await api.updateMonthlyBill(
-      editId,
-      payload
-    )
-  : await api.createMonthlyBill(
-      payload
-    )
-
-     setSuccess(
-  editing
-    ? 'Monthly Bill updated successfully.'
-    : 'Monthly Bill saved successfully.'
-)
-
-      if (data.monthly_bill) {
-        setInvoiceNumber(
-          data.monthly_bill.invoice_number
-        )
+      if (data.monthly_bill?.invoice_number) {
+        setInvoiceNumber(data.monthly_bill.invoice_number)
       }
     } catch (e) {
       const code = e.payload?.code
@@ -2655,8 +2441,7 @@ const data = editing
       setError(
         code
           ? `${e.message} [${code}]`
-          : e.message ||
-            'Unable to save Monthly Bill.'
+          : e.message || 'Unable to save Monthly Bill.'
       )
     } finally {
       setSaving(false)
@@ -2667,462 +2452,326 @@ const data = editing
     <Layout>
       <section className="form-hero">
         <div>
-          <Link
-            className="back-link"
-            to="/"
-          >
+          <Link className="back-link" to="/">
             ← Invoice History
           </Link>
 
-          <div className="eyebrow">
-            MONTHLY BILL
-          </div>
+          <div className="eyebrow">MONTHLY BILL</div>
 
-          <h1>Create Monthly Bill</h1>
+          <h1>{editing ? 'Edit Monthly Bill' : 'Create Monthly Bill'}</h1>
 
           <p>
-            Create a separate monthly bill with
-            taxable and non-taxable items.
+            Enter customer details and monthly vehicle usage.
+            Charges are calculated using the selected customer profile.
           </p>
         </div>
       </section>
 
-      {error && (
-        <div className="alert error">
-          {error}
-        </div>
-      )}
+      {error && <div className="alert error">{error}</div>}
+      {success && <div className="alert success">{success}</div>}
 
-      {success && (
-        <div className="alert success">
-          {success}
-        </div>
-      )}
-
+      {/* CUSTOMER AND INVOICE DETAILS */}
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <h2>Invoice & Customer</h2>
-            <p>
-              Monthly bill customer details.
-            </p>
+            <h2>Customer & Invoice Details</h2>
+            <p>Customer information on the left and invoice details on the right.</p>
+          </div>
+          <span className="section-badge">HEADER</span>
+        </div>
+
+        <div className="form-grid two">
+          <div>
+            <h3>Customer Details</h3>
+
+            <label className="field">
+              <span>Customer Profile *</span>
+              <select
+                value={customerProfile}
+                onChange={e => handleCustomerProfileChange(e.target.value)}
+                required
+              >
+                <option value="">Select customer profile</option>
+                <option value="SAMRO_HYDERABAD">SAMRO HYDERABAD</option>
+                <option value="LIAISON_DGM">Liaison Department — DGM</option>
+                <option value="LIAISON_GM">Liaison Department — GM</option>
+                <option value="LIAISON_CGM">Liaison Department — CGM</option>
+                <option value="LIAISON_AGM">Liaison Department — AGM</option>
+                <option value="LIAISON_GM1">Liaison Department — GM-1</option>
+                <option value="GTFC">GTFC</option>
+                <option value="AO_CYBERABAD">A/O CYBERABAD</option>
+              </select>
+            </label>
+
+            <Input
+              label="Customer Name"
+              value={customerName}
+              onChange={setCustomerName}
+              required
+            />
+
+            <Input
+              label="Customer GSTIN"
+              value={customerGstin}
+              onChange={setCustomerGstin}
+            />
+
+            <Input
+              label="Used By"
+              value={usedBy}
+              onChange={setUsedBy}
+            />
+
+            <div className="form-grid two">
+              <Input
+                label="Start Date"
+                type="date"
+                value={startDate}
+                onChange={setStartDate}
+                required
+              />
+
+              <Input
+                label="End Date"
+                type="date"
+                value={endDate}
+                onChange={setEndDate}
+                required
+              />
+            </div>
           </div>
 
-          <span className="section-badge">
-            HEADER
-          </span>
+          <div>
+            <h3>Invoice Details</h3>
+
+            <Input
+              label="Invoice Number"
+              value={invoiceNumber}
+              onChange={setInvoiceNumber}
+              placeholder="Enter invoice number"
+              required
+            />
+
+            <Input
+              label="Invoice Date"
+              type="date"
+              value={invoiceDate}
+              onChange={setInvoiceDate}
+              required
+            />
+
+            <Input
+              label="Customer Address"
+              value={customerAddress}
+              onChange={setCustomerAddress}
+            />
+
+            <Input
+              label="Booked By"
+              value={bookedBy}
+              onChange={setBookedBy}
+            />
+
+            <Input
+              label="Position"
+              value={position}
+              onChange={setPosition}
+            />
+
+            <Input
+              label="Vehicle Number"
+              value={vehicleNumber}
+              onChange={setVehicleNumber}
+            />
+
+            <Input
+              label="Reference / PO Number"
+              value={referenceNumber}
+              onChange={setReferenceNumber}
+            />
+          </div>
         </div>
+      </section>
 
-        <div className="form-grid four">
-          <Input
-            label="Invoice Number"
-            value={invoiceNumber}
-            onChange={setInvoiceNumber}
-            placeholder="Monthly invoice number"
-            required
-          />
-
-          <Input
-            label="Invoice Date"
-            value={invoiceDate}
-            onChange={setInvoiceDate}
-            type="date"
-            required
-          />
-        
-<label className="field">
-  <span>Customer Profile</span>
-  <select
-    value={customerProfile}
-    onChange={e =>
-      handleCustomerProfileChange(e.target.value)
-    }
-    required
-  >
-    <option value="">Select customer profile</option>
-    <option value="SAMRO_HYDERABAD">SAMRO HYDERABAD</option>
-    <option value="LIAISON_DGM">Liaison Department — DGM</option>
-    <option value="LIAISON_GM">Liaison Department — GM</option>
-    <option value="LIAISON_CGM">Liaison Department — CGM</option>
-    <option value="LIAISON_AGM">Liaison Department — AGM</option>
-    <option value="LIAISON_GM1">Liaison Department — GM-1</option>
-    <option value="GTFC">GTFC</option>
-    <option value="AO_CYBERABAD">A/O CYBERABAD</option>
-  </select>
-</label>
-
-          <EditableSelect
-            label="Customer Name"
-            value={customerName}
-            onChange={setCustomerName}
-            options={CUSTOMER_NAMES}
-            placeholder="Enter customer name"
-          />
-
-          <EditableSelect
-            label="Customer GST Number"
-            value={customerGstin}
-            onChange={setCustomerGstin}
-            options={CUSTOMER_GSTINS}
-            placeholder="Enter GSTIN"
-          />
+      {/* MONTHLY USAGE DETAILS */}
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <h2>Monthly Usage Details</h2>
+            <p>Enter the vehicle usage quantities and additional charges for the month.</p>
+          </div>
+          <span className="section-badge">USAGE</span>
         </div>
 
         <div className="form-grid three">
-          <EditableSelect
-            label="Customer Address"
-            value={customerAddress}
-            onChange={setCustomerAddress}
-            options={CUSTOMER_ADDRESSES}
-            placeholder="Enter customer address"
-            className="span-2"
-          />
-
-          <EditableSelect
-            label="Booked By"
-            value={bookedBy}
-            onChange={setBookedBy}
-            options={BOOKED_BY}
-            placeholder="Enter booked by"
-          />
-          
-        </div>
-
-
-<div className="form-grid three">
-  <Input
-    label="Position"
-    value={position}
-    onChange={setPosition}
-    placeholder="Position"
-  />
-</div>
-
-
-{customerProfile !== 'SAMRO_HYDERABAD' && (
-  <div className="form-grid three">
-    <Input
-      label="Total KM Driven"
-      value={totalKmDriven}
-      onChange={setTotalKmDriven}
-      type="number"
-      min="0"
-      step="0.01"
-    />
-
-    <Input
-      label="KM per Liter"
-      value={kmPerLiter}
-      onChange={setKmPerLiter}
-      type="number"
-      min="0"
-      step="0.01"
-    />
-  </div>
-)}
-
-        <div className="form-grid three">
           <Input
-            label="Vehicle Number"
-            value={vehicleNumber}
-            onChange={setVehicleNumber}
-            placeholder="Vehicle number"
+            label="Total KM Driven"
+            type="number"
+            min="0"
+            step="0.01"
+            value={totalKmDriven}
+            onChange={setTotalKmDriven}
           />
 
-          <EditableSelect
-            label="Reference / PO Number"
-            value={referenceNumber}
-            onChange={setReferenceNumber}
-            options={REFERENCE_NUMBERS}
-            placeholder="Enter reference / PO number"
+          {!isSamro && (
+            <Input
+              label="KM per Litre"
+              type="number"
+              min="0"
+              step="0.01"
+              value={kmPerLiter}
+              onChange={setKmPerLiter}
+            />
+          )}
+
+          {isSamro && (
+            <Input
+              label="Fuel Quantity (Litres)"
+              type="number"
+              min="0"
+              step="0.01"
+              value={fuelQuantity}
+              onChange={setFuelQuantity}
+            />
+          )}
+
+          <Input
+            label="Diesel / Petrol Rate"
+            type="number"
+            min="0"
+            step="0.01"
+            value={fuelRate}
+            onChange={setFuelRate}
+          />
+
+          <Input
+            label="No. of Outstation Duties"
+            type="number"
+            min="0"
+            step="1"
+            value={outstationDuties}
+            onChange={setOutstationDuties}
+          />
+
+          <Input
+            label="No. of Extra Hours"
+            type="number"
+            min="0"
+            step="0.01"
+            value={extraHours}
+            onChange={setExtraHours}
+          />
+
+          <Input
+            label="No. of Holidays Worked"
+            type="number"
+            min="0"
+            step="1"
+            value={holidaysWorked}
+            onChange={setHolidaysWorked}
+          />
+
+          <Input
+            label="Engine Oil Amount"
+            type="number"
+            min="0"
+            step="0.01"
+            value={engineOilAmount}
+            onChange={setEngineOilAmount}
+          />
+
+          <Input
+            label="Parking & Toll Charges"
+            type="number"
+            min="0"
+            step="0.01"
+            value={parkingTollAmount}
+            onChange={setParkingTollAmount}
+          />
+
+          <Input
+            label="Driver Telephone Charges"
+            type="number"
+            min="0"
+            step="0.01"
+            value={telephoneChargesAmount}
+            onChange={setTelephoneChargesAmount}
           />
         </div>
       </section>
 
-      <section className="panel">
-        <div className="panel-heading">
-          <div>
-            <h2>Bill Details</h2>
-            <p>
-              Add taxable and non-taxable charges separately.
-            </p>
-          </div>
-
-          <span className="section-badge">
-            ITEMS
-          </span>
-        </div>
-
-        <div className="trip-tabs">
-          <button
-            type="button"
-            className={
-              activeType === 'taxable'
-                ? 'active'
-                : ''
-            }
-            onClick={() =>
-              setActiveType('taxable')
-            }
-          >
-            Taxable
-          </button>
-
-          <button
-            type="button"
-            className={
-              activeType === 'non-taxable'
-                ? 'active'
-                : ''
-            }
-            onClick={() =>
-              setActiveType('non-taxable')
-            }
-          >
-            Non-Taxable
-          </button>
-        </div>
-
-        {activeType === 'taxable' && (
-          <>
-            <div className="table-wrap">
-              <table className="history-table">
-                <thead>
-                  <tr>
-                    <th>Description</th>
-                    <th>Quantity</th>
-                    <th>Rate</th>
-                    <th>Amount</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {taxableItems.map(
-                    (item, index) => (
-                      <tr key={index}>
-                        <td>
-                          <input
-                            className="search"
-                            value={
-                              item.description
-                            }
-                            onChange={e =>
-                              updateItem(
-                                'taxable',
-                                index,
-                                'description',
-                                e.target.value
-                              )
-                            }
-                            placeholder="Description"
-                          />
-                        </td>
-
-                        <td>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={item.quantity}
-                            onChange={e =>
-                              updateItem(
-                                'taxable',
-                                index,
-                                'quantity',
-                                e.target.value
-                              )
-                            }
-                          />
-                        </td>
-
-                        <td>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={item.rate}
-                            onChange={e =>
-                              updateItem(
-                                'taxable',
-                                index,
-                                'rate',
-                                e.target.value
-                              )
-                            }
-                          />
-                        </td>
-
-                        <td>
-                          ₹ {money(item.amount)}
-                        </td>
-                      </tr>
-                    )
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <button
-              type="button"
-              className="button primary"
-              onClick={() =>
-                addItem('taxable')
-              }
-            >
-              + Add Taxable Item
-            </button>
-          </>
-        )}
-
-        {activeType === 'non-taxable' && (
-          <>
-            <div className="table-wrap">
-              <table className="history-table">
-                <thead>
-                  <tr>
-                    <th>Description</th>
-                    <th>Quantity</th>
-                    <th>Rate</th>
-                    <th>Amount</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {nonTaxableItems.map(
-                    (item, index) => (
-                      <tr key={index}>
-                        <td>
-                          <input
-                            className="search"
-                            value={
-                              item.description
-                            }
-                            onChange={e =>
-                              updateItem(
-                                'non-taxable',
-                                index,
-                                'description',
-                                e.target.value
-                              )
-                            }
-                            placeholder="Description"
-                          />
-                        </td>
-
-                        <td>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={item.quantity}
-                            onChange={e =>
-                              updateItem(
-                                'non-taxable',
-                                index,
-                                'quantity',
-                                e.target.value
-                              )
-                            }
-                          />
-                        </td>
-
-                        <td>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={item.rate}
-                            onChange={e =>
-                              updateItem(
-                                'non-taxable',
-                                index,
-                                'rate',
-                                e.target.value
-                              )
-                            }
-                          />
-                        </td>
-
-                        <td>
-                          ₹ {money(item.amount)}
-                        </td>
-                      </tr>
-                    )
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <button
-              type="button"
-              className="button primary"
-              onClick={() =>
-                addItem('non-taxable')
-              }
-            >
-              + Add Non-Taxable Item
-            </button>
-          </>
-        )}
-      </section>
-
+      {/* CALCULATED SUMMARY */}
       <section className="summary-layout">
         <div className="panel">
           <div className="panel-heading">
             <div>
-              <h2>GST & Totals</h2>
-              <p>
-                CGST 2.5% + SGST 2.5%
-              </p>
+              <h2>Monthly Bill Summary</h2>
+              <p>Amounts are calculated from the selected profile and monthly usage.</p>
             </div>
-
-            <span className="section-badge">
-              TAX
-            </span>
           </div>
 
           <div className="totals-box">
             <div>
-              <span>Taxable Subtotal</span>
-              <strong>
-                ₹ {money(taxableSubtotal)}
-              </strong>
+              <span>Monthly Hiring Charges</span>
+              <strong>₹ {money(calculated.monthlyAmount)}</strong>
+            </div>
+
+            <div>
+              <span>Diesel / Petrol Charges</span>
+              <strong>₹ {money(calculated.fuelAmount)}</strong>
+            </div>
+
+            <div>
+              <span>Outstation Driver Batta</span>
+              <strong>₹ {money(calculated.battaAmount)}</strong>
+            </div>
+
+            <div>
+              <span>Extra Hours Charges</span>
+              <strong>₹ {money(calculated.extraAmount)}</strong>
+            </div>
+
+            <div>
+              <span>Holiday Working Allowance</span>
+              <strong>₹ {money(calculated.holidayAmount)}</strong>
+            </div>
+
+            <div>
+              <span>Engine Oil</span>
+              <strong>₹ {money(calculated.oilAmount)}</strong>
+            </div>
+
+            <div>
+              <span>Parking & Toll Charges</span>
+              <strong>₹ {money(parkingTollAmount)}</strong>
+            </div>
+
+            <div>
+              <span>Driver Telephone Charges</span>
+              <strong>₹ {money(telephoneChargesAmount)}</strong>
             </div>
 
             <div>
               <span>CGST @ 2.5%</span>
-              <strong>
-                ₹ {money(cgst)}
-              </strong>
+              <strong>₹ {money(calculated.cgst)}</strong>
             </div>
 
             <div>
               <span>SGST @ 2.5%</span>
-              <strong>
-                ₹ {money(sgst)}
-              </strong>
-            </div>
-
-            <div>
-              <span>Non-Taxable Amount</span>
-              <strong>
-                ₹ {money(nonTaxableSubtotal)}
-              </strong>
+              <strong>₹ {money(calculated.sgst)}</strong>
             </div>
 
             <div>
               <span>Round Off</span>
               <strong>
-                {roundOff >= 0 ? '+' : ''}
-                ₹ {money(roundOff)}
+                {calculated.roundOff >= 0 ? '+' : ''}
+                ₹ {money(calculated.roundOff)}
               </strong>
             </div>
 
             <div className="grand">
               <span>Grand Total</span>
-              <strong>
-                ₹ {money(grandTotal)}
-              </strong>
+              <strong>₹ {money(calculated.grandTotal)}</strong>
             </div>
           </div>
         </div>
@@ -3145,15 +2794,16 @@ const data = editing
           disabled={saving}
         >
           {saving
-  ? 'Saving…'
-  : editing
-    ? 'Update Monthly Bill'
-    : 'Save Monthly Bill'}
+            ? 'Saving…'
+            : editing
+              ? 'Update Monthly Bill'
+              : 'Save Monthly Bill'}
         </button>
       </div>
     </Layout>
   )
 }
+
 export default function App() {
   const location = useLocation()
 
