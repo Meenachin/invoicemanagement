@@ -1249,10 +1249,7 @@ def calculate_monthly_bill_data(data):
     # SAMRO: fuel quantity and rate are entered manually.
     if is_samro:
         fuel_quantity = number("fuel_quantity")
-        fuel_amount = number(
-            "fuel_amount",
-            fuel_quantity * fuel_rate
-        )
+        fuel_amount = fuel_quantity * fuel_rate
     else:
         # Other profiles: litres = total KM / KM per litre.
         if total_km > 0 and km_per_liter <= 0:
