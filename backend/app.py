@@ -1,5 +1,6 @@
 import os
 import csv
+import math
 import traceback
 from io import BytesIO, StringIO
 from datetime import datetime, date
@@ -12,6 +13,7 @@ from sqlalchemy.orm import sessionmaker, joinedload
 from dotenv import load_dotenv
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from decimal import Decimal, ROUND_HALF_UP
 from models import (
     Base,
     Invoice,
@@ -1118,6 +1120,355 @@ def export_monthly_bills_excel():
 
 
 
+def calculate_monthly_bill_data(data):
+    """Calculate Monthly Bill charges from the selected customer profile."""
+
+    def number(key, default=0):
+        value = data.get(key)
+        value = default if value in (None, "") else value
+
+        try:
+            result = float(value)
+        except (TypeError, ValueError):
+            raise ValueError(
+                f"{key.replace('_', ' ').title()} must be a valid number"
+            )
+
+        if not math.isfinite(result):
+            raise ValueError(
+                f"{key.replace('_', ' ').title()} must be a valid number"
+            )
+
+        if result < 0:
+            raise ValueError(
+                f"{key.replace('_', ' ').title()} cannot be negative"
+            )
+
+        return result
+
+    def optional_date(key):
+        value = data.get(key)
+        return (
+            parse_date(value, key.replace("_", " ").title())
+            if value else None
+        )
+
+    profile = str(data.get("customer_profile") or "").strip()
+    profile_key = "".join(
+        ch for ch in profile.upper() if ch.isalnum()
+    )
+
+    # Match exact customer profiles and their fixed rates.
+    profiles = {
+        "SAMRO": {
+            "monthly": 63000,
+            "extra": 100,
+            "batta": 500,
+            "holiday": 500,
+            "samro": True,
+        },
+        "DGM": {
+            "monthly": 54899,
+            "extra": 100,
+            "batta": 500,
+            "holiday": 500,
+        },
+        "GM": {
+            "monthly": 63000,
+            "extra": 100,
+            "batta": 500,
+            "holiday": 500,
+        },
+        "CGM": {
+            "monthly": 145899,
+            "extra": 250,
+            "batta": 1000,
+            "holiday": 1200,
+        },
+        "AGM": {
+            "monthly": 38899,
+            "extra": 100,
+            "batta": 500,
+            "holiday": 500,
+        },
+        "GM1": {
+            "monthly": 61899,
+            "extra": 100,
+            "batta": 500,
+            "holiday": 500,
+        },
+        "GTFC": {
+            "monthly": 54899,
+            "extra": 100,
+            "batta": 500,
+            "holiday": 500,
+        },
+        "AOCYBERABAD": {
+            "monthly": 36700,
+            "extra": 130,
+            "batta": 500,
+            "holiday": 500,
+        },
+    }
+
+    if "SAMRO" in profile_key:
+        config = profiles["SAMRO"]
+    elif "CYBERABAD" in profile_key:
+        config = profiles["AOCYBERABAD"]
+    elif "CGM" in profile_key:
+        config = profiles["CGM"]
+    elif "AGM" in profile_key:
+        config = profiles["AGM"]
+    elif "GM1" in profile_key:
+        config = profiles["GM1"]
+    elif "DGM" in profile_key:
+        config = profiles["DGM"]
+    elif "GTFC" in profile_key:
+        config = profiles["GTFC"]
+    elif profile_key.endswith("GM"):
+        config = profiles["GM"]
+    else:
+        raise ValueError("Please select a valid Customer Profile")
+
+    monthly_hiring = config["monthly"]
+    extra_rate = config["extra"]
+    batta_rate = config["batta"]
+    holiday_rate = config["holiday"]
+    is_samro = config.get("samro", False)
+
+    total_km = number("total_km_driven")
+    km_per_liter = number("km_per_liter")
+    fuel_rate = number("fuel_rate")
+    outstation_days = number("outstation_duties")
+    extra_hours = number("extra_hours")
+    holidays_worked = number("holidays_worked")
+
+    parking_toll = number("parking_toll_amount")
+    telephone_charges = number("telephone_charges_amount")
+
+    # SAMRO: fuel quantity and rate are entered manually.
+    if is_samro:
+        fuel_quantity = number("fuel_quantity")
+        fuel_amount = number(
+            "fuel_amount",
+            fuel_quantity * fuel_rate
+        )
+    else:
+        # Other profiles: litres = total KM / KM per litre.
+        if total_km > 0 and km_per_liter <= 0:
+            raise ValueError(
+                "KM per Liter is required when Total KM Driven is entered"
+            )
+
+        fuel_quantity = (
+            total_km / km_per_liter
+            if km_per_liter > 0 else 0
+        )
+
+        fuel_amount = fuel_quantity * fuel_rate
+
+    # Engine oil: existing rule for non-SAMRO profiles.
+    engine_oil = number("engine_oil_amount")
+
+    if not engine_oil and not is_samro:
+        engine_oil = (total_km / 250) * 300
+
+    # Profile-based calculations.
+    extra_amount = extra_hours * extra_rate
+    batta_amount = outstation_days * batta_rate
+    holiday_amount = holidays_worked * holiday_rate
+
+    # Internal classification. The form does not ask the user for this.
+    items = [
+        {
+            "item_type": "taxable",
+            "description": "Monthly Hiring Charges",
+            "quantity": 1,
+            "rate": monthly_hiring,
+            "amount": monthly_hiring,
+        },
+        {
+            "item_type": "taxable",
+            "description": "Outstation Driver Batta",
+            "quantity": outstation_days,
+            "rate": batta_rate,
+            "amount": batta_amount,
+        },
+        {
+            "item_type": "taxable",
+            "description": "Extra Hours Charges",
+            "quantity": extra_hours,
+            "rate": extra_rate,
+            "amount": extra_amount,
+        },
+        {
+            "item_type": "taxable",
+            "description": "Holiday Working Allowance",
+            "quantity": holidays_worked,
+            "rate": holiday_rate,
+            "amount": holiday_amount,
+        },
+    ]
+
+    # Non-taxable charges.
+    non_taxable_items = [
+        (
+            "Petrol Charges" if is_samro else "Diesel Charges",
+            fuel_quantity,
+            fuel_rate,
+            fuel_amount,
+        ),
+        (
+            "Engine Oil",
+            total_km / 250 if not is_samro else 0,
+            300,
+            engine_oil,
+        ),
+        (
+            "Parking & Toll Charges",
+            1,
+            parking_toll,
+            parking_toll,
+        ),
+        (
+            "Driver Telephone Charges",
+            1,
+            telephone_charges,
+            telephone_charges,
+        ),
+    ]
+
+    for description, quantity, rate, amount in non_taxable_items:
+        if amount:
+            items.append({
+                "item_type": "non-taxable",
+                "description": description,
+                "quantity": quantity,
+                "rate": rate,
+                "amount": amount,
+            })
+
+    taxable_subtotal = (
+        monthly_hiring
+        + batta_amount
+        + extra_amount
+        + holiday_amount
+    )
+
+    non_taxable_total = (
+        fuel_amount
+        + engine_oil
+        + parking_toll
+        + telephone_charges
+    )
+
+    cgst_rate = number("cgst_rate", 2.5)
+    sgst_rate = number("sgst_rate", 2.5)
+
+    cgst = taxable_subtotal * cgst_rate / 100
+    sgst = taxable_subtotal * sgst_rate / 100
+
+    # GST is shown separately.
+    # Grand Total includes charges before GST, not CGST/SGST.
+    amount_before_rounding = (
+        taxable_subtotal + non_taxable_total
+    )
+
+    grand_total = float(
+        Decimal(str(amount_before_rounding)).quantize(
+            Decimal("1"),
+            rounding=ROUND_HALF_UP
+        )
+    )
+
+    round_off = grand_total - amount_before_rounding
+
+    # Validate start date and end date.
+    start_date = optional_date("start_date")
+    end_date = optional_date("end_date")
+
+    if start_date and end_date and end_date < start_date:
+        raise ValueError(
+            "End Date cannot be earlier than Start Date"
+        )
+
+    return {
+        "invoice_number": str(
+            data.get("invoice_number") or ""
+        ).strip(),
+
+        "invoice_date": parse_date(
+            data.get("invoice_date"),
+            "Invoice Date"
+        ),
+
+        "customer_name": str(
+            data.get("customer_name") or ""
+        ).strip(),
+
+        "customer_profile": profile or None,
+
+        "customer_address": str(
+            data.get("customer_address") or ""
+        ).strip(),
+
+        "customer_gstin": str(
+            data.get("customer_gstin") or ""
+        ).strip(),
+
+        "used_by": str(
+            data.get("used_by") or ""
+        ).strip() or None,
+
+        "booked_by": str(
+            data.get("booked_by") or ""
+        ).strip(),
+
+        "position": str(
+            data.get("position") or ""
+        ).strip() or None,
+
+        "start_date": start_date,
+        "end_date": end_date,
+
+        "vehicle_number": str(
+            data.get("vehicle_number") or ""
+        ).strip(),
+
+        "reference_number": str(
+            data.get("reference_number") or ""
+        ).strip(),
+
+        "total_km_driven": total_km,
+        "km_per_liter": km_per_liter,
+        "fuel_quantity": fuel_quantity,
+        "fuel_rate": fuel_rate,
+        "outstation_duties": outstation_days,
+        "extra_hours": extra_hours,
+        "holidays_worked": holidays_worked,
+
+        "taxable_subtotal": taxable_subtotal,
+
+        "cgst_rate": cgst_rate,
+        "cgst": cgst,
+
+        "sgst_rate": sgst_rate,
+        "sgst": sgst,
+
+        "non_taxable_total": non_taxable_total,
+
+        "engine_oil_amount": engine_oil,
+        "parking_toll_amount": parking_toll,
+        "telephone_charges_amount": telephone_charges,
+
+        "round_off": round_off,
+        "grand_total": grand_total,
+
+        "items": items,
+    }
+
+
+
 @app.post("/api/monthly-bills")
 def create_monthly_bill():
     session = SessionLocal()
@@ -1125,24 +1476,17 @@ def create_monthly_bill():
     try:
         data = request.get_json(silent=True) or {}
 
-        customer_name = str(data.get("customer_name") or "").strip()
-        invoice_number = str(data.get("invoice_number") or "").strip()
+        values = calculate_monthly_bill_data(data)
 
-        if not customer_name:
-            return error_response(
-                "Customer Name is required", 400, "VALIDATION_ERROR"
-            )
+        if not values["customer_name"]:
+            raise ValueError("Customer Name is required")
 
-        if not invoice_number:
-            return error_response(
-                "Invoice Number is required", 400, "VALIDATION_ERROR"
-            )
-
-        invoice_date = parse_date(data.get("invoice_date"), "Invoice Date")
+        if not values["invoice_number"]:
+            raise ValueError("Invoice Number is required")
 
         existing = session.execute(
             select(MonthlyBill.id).where(
-                MonthlyBill.invoice_number == invoice_number
+                MonthlyBill.invoice_number == values["invoice_number"]
             )
         ).scalar_one_or_none()
 
@@ -1153,283 +1497,11 @@ def create_monthly_bill():
                 "DUPLICATE_MONTHLY_BILL_NUMBER",
             )
 
-        def get_number(key, default=0):
-            value = data.get(key)
-            number = float(default if value in (None, "") else value)
+        items = values.pop("items")
 
-            if number < 0:
-                raise ValueError(f"{key} cannot be negative")
+        bill = MonthlyBill(**values)
 
-            return number
-
-        def get_date(key):
-            value = data.get(key)
-            return (
-                parse_date(value, key.replace("_", " ").title())
-                if value
-                else None
-            )
-
-        profile = str(data.get("customer_profile") or "").strip()
-        profile_key = "".join(
-            ch for ch in profile.upper() if ch.isalnum()
-        )
-
-        # Customer-specific fixed rates.
-        if "SAMRO" in profile_key:
-            monthly_hiring = 63000
-            extra_rate = 100
-            batta_rate = 500
-            holiday_rate = 500
-            is_samro = True
-        elif "CYBERABAD" in profile_key or profile_key == "AO":
-            monthly_hiring = 36700
-            extra_rate = 130
-            batta_rate = 500
-            holiday_rate = 500
-            is_samro = False
-        elif "CGM" in profile_key:
-            monthly_hiring = 145899
-            extra_rate = 250
-            batta_rate = 1000
-            holiday_rate = 1200
-            is_samro = False
-        elif "AGM" in profile_key:
-            monthly_hiring = 38899
-            extra_rate = 100
-            batta_rate = 500
-            holiday_rate = 500
-            is_samro = False
-        elif "GM1" in profile_key:
-            monthly_hiring = 61899
-            extra_rate = 100
-            batta_rate = 500
-            holiday_rate = 500
-            is_samro = False
-        elif "DGM" in profile_key:
-            monthly_hiring = 54899
-            extra_rate = 100
-            batta_rate = 500
-            holiday_rate = 500
-            is_samro = False
-        elif "GTFC" in profile_key:
-            monthly_hiring = 54899
-            extra_rate = 100
-            batta_rate = 500
-            holiday_rate = 500
-            is_samro = False
-        elif "GM" in profile_key:
-            monthly_hiring = 63000
-            extra_rate = 100
-            batta_rate = 500
-            holiday_rate = 500
-            is_samro = False
-        else:
-            monthly_hiring = 0
-            extra_rate = 0
-            batta_rate = 0
-            holiday_rate = 0
-            is_samro = False
-
-        # Monthly Bill input fields.
-        total_km = get_number("total_km_driven")
-        km_per_liter = get_number("km_per_liter")
-        fuel_quantity = get_number("fuel_quantity")
-        fuel_rate = get_number("fuel_rate")
-        outstation_days = get_number("outstation_duties")
-        extra_hours = get_number("extra_hours")
-        holidays_worked = get_number("holidays_worked")
-        parking_toll = get_number("parking_toll_amount")
-        telephone_charges = get_number("telephone_charges_amount")
-
-        # SAMRO fuel is entered manually.
-        # Other profiles calculate fuel using KM / mileage x fuel rate.
-        if is_samro:
-            fuel_amount = get_number(
-                "fuel_amount", fuel_quantity * fuel_rate
-            )
-        else:
-            fuel_quantity = total_km
-            fuel_amount = (
-                (total_km / km_per_liter) * fuel_rate
-                if km_per_liter > 0
-                else 0
-            )
-
-        # Engine oil = Total KM / 250 x Rs. 300, where applicable.
-        engine_oil = get_number("engine_oil_amount")
-        if not engine_oil and not is_samro:
-            engine_oil = (total_km / 250) * 300
-
-        # Support the previous items payload without requiring the
-        # new Monthly Bill form to ask for item classifications.
-        items = data.get("items")
-        use_legacy_items = (
-            isinstance(items, list)
-            and not any(
-                key in data
-                for key in (
-                    "used_by",
-                    "start_date",
-                    "end_date",
-                    "fuel_quantity",
-                    "outstation_duties",
-                    "extra_hours",
-                    "holidays_worked",
-                    "parking_toll_amount",
-                    "telephone_charges_amount",
-                )
-            )
-        )
-
-        cleaned_items = []
-        taxable_subtotal = 0.0
-        non_taxable_total = 0.0
-
-        if use_legacy_items:
-            for item in items:
-                item_type = (
-                    str(item.get("item_type") or "taxable")
-                    .strip()
-                    .lower()
-                )
-
-                if item_type not in ("taxable", "non-taxable"):
-                    item_type = "taxable"
-
-                quantity = float(item.get("quantity") or 0)
-                rate = float(item.get("rate") or 0)
-                amount_value = item.get("amount")
-                amount = float(
-                    quantity * rate
-                    if amount_value in (None, "")
-                    else amount_value
-                )
-
-                if quantity < 0 or rate < 0 or amount < 0:
-                    raise ValueError(
-                        "Item quantity, rate and amount cannot be negative"
-                    )
-
-                cleaned_items.append({
-                    "item_type": item_type,
-                    "description": str(
-                        item.get("description") or ""
-                    ).strip(),
-                    "quantity": quantity,
-                    "rate": rate,
-                    "amount": amount,
-                })
-
-                if item_type == "taxable":
-                    taxable_subtotal += amount
-                else:
-                    non_taxable_total += amount
-
-        else:
-            # Calculate the charges using the selected customer profile.
-            extra_amount = extra_hours * extra_rate
-            batta_amount = outstation_days * batta_rate
-            holiday_amount = holidays_worked * holiday_rate
-
-            # Internal tax handling is retained for compatibility.
-            taxable_items = [
-                ("Monthly Hiring Charges", 1, monthly_hiring, monthly_hiring),
-                ("Extra Hours Charges", extra_hours, extra_rate, extra_amount),
-                ("Outstation Driver Batta", outstation_days, batta_rate, batta_amount),
-                ("Holiday Working Allowance", holidays_worked, holiday_rate, holiday_amount),
-            ]
-
-            for description, quantity, rate, amount in taxable_items:
-                if amount or description == "Monthly Hiring Charges":
-                    cleaned_items.append({
-                        "item_type": "taxable",
-                        "description": description,
-                        "quantity": quantity,
-                        "rate": rate,
-                        "amount": amount,
-                    })
-                    taxable_subtotal += amount
-
-            non_taxable_items = [
-                ("Petrol Charges", fuel_quantity, fuel_rate, fuel_amount),
-                (
-                    "Engine Oil",
-                    total_km / 250 if not is_samro else 0,
-                    300,
-                    engine_oil,
-                ),
-                ("Parking & Toll", 1, parking_toll, parking_toll),
-            ]
-
-            for description, quantity, rate, amount in non_taxable_items:
-                if amount:
-                    cleaned_items.append({
-                        "item_type": "non-taxable",
-                        "description": description,
-                        "quantity": quantity,
-                        "rate": rate,
-                        "amount": amount,
-                    })
-                    non_taxable_total += amount
-
-            if telephone_charges:
-                cleaned_items.append({
-                    "item_type": "non-taxable",
-                    "description": "Telephone Charges",
-                    "quantity": 1,
-                    "rate": telephone_charges,
-                    "amount": telephone_charges,
-                })
-                non_taxable_total += telephone_charges
-
-        # Display GST separately. Do not add GST to Grand Total.
-        cgst_rate = get_number("cgst_rate", 2.5)
-        sgst_rate = get_number("sgst_rate", 2.5)
-
-        cgst = taxable_subtotal * cgst_rate / 100
-        sgst = taxable_subtotal * sgst_rate / 100
-
-        # Grand Total = all charges before GST, rounded.
-        subtotal_before_round = taxable_subtotal + non_taxable_total
-        rounded_total = round(subtotal_before_round)
-        round_off = rounded_total - subtotal_before_round
-
-        bill = MonthlyBill(
-            invoice_number=invoice_number,
-            invoice_date=invoice_date,
-            customer_name=customer_name,
-            customer_profile=profile or None,
-            customer_address=str(data.get("customer_address") or "").strip(),
-            customer_gstin=str(data.get("customer_gstin") or "").strip(),
-            used_by=str(data.get("used_by") or "").strip() or None,
-            start_date=get_date("start_date"),
-            end_date=get_date("end_date"),
-            booked_by=str(data.get("booked_by") or "").strip(),
-            position=str(data.get("position") or "").strip() or None,
-            vehicle_number=str(data.get("vehicle_number") or "").strip(),
-            reference_number=str(data.get("reference_number") or "").strip(),
-            total_km_driven=total_km,
-            km_per_liter=km_per_liter,
-            fuel_quantity=fuel_quantity,
-            fuel_rate=fuel_rate,
-            outstation_duties=outstation_days,
-            extra_hours=extra_hours,
-            holidays_worked=holidays_worked,
-            taxable_subtotal=taxable_subtotal,
-            cgst_rate=cgst_rate,
-            cgst=cgst,
-            sgst_rate=sgst_rate,
-            sgst=sgst,
-            non_taxable_total=non_taxable_total,
-            engine_oil_amount=engine_oil,
-            parking_toll_amount=parking_toll,
-            telephone_charges_amount=telephone_charges,
-            round_off=round_off,
-            grand_total=rounded_total,
-        )
-
-        for item_data in cleaned_items:
+        for item_data in items:
             bill.items.append(MonthlyBillItem(**item_data))
 
         session.add(bill)
@@ -1471,6 +1543,7 @@ def create_monthly_bill():
 
     finally:
         session.close()
+
 @app.get("/api/monthly-bills/<int:bill_id>/pdf")
 def monthly_bill_pdf(bill_id):
     session = SessionLocal()
@@ -1651,44 +1724,35 @@ def get_monthly_bill(bill_id):
 
     finally:
         session.close()
+
 @app.put("/api/monthly-bills/<int:bill_id>")
 def update_monthly_bill(bill_id):
     session = SessionLocal()
 
     try:
-        bill = (
-            session.execute(
-                select(MonthlyBill)
-                .options(joinedload(MonthlyBill.items))
-                .where(MonthlyBill.id == bill_id)
-            )
-            .unique()
-            .scalar_one_or_none()
-        )
+        bill = session.execute(
+            select(MonthlyBill)
+            .options(joinedload(MonthlyBill.items))
+            .where(MonthlyBill.id == bill_id)
+        ).unique().scalar_one_or_none()
 
         if not bill:
-            return error_response("Monthly Bill not found", 404, "NOT_FOUND")
+            return error_response(
+                "Monthly Bill not found", 404, "NOT_FOUND"
+            )
 
         data = request.get_json(silent=True) or {}
+        values = calculate_monthly_bill_data(data)
 
-        customer_name = str(data.get("customer_name") or "").strip()
-        invoice_number = str(data.get("invoice_number") or "").strip()
+        if not values["customer_name"]:
+            raise ValueError("Customer Name is required")
 
-        if not customer_name:
-            return error_response(
-                "Customer Name is required", 400, "VALIDATION_ERROR"
-            )
-
-        if not invoice_number:
-            return error_response(
-                "Invoice Number is required", 400, "VALIDATION_ERROR"
-            )
-
-        invoice_date = parse_date(data.get("invoice_date"), "Invoice Date")
+        if not values["invoice_number"]:
+            raise ValueError("Invoice Number is required")
 
         existing = session.execute(
             select(MonthlyBill.id).where(
-                MonthlyBill.invoice_number == invoice_number,
+                MonthlyBill.invoice_number == values["invoice_number"],
                 MonthlyBill.id != bill_id,
             )
         ).scalar_one_or_none()
@@ -1700,299 +1764,24 @@ def update_monthly_bill(bill_id):
                 "DUPLICATE_MONTHLY_BILL_NUMBER",
             )
 
-        def get_number(key, default=0):
-            value = data.get(key)
-            number = float(default if value in (None, "") else value)
+        items = values.pop("items")
 
-            if number < 0:
-                raise ValueError(f"{key} cannot be negative")
-
-            return number
-
-        def get_date(key):
-            value = data.get(key)
-            return (
-                parse_date(value, key.replace("_", " ").title())
-                if value
-                else None
-            )
-
-        profile = str(data.get("customer_profile") or "").strip()
-        profile_key = "".join(
-            ch for ch in profile.upper() if ch.isalnum()
-        )
-
-        # Customer-specific fixed rates.
-        if "SAMRO" in profile_key:
-            monthly_hiring = 63000
-            extra_rate = 100
-            batta_rate = 500
-            holiday_rate = 500
-            is_samro = True
-        elif "CYBERABAD" in profile_key or profile_key == "AO":
-            monthly_hiring = 36700
-            extra_rate = 130
-            batta_rate = 500
-            holiday_rate = 500
-            is_samro = False
-        elif "CGM" in profile_key:
-            monthly_hiring = 145899
-            extra_rate = 250
-            batta_rate = 1000
-            holiday_rate = 1200
-            is_samro = False
-        elif "AGM" in profile_key:
-            monthly_hiring = 38899
-            extra_rate = 100
-            batta_rate = 500
-            holiday_rate = 500
-            is_samro = False
-        elif "GM1" in profile_key:
-            monthly_hiring = 61899
-            extra_rate = 100
-            batta_rate = 500
-            holiday_rate = 500
-            is_samro = False
-        elif "DGM" in profile_key:
-            monthly_hiring = 54899
-            extra_rate = 100
-            batta_rate = 500
-            holiday_rate = 500
-            is_samro = False
-        elif "GTFC" in profile_key:
-            monthly_hiring = 54899
-            extra_rate = 100
-            batta_rate = 500
-            holiday_rate = 500
-            is_samro = False
-        elif "GM" in profile_key:
-            monthly_hiring = 63000
-            extra_rate = 100
-            batta_rate = 500
-            holiday_rate = 500
-            is_samro = False
-        else:
-            monthly_hiring = 0
-            extra_rate = 0
-            batta_rate = 0
-            holiday_rate = 0
-            is_samro = False
-
-        total_km = get_number("total_km_driven")
-        km_per_liter = get_number("km_per_liter")
-        fuel_quantity = get_number("fuel_quantity")
-        fuel_rate = get_number("fuel_rate")
-        outstation_days = get_number("outstation_duties")
-        extra_hours = get_number("extra_hours")
-        holidays_worked = get_number("holidays_worked")
-        parking_toll = get_number("parking_toll_amount")
-        telephone_charges = get_number("telephone_charges_amount")
-
-        # SAMRO fuel is entered manually.
-        # Other profiles calculate fuel using KM / mileage x fuel rate.
-        if is_samro:
-            fuel_amount = get_number(
-                "fuel_amount", fuel_quantity * fuel_rate
-            )
-        else:
-            fuel_quantity = total_km
-            fuel_amount = (
-                (total_km / km_per_liter) * fuel_rate
-                if km_per_liter > 0
-                else 0
-            )
-
-        # Engine oil = Total KM / 250 x Rs. 300, where applicable.
-        engine_oil = get_number("engine_oil_amount")
-        if not engine_oil and not is_samro:
-            engine_oil = (total_km / 250) * 300
-
-        # Support the previous items payload without requiring the
-        # new Monthly Bill form to ask for item classifications.
-        items = data.get("items")
-        use_legacy_items = (
-            isinstance(items, list)
-            and not any(
-                key in data
-                for key in (
-                    "used_by",
-                    "start_date",
-                    "end_date",
-                    "fuel_quantity",
-                    "outstation_duties",
-                    "extra_hours",
-                    "holidays_worked",
-                    "parking_toll_amount",
-                    "telephone_charges_amount",
-                )
-            )
-        )
-
-        cleaned_items = []
-        taxable_subtotal = 0.0
-        non_taxable_total = 0.0
-
-        if use_legacy_items:
-            for item in items:
-                item_type = (
-                    str(item.get("item_type") or "taxable")
-                    .strip()
-                    .lower()
-                )
-
-                if item_type not in ("taxable", "non-taxable"):
-                    item_type = "taxable"
-
-                quantity = float(item.get("quantity") or 0)
-                rate = float(item.get("rate") or 0)
-                amount_value = item.get("amount")
-                amount = float(
-                    quantity * rate
-                    if amount_value in (None, "")
-                    else amount_value
-                )
-
-                if quantity < 0 or rate < 0 or amount < 0:
-                    raise ValueError(
-                        "Item quantity, rate and amount cannot be negative"
-                    )
-
-                cleaned_items.append({
-                    "item_type": item_type,
-                    "description": str(
-                        item.get("description") or ""
-                    ).strip(),
-                    "quantity": quantity,
-                    "rate": rate,
-                    "amount": amount,
-                })
-
-                if item_type == "taxable":
-                    taxable_subtotal += amount
-                else:
-                    non_taxable_total += amount
-
-        else:
-            extra_amount = extra_hours * extra_rate
-            batta_amount = outstation_days * batta_rate
-            holiday_amount = holidays_worked * holiday_rate
-
-            # Internal tax handling is retained for compatibility.
-            taxable_items = [
-                ("Monthly Hiring Charges", 1, monthly_hiring, monthly_hiring),
-                ("Extra Hours Charges", extra_hours, extra_rate, extra_amount),
-                ("Outstation Driver Batta", outstation_days, batta_rate, batta_amount),
-                ("Holiday Working Allowance", holidays_worked, holiday_rate, holiday_amount),
-            ]
-
-            for description, quantity, rate, amount in taxable_items:
-                if amount or description == "Monthly Hiring Charges":
-                    cleaned_items.append({
-                        "item_type": "taxable",
-                        "description": description,
-                        "quantity": quantity,
-                        "rate": rate,
-                        "amount": amount,
-                    })
-                    taxable_subtotal += amount
-
-            non_taxable_items = [
-                ("Petrol Charges", fuel_quantity, fuel_rate, fuel_amount),
-                (
-                    "Engine Oil",
-                    total_km / 250 if not is_samro else 0,
-                    300,
-                    engine_oil,
-                ),
-                ("Parking & Toll", 1, parking_toll, parking_toll),
-            ]
-
-            for description, quantity, rate, amount in non_taxable_items:
-                if amount:
-                    cleaned_items.append({
-                        "item_type": "non-taxable",
-                        "description": description,
-                        "quantity": quantity,
-                        "rate": rate,
-                        "amount": amount,
-                    })
-                    non_taxable_total += amount
-
-            if telephone_charges:
-                cleaned_items.append({
-                    "item_type": "non-taxable",
-                    "description": "Telephone Charges",
-                    "quantity": 1,
-                    "rate": telephone_charges,
-                    "amount": telephone_charges,
-                })
-                non_taxable_total += telephone_charges
-
-        # Display GST separately. Do not add GST to Grand Total.
-        cgst_rate = get_number("cgst_rate", 2.5)
-        sgst_rate = get_number("sgst_rate", 2.5)
-
-        cgst = taxable_subtotal * cgst_rate / 100
-        sgst = taxable_subtotal * sgst_rate / 100
-
-        # Grand Total = all charges before GST, rounded.
-        subtotal_before_round = taxable_subtotal + non_taxable_total
-        rounded_total = round(subtotal_before_round)
-        round_off = rounded_total - subtotal_before_round
-
-        bill.invoice_number = invoice_number
-        bill.invoice_date = invoice_date
-        bill.customer_name = customer_name
-        bill.customer_profile = profile or None
-        bill.customer_address = str(
-            data.get("customer_address") or ""
-        ).strip()
-        bill.customer_gstin = str(data.get("customer_gstin") or "").strip()
-        bill.used_by = str(data.get("used_by") or "").strip() or None
-        bill.start_date = get_date("start_date")
-        bill.end_date = get_date("end_date")
-        bill.booked_by = str(data.get("booked_by") or "").strip()
-        bill.position = str(data.get("position") or "").strip() or None
-        bill.vehicle_number = str(data.get("vehicle_number") or "").strip()
-        bill.reference_number = str(
-            data.get("reference_number") or ""
-        ).strip()
-        bill.total_km_driven = total_km
-        bill.km_per_liter = km_per_liter
-        bill.fuel_quantity = fuel_quantity
-        bill.fuel_rate = fuel_rate
-        bill.outstation_duties = outstation_days
-        bill.extra_hours = extra_hours
-        bill.holidays_worked = holidays_worked
-        bill.taxable_subtotal = taxable_subtotal
-        bill.cgst_rate = cgst_rate
-        bill.cgst = cgst
-        bill.sgst_rate = sgst_rate
-        bill.sgst = sgst
-        bill.non_taxable_total = non_taxable_total
-        bill.engine_oil_amount = engine_oil
-        bill.parking_toll_amount = parking_toll
-        bill.telephone_charges_amount = telephone_charges
-        bill.round_off = round_off
-        bill.grand_total = rounded_total
+        for key, value in values.items():
+            setattr(bill, key, value)
 
         bill.items.clear()
         session.flush()
 
-        for item_data in cleaned_items:
+        for item_data in items:
             bill.items.append(MonthlyBillItem(**item_data))
 
         session.commit()
 
-        refreshed = (
-            session.execute(
-                select(MonthlyBill)
-                .options(joinedload(MonthlyBill.items))
-                .where(MonthlyBill.id == bill_id)
-            )
-            .unique()
-            .scalar_one()
-        )
+        refreshed = session.execute(
+            select(MonthlyBill)
+            .options(joinedload(MonthlyBill.items))
+            .where(MonthlyBill.id == bill_id)
+        ).unique().scalar_one()
 
         return jsonify({
             "success": True,
@@ -2024,3 +1813,4 @@ def update_monthly_bill(bill_id):
 
     finally:
         session.close()
+
