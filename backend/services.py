@@ -620,6 +620,7 @@ def amount_to_words_indian(amount):
         + " Only"
     )
 
+
 def build_monthly_bill_pdf(bill):
     from decimal import Decimal, ROUND_HALF_UP
     from xml.sax.saxutils import escape
@@ -726,36 +727,62 @@ def build_monthly_bill_pdf(bill):
         return f"{value:,.2f}"
 
     def safe_text(value):
-        return escape(str(value or ""))
+        return escape(str(value if value is not None else ""))
 
     def number(value):
         try:
             return float(value or 0)
         except (TypeError, ValueError):
-            return 0
+            return 0.0
+
+    def display_date(value):
+        if not value:
+            return ""
+
+        if hasattr(value, "strftime"):
+            return value.strftime("%d-%m-%Y")
+
+        return str(value)
 
     # ---------------------------------------------------------
     # BILL DETAILS
     # ---------------------------------------------------------
 
-    invoice_date = get_value("invoice_date", "")
-    start_date = get_value("start_date", "")
-    end_date = get_value("end_date", "")
+    invoice_date = display_date(
+        get_value("invoice_date")
+    )
 
-    total_km = number(get_value("total_km"))
-    fuel_quantity = number(get_value("fuel_quantity"))
-    fuel_rate = number(get_value("fuel_rate"))
-    km_per_liter = number(get_value("km_per_liter"))
+    start_date = display_date(
+        get_value("start_date")
+    )
 
-    outstation_duties = number(get_value("outstation_duties"))
-    extra_hours = number(get_value("extra_hours"))
-    holidays_worked = number(get_value("holidays_worked"))
+    end_date = display_date(
+        get_value("end_date")
+    )
+
+    total_km = number(
+        get_value("total_km")
+    )
+
+    fuel_quantity = number(
+        get_value("fuel_quantity")
+    )
+
+    fuel_rate = number(
+        get_value("fuel_rate")
+    )
+
+    km_per_liter = number(
+        get_value("km_per_liter")
+    )
 
     # ---------------------------------------------------------
     # READ SAVED MONTHLY BILL ITEMS
     # ---------------------------------------------------------
 
-    items = list(get_value("items", []) or [])
+    items = list(
+        get_value("items", []) or []
+    )
 
     charges = {
         "monthly": [],
@@ -775,7 +802,11 @@ def build_monthly_bill_pdf(bill):
         if "monthly hiring" in text or "monthly rent" in text:
             return "monthly"
 
-        if "diesel" in text or "petrol" in text or "fuel" in text:
+        if (
+            "diesel" in text
+            or "petrol" in text
+            or "fuel" in text
+        ):
             return "diesel"
 
         if "outstation" in text or "batta" in text:
@@ -799,10 +830,28 @@ def build_monthly_bill_pdf(bill):
         return "other"
 
     for item in items:
-        description = getattr(item, "description", "") or ""
-        quantity = decimal_value(getattr(item, "quantity", 0))
-        rate = decimal_value(getattr(item, "rate", 0))
-        amount = decimal_value(getattr(item, "amount", 0))
+
+        description = (
+            getattr(item, "description", "")
+            or ""
+        )
+
+        quantity = decimal_value(
+            getattr(item, "quantity", 0)
+        )
+
+        rate = decimal_value(
+            getattr(item, "rate", 0)
+        )
+
+        amount = decimal_value(
+            getattr(item, "amount", 0)
+        )
+
+        item_type = (
+            getattr(item, "item_type", "taxable")
+            or "taxable"
+        )
 
         category = classify_item(description)
 
@@ -811,7 +860,7 @@ def build_monthly_bill_pdf(bill):
             "quantity": quantity,
             "rate": rate,
             "amount": amount,
-            "item_type": getattr(item, "item_type", "taxable"),
+            "item_type": item_type,
         })
 
     # ---------------------------------------------------------
@@ -819,6 +868,7 @@ def build_monthly_bill_pdf(bill):
     # ---------------------------------------------------------
 
     if not items:
+
         charges["diesel"].append({
             "description": "Diesel Charges",
             "quantity": decimal_value(fuel_quantity),
@@ -870,12 +920,15 @@ def build_monthly_bill_pdf(bill):
             })
 
     # ---------------------------------------------------------
-    # CHARGE TOTALS
+    # INDIVIDUAL CHARGE TOTALS
     # ---------------------------------------------------------
 
     def category_total(category):
         return sum(
-            (row["amount"] for row in charges[category]),
+            (
+                row["amount"]
+                for row in charges[category]
+            ),
             Decimal("0.00"),
         )
 
@@ -908,26 +961,45 @@ def build_monthly_bill_pdf(bill):
     )
 
     for row in charges["other"]:
+
         if str(row["item_type"]).lower() == "non-taxable":
             non_taxable_amount += row["amount"]
         else:
             taxable_amount += row["amount"]
 
-    subtotal = taxable_amount + non_taxable_amount
+    subtotal = (
+        taxable_amount
+        + non_taxable_amount
+    )
 
-    cgst_rate = decimal_value(get_value("cgst_rate", 2.5))
-    sgst_rate = decimal_value(get_value("sgst_rate", 2.5))
+    cgst_rate = decimal_value(
+        get_value("cgst_rate", 2.5)
+    )
+
+    sgst_rate = decimal_value(
+        get_value("sgst_rate", 2.5)
+    )
 
     cgst = (
-        taxable_amount * cgst_rate / Decimal("100")
-    ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        taxable_amount
+        * cgst_rate
+        / Decimal("100")
+    ).quantize(
+        Decimal("0.01"),
+        rounding=ROUND_HALF_UP,
+    )
 
     sgst = (
-        taxable_amount * sgst_rate / Decimal("100")
-    ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        taxable_amount
+        * sgst_rate
+        / Decimal("100")
+    ).quantize(
+        Decimal("0.01"),
+        rounding=ROUND_HALF_UP,
+    )
 
-    # Grand Total is based on subtotal before GST.
-    # CGST and SGST are displayed separately.
+    # Grand Total remains subtotal before GST.
+    # GST is displayed separately.
     total_before_round = subtotal
 
     grand_total = total_before_round.quantize(
@@ -935,7 +1007,10 @@ def build_monthly_bill_pdf(bill):
         rounding=ROUND_HALF_UP,
     )
 
-    round_off = grand_total - total_before_round
+    round_off = (
+        grand_total
+        - total_before_round
+    )
 
     # ---------------------------------------------------------
     # COMPANY HEADER
@@ -972,46 +1047,69 @@ def build_monthly_bill_pdf(bill):
 
     # ---------------------------------------------------------
     # CUSTOMER / INVOICE DETAILS
+    #
+    # LEFT:
+    # Customer Profile, Customer Name, Customer GSTIN,
+    # Used By, Start Date, End Date
+    #
+    # RIGHT:
+    # Invoice Number, Invoice Date
+    #
+    # Other details are intentionally excluded.
     # ---------------------------------------------------------
 
     customer_rows = [
         [
-            Paragraph(safe_text(get_value("customer_name")), bold),
-            Paragraph(f"Invoice Date: {invoice_date}", right),
+            Paragraph(
+                f"Customer Profile: "
+                f"{safe_text(get_value('customer_profile'))}",
+                bold,
+            ),
+            Paragraph(
+                f"Invoice Number: "
+                f"{safe_text(get_value('invoice_number'))}",
+                right,
+            ),
         ],
         [
             Paragraph(
-                f"GST NO: {safe_text(get_value('customer_gstin'))}",
+                f"Customer Name: "
+                f"{safe_text(get_value('customer_name'))}",
                 normal,
             ),
             Paragraph(
-                f"Invoice No: {safe_text(get_value('invoice_number'))}",
+                f"Invoice Date: {safe_text(invoice_date)}",
                 right,
             ),
+        ],
+        [
+            Paragraph(
+                f"Customer GSTIN: "
+                f"{safe_text(get_value('customer_gstin'))}",
+                normal,
+            ),
+            Paragraph("", right),
         ],
         [
             Paragraph(
                 f"Used By: {safe_text(get_value('used_by'))}",
                 normal,
             ),
-            Paragraph(
-                f"Booked By: {safe_text(get_value('booked_by'))}",
-                right,
-            ),
+            Paragraph("", right),
         ],
         [
             Paragraph(
-                f"Vehicle No: {safe_text(get_value('vehicle_number'))}",
+                f"Start Date: {safe_text(start_date)}",
                 normal,
             ),
-            Paragraph(
-                f"Reference No: {safe_text(get_value('reference_number'))}",
-                right,
-            ),
+            Paragraph("", right),
         ],
         [
-            Paragraph(f"Start Date: {start_date}", bold),
-            Paragraph(f"End Date: {end_date}", right_bold),
+            Paragraph(
+                f"End Date: {safe_text(end_date)}",
+                normal,
+            ),
+            Paragraph("", right),
         ],
     ]
 
@@ -1060,21 +1158,27 @@ def build_monthly_bill_pdf(bill):
         [
             Paragraph(
                 f"No. of Outstation Duties: "
-                f"<font color='red'><b>{outstation_duties:g}</b></font>",
+                f"<font color='red'><b>"
+                f"{number(get_value('outstation_duties')):g}"
+                f"</b></font>",
                 center,
             )
         ],
         [
             Paragraph(
                 f"No. of Extra Hours: "
-                f"<font color='red'><b>{extra_hours:g}</b></font>",
+                f"<font color='red'><b>"
+                f"{number(get_value('extra_hours')):g}"
+                f"</b></font>",
                 center,
             )
         ],
         [
             Paragraph(
                 f"No. of Holidays Worked: "
-                f"<font color='red'><b>{holidays_worked:g}</b></font>",
+                f"<font color='red'><b>"
+                f"{number(get_value('holidays_worked')):g}"
+                f"</b></font>",
                 center,
             )
         ],
@@ -1103,67 +1207,109 @@ def build_monthly_bill_pdf(bill):
     )
 
     # ---------------------------------------------------------
-    # RIGHT SIDE: CHARGES
+    # RIGHT SIDE: EACH INDIVIDUAL CHARGE
     # ---------------------------------------------------------
 
-    def charge_amount(category):
-        return money(category_total(category))
+    right_rows = []
 
-    right_rows = [
-        [
-            Paragraph("Monthly Hiring Charges:", right),
-            Paragraph(charge_amount("monthly"), right_bold),
-        ],
-        [
-            Paragraph(
-                f"Diesel Charges:<br/>"
-                f"(@ {km_per_liter:g} kms per liter mileage)",
-                right,
-            ),
-            Paragraph(charge_amount("diesel"), right_bold),
-        ],
-        [
-            Paragraph(
-                "Outstation Driver Batta:<br/>"
-                "(@ applicable rate per day)",
-                right,
-            ),
-            Paragraph(charge_amount("batta"), right_bold),
-        ],
-        [
-            Paragraph(
-                "Extra Hours Charges:<br/>"
-                "(@ applicable rate per hour)",
-                right,
-            ),
-            Paragraph(charge_amount("extra"), right_bold),
-        ],
-        [
-            Paragraph(
-                "Holiday Working Allowance:<br/>"
-                "(@ applicable rate per day)",
-                right,
-            ),
-            Paragraph(charge_amount("holiday"), right_bold),
-        ],
-        [
-            Paragraph("Engine Oil Amount:", right),
-            Paragraph(charge_amount("engine_oil"), right_bold),
-        ],
-        [
-            Paragraph("Parking & Toll Charges:", right),
-            Paragraph(charge_amount("parking"), right_bold),
-        ],
-        [
-            Paragraph("Driver Telephone Charges:", right),
-            Paragraph(charge_amount("telephone"), right_bold),
-        ],
+    category_order = [
+        ("monthly", "Monthly Hiring Charges"),
+        ("diesel", "Diesel Charges"),
+        ("batta", "Outstation Driver Batta"),
+        ("extra", "Extra Hours Charges"),
+        ("holiday", "Holiday Working Allowance"),
+        ("engine_oil", "Engine Oil Amount"),
+        ("parking", "Parking & Toll Charges"),
+        ("telephone", "Driver Telephone Charges"),
+        ("other", "Other Charges"),
     ]
 
-    if charges["other"]:
+    for category, default_label in category_order:
+
+        for row in charges[category]:
+
+            description = (
+                row["description"]
+                or default_label
+            )
+
+            quantity = row["quantity"]
+            rate = row["rate"]
+            amount = row["amount"]
+
+            # Build a rate description using the saved
+            # individual item's quantity and rate.
+            if category == "diesel":
+
+                if km_per_liter > 0:
+                    rate_description = (
+                        f"(@ {km_per_liter:g} kms per liter mileage)"
+                    )
+                else:
+                    rate_description = (
+                        f"(@ Rs. {money(rate)} per litre)"
+                    )
+
+            elif category == "batta":
+                rate_description = (
+                    f"(@ Rs. {money(rate)} per day)"
+                )
+
+            elif category == "extra":
+                rate_description = (
+                    f"(@ Rs. {money(rate)} per hour)"
+                )
+
+            elif category == "holiday":
+                rate_description = (
+                    f"(@ Rs. {money(rate)} per day)"
+                )
+
+            elif category == "monthly":
+                rate_description = (
+                    f"(@ Rs. {money(rate)})"
+                )
+
+            elif category == "other":
+                rate_description = (
+                    f"(@ Rs. {money(rate)})"
+                )
+
+            else:
+                rate_description = ""
+
+            description_text = safe_text(description)
+
+            if rate_description:
+                description_text += (
+                    "<br/><font size='7'>"
+                    + safe_text(rate_description)
+                    + "</font>"
+                )
+
+            # Show quantity when it is meaningful.
+            if quantity != Decimal("0"):
+                description_text += (
+                    "<br/><font size='7'>"
+                    f"Quantity: {safe_text(quantity)}"
+                    "</font>"
+                )
+
+            right_rows.append([
+                Paragraph(
+                    description_text,
+                    right,
+                ),
+                Paragraph(
+                    money(amount),
+                    right_bold,
+                ),
+            ])
+
+    if not right_rows:
         right_rows.append([
-            Paragraph("Other Charges:", right),
-            Paragraph(money(other_amount), right_bold),
+            Paragraph("No charge items found", right),
+            Paragraph("0.00", right_bold),
         ])
 
     right_table = Table(
@@ -1214,8 +1360,14 @@ def build_monthly_bill_pdf(bill):
     hsn_table = Table(
         [[
             Paragraph("<b>HSN No: 996412</b>", normal),
-            Paragraph("<b>GST NO: 36AYPPR7981L1Z8</b>", center),
-            Paragraph(f"<b>{money(subtotal)}</b>", right_bold),
+            Paragraph(
+                "<b>GST NO: 36AYPPR7981L1Z8</b>",
+                center,
+            ),
+            Paragraph(
+                f"<b>{money(subtotal)}</b>",
+                right_bold,
+            ),
         ]],
         colWidths=[
             doc.width * 0.34,
@@ -1289,11 +1441,17 @@ def build_monthly_bill_pdf(bill):
             Paragraph(money(taxable_amount), right),
         ],
         [
-            Paragraph(f"SGST @ {sgst_rate:g}%", right),
+            Paragraph(
+                f"SGST @ {sgst_rate:g}%",
+                right,
+            ),
             Paragraph(money(sgst), right),
         ],
         [
-            Paragraph(f"CGST @ {cgst_rate:g}%", right),
+            Paragraph(
+                f"CGST @ {cgst_rate:g}%",
+                right,
+            ),
             Paragraph(money(cgst), right),
         ],
         [
@@ -1424,7 +1582,9 @@ def build_monthly_bill_pdf(bill):
     doc.build(story)
 
     buffer.seek(0)
+
     return buffer.getvalue()
+
     # =========================================================
     # ITEM TABLE BUILDER
     # =========================================================
