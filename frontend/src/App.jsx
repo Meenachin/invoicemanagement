@@ -2327,11 +2327,10 @@ function MonthlyBillForm() {
       roundOff,
       grandTotal
     }
-  }, [
+    }, [
     selectedRates,
     totalKmDriven,
     kmPerLiter,
-    fuelQuantity,
     fuelRate,
     outstationDuties,
     extraHours,
