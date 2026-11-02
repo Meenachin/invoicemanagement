@@ -1121,6 +1121,7 @@ def export_monthly_bills_excel():
 
 
 
+
 def calculate_monthly_bill_data(data):
     """Calculate Monthly Bill charges using the selected customer profile."""
 
@@ -1273,32 +1274,25 @@ def calculate_monthly_bill_data(data):
     telephone_charges = number("telephone_charges_amount")
 
     # ---------------------------------------------------------
-    # 4. FUEL CALCULATION
+    # 4. AUTOMATIC FUEL QUANTITY AND AMOUNT CALCULATION
     # ---------------------------------------------------------
 
-    if is_samro:
-        # SAMRO:
-        # Fuel quantity and fuel rate are entered manually.
+    # Mileage is entered in KM per Litre.
+    # Fuel Quantity = Total KM Driven / KM per Litre.
+    # This calculation applies to every customer profile.
 
-        fuel_quantity = number("fuel_quantity")
-
-        fuel_amount = fuel_quantity * fuel_rate
-
-    else:
-        # Other profiles:
-        # Fuel quantity = Total KM / KM per Litre.
-
-        if total_km > 0 and km_per_liter <= 0:
-            raise ValueError(
-                "KM per Liter is required when Total KM Driven is entered"
-            )
-
-        fuel_quantity = (
-            total_km / km_per_liter
-            if km_per_liter > 0 else 0
+    if total_km > 0 and km_per_liter <= 0:
+        raise ValueError(
+            "Mileage (KM per Litre) is required when Total KM Driven is entered"
         )
 
-        fuel_amount = fuel_quantity * fuel_rate
+    fuel_quantity = (
+        total_km / km_per_liter
+        if km_per_liter > 0 else 0
+    )
+
+    # Fuel Amount = Fuel Quantity x Fuel Rate.
+    fuel_amount = fuel_quantity * fuel_rate
 
     # ---------------------------------------------------------
     # 5. ENGINE OIL CALCULATION
@@ -1330,8 +1324,6 @@ def calculate_monthly_bill_data(data):
     # ---------------------------------------------------------
     # 7. CREATE BILL LINE ITEMS
     # ---------------------------------------------------------
-    # item_type is maintained internally for accounting.
-    # The user does not enter or select this classification.
 
     items = [
         {
@@ -1416,19 +1408,12 @@ def calculate_monthly_bill_data(data):
     # 8. TAXABLE AND NON-TAXABLE TOTALS
     # ---------------------------------------------------------
 
-    # Taxable components:
-    # Monthly Hiring + Outstation Batta
-    # + Extra Hours + Holiday Allowance.
-
     taxable_subtotal = (
         monthly_hiring_amount
         + batta_amount
         + extra_amount
         + holiday_amount
     )
-
-    # Non-taxable components:
-    # Fuel + Engine Oil + Parking/Toll + Telephone.
 
     non_taxable_total = (
         fuel_amount
@@ -1453,14 +1438,12 @@ def calculate_monthly_bill_data(data):
     # 10. GRAND TOTAL AND ROUND OFF
     # ---------------------------------------------------------
 
-    # Grand Total is calculated before GST:
-    # Taxable Subtotal + Non-Taxable Total.
+    # Preserving your existing calculation:
+    # Grand Total = Taxable Subtotal + Non-Taxable Total.
 
     amount_before_rounding = (
         taxable_subtotal + non_taxable_total
     )
-
-    # Round to the nearest whole rupee.
 
     grand_total = float(
         Decimal(str(amount_before_rounding)).quantize(
@@ -1566,6 +1549,7 @@ def calculate_monthly_bill_data(data):
         # Internal line items for PDF and accounting.
         "items": items,
     }
+
 
 
 
