@@ -2120,7 +2120,7 @@ function MonthlyBillForm() {
   // Monthly usage inputs
   const [totalKmDriven, setTotalKmDriven] = useState(0)
   const [kmPerLiter, setKmPerLiter] = useState(0)
-  const [fuelQuantity, setFuelQuantity] = useState(0)
+  // const [fuelQuantity, setFuelQuantity] = useState(0)
   const [fuelRate, setFuelRate] = useState(0)
 
   const [outstationDuties, setOutstationDuties] = useState(0)
@@ -2248,7 +2248,7 @@ function MonthlyBillForm() {
 
         setTotalKmDriven(bill.total_km_driven || 0)
         setKmPerLiter(bill.km_per_liter || 0)
-        setFuelQuantity(bill.fuel_quantity || 0)
+        // setFuelQuantity(bill.fuel_quantity || 0)
         setFuelRate(bill.fuel_rate || 0)
 
         setOutstationDuties(bill.outstation_duties || 0)
@@ -2281,12 +2281,9 @@ function MonthlyBillForm() {
 
     const km = Number(totalKmDriven) || 0
     const mileage = Number(kmPerLiter) || 0
-    const manualFuelQty = Number(fuelQuantity) || 0
     const rate = Number(fuelRate) || 0
 
-    const calculatedFuelQty = isSamro
-      ? manualFuelQty
-      : mileage > 0 ? km / mileage : 0
+    const calculatedFuelQty = mileage > 0 ? km / mileage : 0
 
     const fuelAmount = calculatedFuelQty * rate
 
@@ -2381,9 +2378,9 @@ function MonthlyBillForm() {
       return
     }
 
-    if (!isSamro && Number(totalKmDriven) > 0 && Number(kmPerLiter) <= 0) {
-      setError('KM per Litre must be greater than zero when Total KM is entered.')
-      return
+    if (Number(totalKmDriven) > 0 && Number(kmPerLiter) <= 0) {
+       setError('KM per Litre must be greater than zero when Total KM is entered.')
+       return
     }
 
     const payload = {
@@ -2405,9 +2402,9 @@ function MonthlyBillForm() {
       reference_number: referenceNumber.trim(),
 
       total_km_driven: Number(totalKmDriven) || 0,
-      km_per_liter: isSamro ? 0 : Number(kmPerLiter) || 0,
+      km_per_liter: Number(kmPerLiter) || 0,
 
-      fuel_quantity: isSamro ? Number(fuelQuantity) || 0 : 0,
+      fuel_quantity: calculated.calculatedFuelQty,
       fuel_rate: Number(fuelRate) || 0,
 
       outstation_duties: Number(outstationDuties) || 0,
@@ -2613,28 +2610,21 @@ function MonthlyBillForm() {
             onChange={setTotalKmDriven}
           />
 
-          {!isSamro && (
-            <Input
-              label="KM per Litre"
-              type="number"
-              min="0"
-              step="0.01"
-              value={kmPerLiter}
-              onChange={setKmPerLiter}
-            />
-          )}
+         <Input
+          label="Mileage (KM per Litre)"
+          type="number"
+          min="0"
+          step="0.01"
+          value={kmPerLiter}
+          onChange={setKmPerLiter}
+         />
 
-          {isSamro && (
-            <Input
-              label="Fuel Quantity (Litres)"
-              type="number"
-              min="0"
-              step="0.01"
-              value={fuelQuantity}
-              onChange={setFuelQuantity}
-            />
-          )}
-
+         <Input
+            label="Fuel Quantity (Litres) - Auto Calculated"
+            type="number"
+            value={calculated.calculatedFuelQty.toFixed(2)}
+            readOnly
+           />
           <Input
             label="Diesel / Petrol Rate"
             type="number"
