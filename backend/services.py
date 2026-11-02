@@ -760,22 +760,17 @@ def build_monthly_bill_pdf(bill):
         get_value("end_date")
     )
 
-    total_km = number(
-        get_value("total_km")
-    )
+    total_km = number(get_value("total_km_driven"))
+    km_per_liter = number(get_value("km_per_liter"))
+    fuel_rate = number(get_value("fuel_rate"))
 
-    fuel_quantity = number(
-        get_value("fuel_quantity")
+    # Calculate fuel quantity from total KM and mileage.
+        # Calculate fuel quantity from total KM and mileage.
+    fuel_quantity = (
+        total_km / km_per_liter
+        if km_per_liter > 0
+        else 0
     )
-
-    fuel_rate = number(
-        get_value("fuel_rate")
-    )
-
-    km_per_liter = number(
-        get_value("km_per_liter")
-    )
-
     # ---------------------------------------------------------
     # READ SAVED MONTHLY BILL ITEMS
     # ---------------------------------------------------------
@@ -1229,8 +1224,9 @@ def build_monthly_bill_pdf(bill):
         for row in charges[category]:
 
             description = (
-                row["description"]
-                or default_label
+                 "Petrol Charges"
+                  if category == "diesel"
+                  else (row["description"] or default_label)
             )
 
             quantity = row["quantity"]
