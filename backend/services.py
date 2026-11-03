@@ -1476,8 +1476,8 @@ def build_monthly_bill_pdf(bill):
         TableStyle([
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
             ("ALIGN", (1, 0), (1, -1), "RIGHT"),
-            ("LEFTPADDING", (1, 0), (1, -1), 0),
-            ("RIGHTPADDING", (1, 0), (1, -1), 0),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
             ("TOPPADDING", (0, 0), (-1, -1), 3),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
         ])
@@ -1495,8 +1495,8 @@ def build_monthly_bill_pdf(bill):
         TableStyle([
             ("BOX", (0, 0), (-1, -1), 0.8, colors.black),
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("LEFTPADDING", (0, 0), (-1, -1), 4),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+            ("LEFTPADDING", (0, 0), (1, 0), 0),
+            ("RIGHTPADDING", (0, 0), (1, 0), 0),
             ("TOPPADDING", (0, 0), (-1, -1), 5),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
         ])
