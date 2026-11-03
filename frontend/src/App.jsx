@@ -2125,9 +2125,14 @@ function MonthlyBillForm() {
   // const [fuelQuantity, setFuelQuantity] = useState(0)
   const [fuelRate, setFuelRate] = useState(0)
 
-  const [outstationDuties, setOutstationDuties] = useState(0)
-  const [extraHours, setExtraHours] = useState(0)
-  const [holidaysWorked, setHolidaysWorked] = useState(0)
+const [outstationDuties, setOutstationDuties] = useState(0)
+const [driverBattaRate, setDriverBattaRate] = useState(0)
+
+const [extraHours, setExtraHours] = useState(0)
+const [extraHoursRate, setExtraHoursRate] = useState(0)
+
+const [holidaysWorked, setHolidaysWorked] = useState(0)
+const [holidayAllowanceRate, setHolidayAllowanceRate] = useState(0)
 
   const [engineOilAmount, setEngineOilAmount] = useState(0)
   const [parkingTollAmount, setParkingTollAmount] = useState(0)
@@ -2219,7 +2224,9 @@ function MonthlyBillForm() {
   setCustomerName(selected.name)
   setCustomerGstin('36AAACS8577K1ZQ')
   setMonthlyHiringAmount(selected.monthlyHiring)
-
+setDriverBattaRate(selected.driverBatta)
+setExtraHoursRate(selected.extraHours)
+setHolidayAllowanceRate(selected.holidayAllowance)
   setPosition(
     profile === 'LIAISON_DGM' ? 'DGM' :
     profile === 'LIAISON_GM' ? 'GM' :
@@ -2283,8 +2290,19 @@ setCustomerName(bill.customer_name || '');
         setFuelRate(bill.fuel_rate || 0)
 
         setOutstationDuties(bill.outstation_duties || 0)
-        setExtraHours(bill.extra_hours || 0)
-        setHolidaysWorked(bill.holidays_worked || 0)
+setDriverBattaRate(
+  bill.driver_batta_rate ?? CUSTOMER_PROFILE_RATES[bill.customer_profile]?.driverBatta ?? 0
+)
+
+setExtraHours(bill.extra_hours || 0)
+setExtraHoursRate(
+  bill.extra_hours_rate ?? CUSTOMER_PROFILE_RATES[bill.customer_profile]?.extraHours ?? 0
+)
+
+setHolidaysWorked(bill.holidays_worked || 0)
+setHolidayAllowanceRate(
+  bill.holiday_allowance_rate ?? CUSTOMER_PROFILE_RATES[bill.customer_profile]?.holidayAllowance ?? 0
+)
 
         setEngineOilAmount(bill.engine_oil_amount || 0)
         setParkingTollAmount(bill.parking_toll_amount || 0)
@@ -2323,9 +2341,11 @@ setCustomerName(bill.customer_name || '');
       : (!isSamro && km > 0 ? (km / 250) * 300 : 0)
 
     const monthlyAmount = Number(monthlyHiringAmount) || 0
-    const extraAmount = (Number(extraHours) || 0) * rates.extraHours
-    const battaAmount = (Number(outstationDuties) || 0) * rates.driverBatta
-    const holidayAmount = (Number(holidaysWorked) || 0) * rates.holidayAllowance
+   const extraAmount = (Number(extraHours) || 0) * (Number(extraHoursRate) || 0)
+
+const battaAmount = (Number(outstationDuties) || 0) * (Number(driverBattaRate) || 0)
+
+const holidayAmount = (Number(holidaysWorked) || 0) * (Number(holidayAllowanceRate) || 0)
 
     const taxableAmount =
       monthlyAmount + extraAmount + battaAmount + holidayAmount
@@ -2452,9 +2472,13 @@ setCustomerName(bill.customer_name || '');
       fuel_rate: Number(fuelRate) || 0,
 
       outstation_duties: Number(outstationDuties) || 0,
-      extra_hours: Number(extraHours) || 0,
-      holidays_worked: Number(holidaysWorked) || 0,
+driver_batta_rate: Number(driverBattaRate) || 0,
 
+extra_hours: Number(extraHours) || 0,
+extra_hours_rate: Number(extraHoursRate) || 0,
+
+holidays_worked: Number(holidaysWorked) || 0,
+holiday_allowance_rate: Number(holidayAllowanceRate) || 0,
       engine_oil_amount: Number(engineOilAmount) || 0,
       parking_toll_amount: Number(parkingTollAmount) || 0,
       telephone_charges_amount: Number(telephoneChargesAmount) || 0
@@ -2703,7 +2727,30 @@ setCustomerName(bill.customer_name || '');
             value={outstationDuties}
             onChange={setOutstationDuties}
           />
-
+<Input
+  label="Outstation Driver Batta Rate (₹ per day)"
+  type="number"
+  min="0"
+  step="0.01"
+  value={driverBattaRate}
+  onChange={setDriverBattaRate}
+/>
+          <Input
+  label="Extra Hours Rate (₹ per hour)"
+  type="number"
+  min="0"
+  step="0.01"
+  value={extraHoursRate}
+  onChange={setExtraHoursRate}
+/>
+          <Input
+  label="Holiday Working Allowance Rate (₹ per day)"
+  type="number"
+  min="0"
+  step="0.01"
+  value={holidayAllowanceRate}
+  onChange={setHolidayAllowanceRate}
+/>
           <Input
             label="No. of Extra Hours"
             type="number"
