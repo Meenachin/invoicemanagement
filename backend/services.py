@@ -1464,12 +1464,13 @@ def build_monthly_bill_pdf(bill):
     ]
 
     tax_table = Table(
-        tax_rows,
-        colWidths=[
-            doc.width * 0.25,
-            doc.width * 0.17,
-        ],
-    )
+    tax_rows,
+    colWidths=[
+        doc.width * 0.25,
+        doc.width * 0.17,
+    ],
+    hAlign="RIGHT",
+)
 
     tax_table.setStyle(
         TableStyle([
