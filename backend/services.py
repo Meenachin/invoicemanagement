@@ -1145,7 +1145,7 @@ def build_monthly_bill_pdf(bill):
         ],
         [
             Paragraph(
-                f"Diesel Rate: "
+                f"Diesel Rate/Petrol Rate: "
                 f"<font color='red'><b>Rs. {money(fuel_rate)}</b></font>",
                 center,
             )
@@ -1224,7 +1224,7 @@ def build_monthly_bill_pdf(bill):
         for row in charges[category]:
 
             description = (
-                 "Petrol Charges"
+                 "Petrol Charges/Diesel Charges"
                   if category == "diesel"
                   else (row["description"] or default_label)
             )
@@ -1285,10 +1285,10 @@ def build_monthly_bill_pdf(bill):
 
             # Show quantity when it is meaningful.
             if quantity != Decimal("0"):
-                description_text += (
-                    "<br/><font size='7'>"
-                    f"Quantity: {safe_text(quantity)}"
-                    "</font>"
+                 description_text += (
+                "<br/><font size='7'>"
+                f"Quantity: {quantity:.2f}"
+                "</font>"
                 )
 
             right_rows.append([
