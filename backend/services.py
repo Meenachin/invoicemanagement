@@ -1182,6 +1182,13 @@ def build_monthly_bill_pdf(bill):
     left_table = Table(
     left_rows,
     colWidths=[doc.width * 0.49],
+    rowHeights=[
+        22 * mm,
+        22 * mm,
+        22 * mm,
+        22 * mm,
+        22 * mm,
+    ],
 )
 
     left_table.setStyle(
