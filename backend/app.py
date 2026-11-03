@@ -181,7 +181,10 @@ def serialize_monthly_bill(bill):
         "extra_hours": getattr(bill, "extra_hours", 0) or 0,
         "holidays_worked": getattr(bill, "holidays_worked", 0) or 0,
         "reference_number": bill.reference_number or "",
-
+        "monthly_hiring_amount": getattr(bill, "monthly_hiring_amount", 0) or 0,
+        "driver_batta_rate": getattr(bill, "driver_batta_rate", 0) or 0,
+        "extra_hours_rate": getattr(bill, "extra_hours_rate", 0) or 0,
+        "holiday_allowance_rate": getattr(bill, "holiday_allowance_rate", 0) or 0,
         "taxable_subtotal": bill.taxable_subtotal or 0,
         "cgst_rate": bill.cgst_rate or 0,
         "cgst": bill.cgst or 0,
@@ -1335,7 +1338,12 @@ def calculate_monthly_bill_data(data):
         "monthly_hiring_amount",
         monthly_hiring
     )
-
+    batta_rate = number("driver_batta_rate", batta_rate)
+    extra_rate = number("extra_hours_rate", extra_rate)
+    holiday_rate = number("holiday_allowance_rate", holiday_rate)
+    batta_amount = outstation_duties * batta_rate
+    extra_amount = extra_hours * extra_rate
+    holiday_amount = holidays_worked * holiday_rate
     # ---------------------------------------------------------
     # 7. CREATE BILL LINE ITEMS
     # ---------------------------------------------------------
@@ -1537,7 +1545,10 @@ def calculate_monthly_bill_data(data):
         "km_per_liter": km_per_liter,
         "fuel_quantity": fuel_quantity,
         "fuel_rate": fuel_rate,
-
+        "monthly_hiring_amount": monthly_hiring_amount,
+        "driver_batta_rate": batta_rate,
+        "extra_hours_rate": extra_rate,
+        "holiday_allowance_rate": holiday_rate,
         "outstation_duties": outstation_duties,
         "extra_hours": extra_hours,
         "holidays_worked": holidays_worked,
