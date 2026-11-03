@@ -2245,8 +2245,26 @@ function MonthlyBillForm() {
         setInvoiceNumber(bill.invoice_number || '')
         setInvoiceDate(bill.invoice_date || todayISO())
 
-        setCustomerProfile(bill.customer_profile || '')
-        setCustomerName(bill.customer_name || '')
+        
+const savedProfile = bill.customer_profile || '';
+
+if (Object.prototype.hasOwnProperty.call(CUSTOMER_PROFILE_RATES, savedProfile)) {
+  // Existing predefined customer profile
+  setCustomerProfile(savedProfile);
+  setOtherProfileName('');
+} else if (savedProfile) {
+  // Previously saved custom profile, such as WARANGAL URBAN
+  setCustomerProfile('OTHER');
+  setOtherProfileName(savedProfile);
+} else {
+  setCustomerProfile('');
+  setOtherProfileName('');
+}
+
+setMonthlyHiringAmount(bill.monthly_hiring_amount ?? 0);
+
+setCustomerName(bill.customer_name || '');
+
         setCustomerGstin(bill.customer_gstin || '')
         setCustomerAddress(bill.customer_address || '')
         setUsedBy(bill.used_by || '')
