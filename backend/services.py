@@ -1466,8 +1466,8 @@ def build_monthly_bill_pdf(bill):
     tax_table = Table(
     tax_rows,
     colWidths=[
-        doc.width * 0.25,
-        doc.width * 0.17,
+        doc.width * 0.28,
+        doc.width * 0.19,
     ],
     hAlign="RIGHT",
 )
@@ -1476,8 +1476,8 @@ def build_monthly_bill_pdf(bill):
         TableStyle([
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
             ("ALIGN", (1, 0), (1, -1), "RIGHT"),
-            ("LEFTPADDING", (0, 0), (-1, -1), 4),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+            ("LEFTPADDING", (1, 0), (1, -1), 0),
+            ("RIGHTPADDING", (1, 0), (1, -1), 0),
             ("TOPPADDING", (0, 0), (-1, -1), 3),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
         ])
