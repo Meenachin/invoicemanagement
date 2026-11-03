@@ -1223,6 +1223,7 @@ def calculate_monthly_bill_data(data):
     }
 
     # Identify the selected profile.
+        # Identify the selected profile.
     if "SAMRO" in profile_key:
         config = profiles["SAMRO"]
 
@@ -1246,6 +1247,15 @@ def calculate_monthly_bill_data(data):
 
     elif profile_key.endswith("GM"):
         config = profiles["GM"]
+
+    elif profile_key:
+        # Custom Customer Profile
+        config = {
+            "monthly": 0,
+            "extra": 0,
+            "batta": 0,
+            "holiday": 0,
+        }
 
     else:
         raise ValueError("Please select a valid Customer Profile")
@@ -1319,7 +1329,12 @@ def calculate_monthly_bill_data(data):
     holiday_amount = holidays_worked * holiday_rate
 
     # Monthly Hiring is the fixed profile amount.
-    monthly_hiring_amount = monthly_hiring
+        # Use the amount entered by the user.
+    # If no amount is supplied, retain the existing profile default.
+    monthly_hiring_amount = number(
+        "monthly_hiring_amount",
+        monthly_hiring
+    )
 
     # ---------------------------------------------------------
     # 7. CREATE BILL LINE ITEMS
@@ -1330,7 +1345,7 @@ def calculate_monthly_bill_data(data):
             "item_type": "taxable",
             "description": "Monthly Hiring Charges",
             "quantity": 1,
-            "rate": monthly_hiring,
+            "rate": monthly_hiring_amount,
             "amount": monthly_hiring_amount,
         },
         {
