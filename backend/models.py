@@ -110,6 +110,9 @@ class MonthlyBill(Base):
     fuel_quantity = Column(Float, default=0)
     fuel_rate = Column(Float, default=0)
     monthly_hiring_amount = Column(Float, default=0)
+    driver_batta_rate = Column(Float, default=0)
+    extra_hours_rate = Column(Float, default=0)
+    holiday_allowance_rate = Column(Float, default=0)
     # Monthly usage inputs
     outstation_duties = Column(Float, default=0)
     extra_hours = Column(Float, default=0)
