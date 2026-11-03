@@ -1179,27 +1179,27 @@ def build_monthly_bill_pdf(bill):
         ],
     ]
 
-    left_table = Table(
-    left_rows,
-    colWidths=[doc.width * 0.49],
-    rowHeights=[
-        22 * mm,
-        22 * mm,
-        22 * mm,
-        22 * mm,
-        22 * mm,
-    ],
-)
+#     left_table = Table(
+#     left_rows,
+#     colWidths=[doc.width * 0.49],
+#     rowHeights=[
+#         22 * mm,
+#         22 * mm,
+#         22 * mm,
+#         22 * mm,
+#         22 * mm,
+#     ],
+# )
 
-    left_table.setStyle(
-        TableStyle([
-            ("BOX", (0, 0), (-1, -1), 0.8, colors.black),
-            ("INNERGRID", (0, 0), (-1, -1), 0.4, colors.black),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("LEFTPADDING", (0, 0), (-1, -1), 4),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-        ])
-    )
+#     left_table.setStyle(
+#         TableStyle([
+#             ("BOX", (0, 0), (-1, -1), 0.8, colors.black),
+#             ("INNERGRID", (0, 0), (-1, -1), 0.4, colors.black),
+#             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+#             ("LEFTPADDING", (0, 0), (-1, -1), 4),
+#             ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+#         ])
+#     )
 
     # ---------------------------------------------------------
     # RIGHT SIDE: EACH INDIVIDUAL CHARGE
@@ -1327,7 +1327,27 @@ def build_monthly_bill_pdf(bill):
             ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
         ])
     )
+        
+    while len(left_rows) < len(right_rows):
+        left_rows.append([Paragraph("", center)])
 
+    right_table.wrap(doc.width * 0.51, doc.height)
+
+    left_table = Table(
+        left_rows,
+        colWidths=[doc.width * 0.49],
+        rowHeights=right_table._rowHeights,
+    )
+
+    left_table.setStyle(
+        TableStyle([
+            ("BOX", (0, 0), (-1, -1), 0.8, colors.black),
+            ("INNERGRID", (0, 0), (-1, -1), 0.4, colors.black),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+        ])
+    )
     details_table = Table(
         [[left_table, right_table]],
         colWidths=[
