@@ -2104,6 +2104,8 @@ function MonthlyBillForm() {
   const [invoiceDate, setInvoiceDate] = useState(todayISO())
 
   const [customerProfile, setCustomerProfile] = useState('')
+  const [otherProfileName, setOtherProfileName] = useState('')
+  const [monthlyHiringAmount, setMonthlyHiringAmount] = useState(0)
   const [customerName, setCustomerName] = useState('')
   const [customerGstin, setCustomerGstin] = useState('')
   const [customerAddress, setCustomerAddress] = useState('')
@@ -2198,24 +2200,35 @@ function MonthlyBillForm() {
   const isSamro = customerProfile === 'SAMRO_HYDERABAD'
 
   const handleCustomerProfileChange = profile => {
-    setCustomerProfile(profile)
+  setCustomerProfile(profile)
 
-    const selected = CUSTOMER_PROFILE_RATES[profile]
-
-    if (!selected) return
-
-    setCustomerName(selected.name)
-    setCustomerGstin('36AAACS8577K1ZQ')
-
-    setPosition(
-      profile === 'LIAISON_DGM' ? 'DGM' :
-      profile === 'LIAISON_GM' ? 'GM' :
-      profile === 'LIAISON_CGM' ? 'CGM' :
-      profile === 'LIAISON_AGM' ? 'Liaison Department (AGM)' :
-      profile === 'LIAISON_GM1' ? 'GM - 1' :
-      ''
-    )
+  if (profile === 'OTHER') {
+    setOtherProfileName('')
+    setCustomerName('')
+    setCustomerGstin('')
+    setCustomerAddress('')
+    setPosition('')
+    setMonthlyHiringAmount(0)
+    return
   }
+
+  const selected = CUSTOMER_PROFILE_RATES[profile]
+
+  if (!selected) return
+
+  setCustomerName(selected.name)
+  setCustomerGstin('36AAACS8577K1ZQ')
+  setMonthlyHiringAmount(selected.monthlyHiring)
+
+  setPosition(
+    profile === 'LIAISON_DGM' ? 'DGM' :
+    profile === 'LIAISON_GM' ? 'GM' :
+    profile === 'LIAISON_CGM' ? 'CGM' :
+    profile === 'LIAISON_AGM' ? 'Liaison Department (AGM)' :
+    profile === 'LIAISON_GM1' ? 'GM - 1' :
+    ''
+  )
+}
 
   // Load an existing Monthly Bill for editing
   useEffect(() => {
@@ -2291,7 +2304,7 @@ function MonthlyBillForm() {
       ? Number(engineOilAmount)
       : (!isSamro && km > 0 ? (km / 250) * 300 : 0)
 
-    const monthlyAmount = rates.monthlyHiring
+    const monthlyAmount = Number(monthlyHiringAmount) || 0
     const extraAmount = (Number(extraHours) || 0) * rates.extraHours
     const battaAmount = (Number(outstationDuties) || 0) * rates.driverBatta
     const holidayAmount = (Number(holidaysWorked) || 0) * rates.holidayAllowance
@@ -2329,6 +2342,7 @@ function MonthlyBillForm() {
     }
     }, [
     selectedRates,
+    monthlyHiringAmount,
     totalKmDriven,
     kmPerLiter,
     fuelRate,
@@ -2351,6 +2365,15 @@ function MonthlyBillForm() {
       setError('Please select Customer Profile.')
       return
     }
+
+// Add this validation below the existing profile validation
+     if (
+        customerProfile === 'OTHER' &&
+        !otherProfileName.trim()
+       ) {
+        setError('Please enter the Customer Profile Name.')
+        return
+       }
 
     if (!customerName.trim()) {
       setError('Customer Name is required.')
@@ -2386,7 +2409,11 @@ function MonthlyBillForm() {
       invoice_number: invoiceNumber.trim(),
       invoice_date: invoiceDate,
 
-      customer_profile: customerProfile,
+      customer_profile: customerProfile === 'OTHER'
+        ? otherProfileName.trim()
+        : customerProfile,
+
+      monthly_hiring_amount: Number(monthlyHiringAmount) || 0,
       customer_name: customerName.trim(),
       customer_address: customerAddress.trim(),
       customer_gstin: customerGstin.trim(),
@@ -2496,9 +2523,18 @@ function MonthlyBillForm() {
                 <option value="LIAISON_GM1">Liaison Department — GM-1</option>
                 <option value="GTFC">GTFC</option>
                 <option value="AO_CYBERABAD">A/O CYBERABAD</option>
+                <option value="OTHER">Other</option>
               </select>
             </label>
-
+{customerProfile === 'OTHER' && (
+  <Input
+    label="Enter Customer Profile Name"
+    value={otherProfileName}
+    onChange={setOtherProfileName}
+    placeholder="Enter customer profile name"
+    required
+  />
+)}
             <Input
               label="Customer Name"
               value={customerName}
@@ -2601,6 +2637,14 @@ function MonthlyBillForm() {
 
         <div className="form-grid three">
           <Input
+  label="Monthly Hiring Charges"
+  type="number"
+  min="0"
+  step="0.01"
+  value={monthlyHiringAmount}
+  onChange={setMonthlyHiringAmount}
+/>
+          <Input
             label="Total KM Driven"
             type="number"
             min="0"
@@ -2687,6 +2731,7 @@ function MonthlyBillForm() {
             onChange={setTelephoneChargesAmount}
           />
         </div>
+        
       </section>
 
       {/* CALCULATED SUMMARY */}
