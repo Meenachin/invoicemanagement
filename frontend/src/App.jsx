@@ -2107,7 +2107,7 @@ function MonthlyBillForm() {
   const [otherProfileName, setOtherProfileName] = useState('')
   const [monthlyHiringAmount, setMonthlyHiringAmount] = useState(0)
   const [customerName, setCustomerName] = useState('')
-  const [customerGstin, setCustomerGstin] = useState('')
+  const [customerGstin, setCustomerGstin] = useState('36AAACS8577K1ZQ')
   const [customerAddress, setCustomerAddress] = useState('')
   const [usedBy, setUsedBy] = useState('')
 
@@ -2198,22 +2198,42 @@ const [holidayAllowanceRate, setHolidayAllowanceRate] = useState(0)
       extraHours: 130,
       driverBatta: 500,
       holidayAllowance: 500
-    }
+    },
+  WARANGAL_URBAN: {
+  name: 'WARANGAL - URBAN',
+  monthlyHiring: 38899,
+  extraHours: 0,
+  driverBatta: 0,
+  holidayAllowance: 0
+},
+
+SBI_SAMB_SECUNDERABAD: {
+  name: 'SBI SAMB SECUNDERABAD',
+  monthlyHiring: 38899,
+  extraHours: 0,
+  driverBatta: 0,
+  holidayAllowance: 0
+}
   }
 
   const selectedRates = CUSTOMER_PROFILE_RATES[customerProfile]
   const isSamro = customerProfile === 'SAMRO_HYDERABAD'
 
-  const handleCustomerProfileChange = profile => {
+  const FIXED_CUSTOMER_GSTIN = '36AAACS8577K1ZQ'
+
+const handleCustomerProfileChange = profile => {
   setCustomerProfile(profile)
+  setCustomerGstin(FIXED_CUSTOMER_GSTIN)
 
   if (profile === 'OTHER') {
     setOtherProfileName('')
     setCustomerName('')
-    setCustomerGstin('')
     setCustomerAddress('')
     setPosition('')
     setMonthlyHiringAmount(0)
+    setDriverBattaRate(0)
+    setExtraHoursRate(0)
+    setHolidayAllowanceRate(0)
     return
   }
 
@@ -2221,12 +2241,14 @@ const [holidayAllowanceRate, setHolidayAllowanceRate] = useState(0)
 
   if (!selected) return
 
-  setCustomerName(selected.name)
-  setCustomerGstin('36AAACS8577K1ZQ')
-  setMonthlyHiringAmount(selected.monthlyHiring)
-setDriverBattaRate(selected.driverBatta)
-setExtraHoursRate(selected.extraHours)
-setHolidayAllowanceRate(selected.holidayAllowance)
+  setCustomerName(selected.name || '')
+  setCustomerAddress('')
+  setMonthlyHiringAmount(selected.monthlyHiring || 0)
+
+  setDriverBattaRate(selected.driverBatta || 0)
+  setExtraHoursRate(selected.extraHours || 0)
+  setHolidayAllowanceRate(selected.holidayAllowance || 0)
+
   setPosition(
     profile === 'LIAISON_DGM' ? 'DGM' :
     profile === 'LIAISON_GM' ? 'GM' :
@@ -2236,7 +2258,6 @@ setHolidayAllowanceRate(selected.holidayAllowance)
     ''
   )
 }
-
   // Load an existing Monthly Bill for editing
   useEffect(() => {
     if (!editing) return
@@ -2272,7 +2293,7 @@ setMonthlyHiringAmount(bill.monthly_hiring_amount ?? 0);
 
 setCustomerName(bill.customer_name || '');
 
-        setCustomerGstin(bill.customer_gstin || '')
+setCustomerGstin(bill.customer_gstin || '36AAACS8577K1ZQ')
         setCustomerAddress(bill.customer_address || '')
         setUsedBy(bill.used_by || '')
 
@@ -2378,15 +2399,18 @@ const holidayAmount = (Number(holidaysWorked) || 0) * (Number(holidayAllowanceRa
       roundOff,
       grandTotal
     }
-    }, [
+     }, [
     selectedRates,
     monthlyHiringAmount,
     totalKmDriven,
     kmPerLiter,
     fuelRate,
     outstationDuties,
+    driverBattaRate,
     extraHours,
+    extraHoursRate,
     holidaysWorked,
+    holidayAllowanceRate,
     engineOilAmount,
     parkingTollAmount,
     telephoneChargesAmount,
@@ -2565,6 +2589,10 @@ holiday_allowance_rate: Number(holidayAllowanceRate) || 0,
                 <option value="LIAISON_GM1">Liaison Department — GM-1</option>
                 <option value="GTFC">GTFC</option>
                 <option value="AO_CYBERABAD">A/O CYBERABAD</option>
+                <option value="WARANGAL_URBAN">WARANGAL - URBAN</option>
+<option value="SBI_SAMB_SECUNDERABAD">
+  SBI SAMB SECUNDERABAD
+</option>
                 <option value="OTHER">Other</option>
               </select>
             </label>
@@ -2584,11 +2612,12 @@ holiday_allowance_rate: Number(holidayAllowanceRate) || 0,
               required
             />
 
-            <Input
-              label="Customer GSTIN"
-              value={customerGstin}
-              onChange={setCustomerGstin}
-            />
+           <Input
+  label="Customer GSTIN"
+  value={customerGstin}
+  onChange={setCustomerGstin}
+  placeholder="Enter customer GSTIN"
+/>
 
             <Input
               label="Used By"
