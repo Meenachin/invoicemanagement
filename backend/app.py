@@ -1315,9 +1315,9 @@ def calculate_monthly_bill_data(data):
     # Otherwise, for non-SAMRO profiles:
     # Engine oil = (Total KM / 250) * 300.
 
-# Always use the amount entered by the user.
-# Zero is a valid value and must not be recalculated.
-engine_oil = number("engine_oil_amount")
+    # Always use the amount entered by the user.
+    # Zero is a valid value and must not be recalculated.
+    engine_oil = number("engine_oil_amount")
 
     # ---------------------------------------------------------
     # 6. PROFILE-BASED CHARGE CALCULATIONS
