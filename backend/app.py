@@ -1399,12 +1399,12 @@ def calculate_monthly_bill_data(data):
     # Engine Oil line item.
     if engine_oil:
         items.append({
-           "item_type": "non-taxable",
-           "description": "Engine Oil",
-           "quantity": 0,
-           "rate": 0,
-           "amount": engine_oil,
-      })
+        "item_type": "non-taxable",
+        "description": "Engine Oil",
+        "quantity": 0,
+        "rate": 0,
+        "amount": engine_oil,
+    })
 
     # Parking and Toll line item.
     if parking_toll:
