@@ -1317,7 +1317,7 @@ def calculate_monthly_bill_data(data):
 
 # Always use the amount entered by the user.
 # Zero is a valid value and must not be recalculated.
-      engine_oil = number("engine_oil_amount")
+engine_oil = number("engine_oil_amount")
 
     # ---------------------------------------------------------
     # 6. PROFILE-BASED CHARGE CALCULATIONS
