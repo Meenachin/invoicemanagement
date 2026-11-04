@@ -1837,6 +1837,7 @@ def get_monthly_bill(bill_id):
         session.close()
 
 @app.put("/api/monthly-bills/<int:bill_id>")
+
 def update_monthly_bill(bill_id):
     session = SessionLocal()
 
@@ -1852,7 +1853,60 @@ def update_monthly_bill(bill_id):
                 "Monthly Bill not found", 404, "NOT_FOUND"
             )
 
-        data = request.get_json(silent=True) or {}
+        request_data = request.get_json(silent=True) or {}
+
+        # Start with the values already saved in the database.
+        # This prevents missing fields from becoming zero.
+        data = {
+            "invoice_number": bill.invoice_number,
+            "invoice_date": (
+                bill.invoice_date.isoformat()
+                if bill.invoice_date else None
+            ),
+            "customer_profile": bill.customer_profile,
+            "customer_name": bill.customer_name,
+            "customer_address": bill.customer_address,
+            "customer_gstin": bill.customer_gstin,
+            "used_by": bill.used_by,
+            "start_date": (
+                bill.start_date.isoformat()
+                if bill.start_date else None
+            ),
+            "end_date": (
+                bill.end_date.isoformat()
+                if bill.end_date else None
+            ),
+            "booked_by": bill.booked_by,
+            "position": bill.position,
+            "vehicle_number": bill.vehicle_number,
+            "reference_number": bill.reference_number,
+
+            "total_km_driven": bill.total_km_driven,
+            "km_per_liter": bill.km_per_liter,
+            "fuel_quantity": bill.fuel_quantity,
+            "fuel_rate": bill.fuel_rate,
+
+            "monthly_hiring_amount": bill.monthly_hiring_amount,
+            "driver_batta_rate": bill.driver_batta_rate,
+            "extra_hours_rate": bill.extra_hours_rate,
+            "holiday_allowance_rate": bill.holiday_allowance_rate,
+
+            "outstation_duties": bill.outstation_duties,
+            "extra_hours": bill.extra_hours,
+            "holidays_worked": bill.holidays_worked,
+
+            "engine_oil_amount": bill.engine_oil_amount,
+            "parking_toll_amount": bill.parking_toll_amount,
+            "telephone_charges_amount": bill.telephone_charges_amount,
+
+            "cgst_rate": bill.cgst_rate,
+            "sgst_rate": bill.sgst_rate,
+        }
+
+        # Apply newly submitted values.
+        # New values take priority over previously saved values.
+        data.update(request_data)
+
         values = calculate_monthly_bill_data(data)
 
         if not values["customer_name"]:
@@ -1877,9 +1931,11 @@ def update_monthly_bill(bill_id):
 
         items = values.pop("items")
 
+        # Update the existing bill, not create a new bill.
         for key, value in values.items():
             setattr(bill, key, value)
 
+        # Replace the bill's line items with recalculated items.
         bill.items.clear()
         session.flush()
 
@@ -1902,7 +1958,9 @@ def update_monthly_bill(bill_id):
 
     except ValueError as exc:
         session.rollback()
-        return error_response(str(exc), 400, "VALIDATION_ERROR")
+        return error_response(
+            str(exc), 400, "VALIDATION_ERROR"
+        )
 
     except IntegrityError:
         session.rollback()
@@ -1924,4 +1982,3 @@ def update_monthly_bill(bill_id):
 
     finally:
         session.close()
-
