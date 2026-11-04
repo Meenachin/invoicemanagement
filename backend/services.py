@@ -889,13 +889,12 @@ def build_monthly_bill_pdf(bill):
 
         if engine_oil:
             charges["engine_oil"].append({
-                "description": "Engine Oil Amount",
-                "quantity": Decimal("1"),
-                "rate": engine_oil,
-                "amount": engine_oil,
-                "item_type": "non-taxable",
+               "description": "Engine Oil Amount",
+               "quantity": Decimal("1"),
+               "rate": engine_oil,
+               "amount": engine_oil,
+               "item_type": "non-taxable",
             })
-
         if parking:
             charges["parking"].append({
                 "description": "Parking & Toll Charges",
