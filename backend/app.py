@@ -1315,8 +1315,9 @@ def calculate_monthly_bill_data(data):
     # Otherwise, for non-SAMRO profiles:
     # Engine oil = (Total KM / 250) * 300.
 
-    if not engine_oil and not is_samro:
-        engine_oil = (total_km / 250) * 300
+# Always use the amount entered by the user.
+# Zero is a valid value and must not be recalculated.
+      engine_oil = number("engine_oil_amount")
 
     # ---------------------------------------------------------
     # 6. PROFILE-BASED CHARGE CALCULATIONS
@@ -1398,14 +1399,12 @@ def calculate_monthly_bill_data(data):
     # Engine Oil line item.
     if engine_oil:
         items.append({
-            "item_type": "non-taxable",
-            "description": "Engine Oil",
-            "quantity": (
-                total_km / 250 if not is_samro else 0
-            ),
-            "rate": 300,
-            "amount": engine_oil,
-        })
+           "item_type": "non-taxable",
+           "description": "Engine Oil",
+           "quantity": 0,
+           "rate": 0,
+           "amount": engine_oil,
+      })
 
     # Parking and Toll line item.
     if parking_toll:
