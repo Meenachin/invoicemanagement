@@ -916,7 +916,22 @@ def build_monthly_bill_pdf(bill):
     # ---------------------------------------------------------
     # INDIVIDUAL CHARGE TOTALS
     # ---------------------------------------------------------
+        # ---------------------------------------------------------
+    # ENSURE ENGINE OIL ROW IS ALWAYS DISPLAYED
+    # ---------------------------------------------------------
 
+    if not charges["engine_oil"]:
+        engine_oil = decimal_value(
+            get_value("engine_oil_amount")
+        )
+
+        charges["engine_oil"].append({
+            "description": "Engine Oil Amount",
+            "quantity": Decimal("1"),
+            "rate": engine_oil,
+            "amount": engine_oil,
+            "item_type": "non-taxable",
+        })
     def category_total(category):
         return sum(
             (
