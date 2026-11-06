@@ -1087,6 +1087,18 @@ def build_monthly_bill_pdf(bill):
                 normal,
             ),
             Paragraph(
+                f"Vehicle Number: "
+                f"{safe_text(get_value('vehicle_number'))}",
+                right,
+            ),
+        ],
+        [
+            Paragraph(
+                f"Customer GSTIN: "
+                f"{safe_text(get_value('customer_gstin'))}",
+                normal,
+            ),
+            Paragraph(
                 f"Invoice Date: {safe_text(invoice_date)}",
                 right,
             ),
