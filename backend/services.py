@@ -1449,7 +1449,7 @@ def build_monthly_bill_pdf(bill):
 
     bank_table = Table(
         [[item] for item in bank_details],
-        colWidths=[doc.width * 0.50],
+        colWidths=[doc.width * 0.34],
     )
 
     bank_table.setStyle(
@@ -1500,8 +1500,8 @@ def build_monthly_bill_pdf(bill):
     tax_table = Table(
     tax_rows,
     colWidths=[
-        doc.width * 0.28,
-        doc.width * 0.19,
+        doc.width * 0.18,
+        doc.width * 0.15,
     ],
     hAlign="RIGHT",
 )
@@ -1516,12 +1516,42 @@ def build_monthly_bill_pdf(bill):
             ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
         ])
     )
+    # ---------------------------------------------------------
+    # REVERSE CHARGE NOTE - MIDDLE BOX
+    # ---------------------------------------------------------
 
+    reverse_charge_note = Table(
+        [[
+            Paragraph(
+                "<b><i>Note:</i></b> As per Notification No. "
+                "22/2019 Central Tax (Rate) dated 30th "
+                "September 2019, this supply is covered "
+                "under <b>REVERSE CHARGE MECHANISM</b>. "
+                "Hence, CGST / SGST payable by the "
+                "recipient / receiver @ 5% on the value "
+                "mentioned in the invoice.",
+                normal,
+            )
+        ]],
+        colWidths=[doc.width * 0.33],
+    )
+
+    reverse_charge_note.setStyle(
+        TableStyle([
+            ("BOX", (0, 0), (-1, -1), 0.8, colors.black),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ])
+    )
     bottom_table = Table(
-        [[bank_table, tax_table]],
+        [[bank_table, reverse_charge_note, tax_table]],
         colWidths=[
-            doc.width * 0.53,
-            doc.width * 0.47,
+            doc.width * 0.34,
+            doc.width * 0.33,
+            doc.width * 0.33,
         ],
     )
 
